@@ -99,6 +99,7 @@ public class OnboardingService {
         return new TokenResponse(jwtService.generateUserToken(user));
     }
 
+
     private String generateOtp() {
         return String.valueOf(
                 ThreadLocalRandom.current().nextInt(100000, 999999)
