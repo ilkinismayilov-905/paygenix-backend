@@ -1,13 +1,12 @@
 package com.example.paygenix.service;
 
-import com.example.paygenix.dto.response.TokenResponse;
+import com.example.paygenix.dto.response.OnboardingTokenResponse;
 import com.example.paygenix.entity.OnboardingFlow;
 import com.example.paygenix.entity.User;
 import com.example.paygenix.repository.OnboardingFlowRepository;
 import com.example.paygenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,7 +58,7 @@ public class OnboardingService {
         }
 
         flow.setStep(OnboardingFlow.Step.OTP_VERIFIED);
-        return jwtService.generateToken(flow);
+        return jwtService.generateOnboardingToken(flow);
     }
 
     public void setFullName(String flowId,String fullName) {
@@ -81,7 +80,7 @@ public class OnboardingService {
         flow.setStep(OnboardingFlow.Step.USERNAME_SET);
     }
 
-    public TokenResponse setPin(String flowId, String pin) {
+    public OnboardingTokenResponse setPin(String flowId, String pin) {
         OnboardingFlow flow = getFlow(flowId, OnboardingFlow.Step.USERNAME_SET);
 
         User user = User.builder()
@@ -96,7 +95,7 @@ public class OnboardingService {
         userRepo.save(user);
 
         flow.setStep(OnboardingFlow.Step.COMPLETED);
-        return new TokenResponse(jwtService.generateUserToken(user));
+        return new OnboardingTokenResponse(jwtService.generateOnboardingUserToken(user));
     }
 
 
