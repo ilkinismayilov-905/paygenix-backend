@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -89,9 +91,8 @@ public class OnboardingService {
                 .username(flow.getUsernameCandidate())
                 .pinHash(encoder.encode(pin))
                 .status(User.Status.ACTIVE)
+                .roles(new HashSet<>(Set.of("USER_ROLE")))
                 .build();
-
-        user.getRoles().add("USER_ROLE");
         userRepo.save(user);
 
         flow.setStep(OnboardingFlow.Step.COMPLETED);
