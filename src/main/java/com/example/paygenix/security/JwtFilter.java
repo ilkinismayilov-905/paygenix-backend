@@ -11,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -32,6 +31,7 @@ public class JwtFilter extends OncePerRequestFilter {
         String token = null;
         String username = null;
 
+
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             token = authorizationHeader.substring(7);
             try {
@@ -39,6 +39,22 @@ public class JwtFilter extends OncePerRequestFilter {
             } catch (Exception e) {
                 log.error("JWT token validation error: {}", e.getMessage());
             }
+        }
+        String tokenType;
+        String subject;
+
+        try {
+            tokenType = jwtService.extractClaim(token, claims -> claims.get("scope", String.class));
+            subject = jwtService.extractUsername(token); // sub
+        } catch (Exception e) {
+            log.error("JWT parse error: {}", e.getMessage());
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        if ("onboarding".equals(tokenType)) {
+            filterChain.doFilter(request, response);
+            return;
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -54,4 +70,10 @@ public class JwtFilter extends OncePerRequestFilter {
         }
         filterChain.doFilter(request, response);
     }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return request.getRequestURI().startsWith("/api/onboarding");
+    }
+
 }

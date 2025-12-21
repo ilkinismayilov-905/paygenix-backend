@@ -68,7 +68,7 @@ public class AuthService {
                 .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .expiresIn(jwtExpiration)
-                .user(converter.mapToUserInfo(user))
+                .user(converter.mapToUserResponse(user))
             .build();
 
 }
@@ -122,7 +122,7 @@ public class AuthService {
                     .refreshToken(newRefreshToken)
                     .tokenType("Bearer")
                     .expiresIn(604800L)
-                    .user(converter.mapToUserInfo(user))
+                    .user(converter.mapToUserResponse(user))
                     .build();
         } catch (Exception e) {
             log.error("Token refresh zamanı xəta: {}", e.getMessage());

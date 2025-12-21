@@ -46,17 +46,14 @@ public class SecurityConfig {
                         sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/onboarding/email",
-                                "/api/onboarding/*/otp").permitAll()
-                )
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login")
-                        .permitAll()
+                        .requestMatchers("/api/onboarding/email", "/api/onboarding/*/otp").permitAll()
+                        .requestMatchers("/api/onboarding/**").hasAuthority("SCOPE_onboarding")
+                        .requestMatchers("/api/auth/login").permitAll()
                         .anyRequest().authenticated()
                 )
+
                 .formLogin(Customizer.withDefaults())
                 .logout(Customizer.withDefaults())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .oauth2Login(Customizer.withDefaults())
                 .oauth2ResourceServer(oauth ->
