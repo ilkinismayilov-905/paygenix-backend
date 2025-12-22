@@ -48,7 +48,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/onboarding/email", "/api/onboarding/*/otp").permitAll()
                         .requestMatchers("/api/onboarding/**").hasAuthority("SCOPE_onboarding")
-                        .requestMatchers("/api/auth/login").permitAll()
+                        .requestMatchers("/api/auth/login","/api/auth/refresh-token").permitAll()
                         .anyRequest().authenticated()
                 )
 

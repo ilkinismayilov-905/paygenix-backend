@@ -1,6 +1,7 @@
 package com.example.paygenix.controller;
 
 import com.example.paygenix.dto.request.LoginRequest;
+import com.example.paygenix.dto.request.RefreshTokenRequest;
 import com.example.paygenix.dto.response.JwtTokenResponse;
 import com.example.paygenix.dto.response.UserMeResponse;
 import com.example.paygenix.entity.User;
@@ -8,7 +9,10 @@ import com.example.paygenix.repository.UserRepository;
 import com.example.paygenix.service.AuthService;
 import com.example.paygenix.service.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -33,6 +37,7 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 @CrossOrigin
 @RequiredArgsConstructor
+@Slf4j
 public class AuthController {
 
     private final AuthService authService;
@@ -79,6 +84,24 @@ public class AuthController {
                 roles,
                 expiresIn
         );
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<JwtTokenResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest requestDTO){
+
+        try {
+            log.info("Refresh token request received");
+            JwtTokenResponse responseDTO = authService.refreshToken(requestDTO.refreshToken());
+            log.info("Refresh token successful");
+
+            return ResponseEntity.ok(responseDTO);
+
+        }catch (Exception e) {
+            log.error("Refresh token failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(JwtTokenResponse.builder()
+                            .build());
+        }
     }
 
 
