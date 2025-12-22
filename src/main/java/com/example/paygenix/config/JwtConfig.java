@@ -15,7 +15,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 @Configuration
 public class JwtConfig {
-    @Value("${security.jwt.secret}")
+    @Value("${JWT_SECRET}")
     private String jwtSecret;
 
     @Bean

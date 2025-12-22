@@ -1,7 +1,7 @@
 package com.example.paygenix.controller;
 
 import com.example.paygenix.dto.request.*;
-import com.example.paygenix.dto.response.TokenResponse;
+import com.example.paygenix.dto.response.OnboardingTokenResponse;
 import com.example.paygenix.service.OnboardingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -88,7 +88,7 @@ public class OnboardingController {
                                                    @RequestBody PinRequest r) {
         Map<String,Object> response = new HashMap<>();
         try {
-            TokenResponse dto = service.setPin(flowId, r.pin());
+            OnboardingTokenResponse dto = service.setPin(flowId, r.pin());
 
             response.put("success", true);
             response.put("data", dto);
