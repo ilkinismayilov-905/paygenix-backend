@@ -9,6 +9,7 @@ import com.example.paygenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -21,6 +22,7 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +38,13 @@ public class UserService {
         log.info("Getting all users");
         List<User> userResponseList = userRepository.findAll();
         return userConverter.mapToUserResponseList(userResponseList);
+    }
+
+    public User getById(Long id) {
+        log.info("Getting user by id: {}", id);
+        User user = userRepository.findById(id)
+                .orElseThrow(()-> new UsernameNotFoundException("User not found"));
+        return user;
     }
 
     public Media addMedia(MultipartFile mediaFile) {
