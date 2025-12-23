@@ -22,6 +22,9 @@ public class MediaService {
     @Value("${minio.bucket}")
     private String bucket;
 
+    @Value("${story.presign-seconds:3600}")
+    private int presignSeconds;
+
     public String upload(MultipartFile file) {
 
         try {
@@ -54,7 +57,7 @@ public class MediaService {
                             .method(Method.GET)
                             .bucket("stories")
                             .object(objectName)
-                            .expiry(60 * 60) // 1 saat
+                            .expiry(presignSeconds)
                             .build()
             );
         } catch (Exception e) {
