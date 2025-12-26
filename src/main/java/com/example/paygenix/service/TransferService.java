@@ -1,0 +1,77 @@
+package com.example.paygenix.service;
+
+import com.example.paygenix.converter.TransferConverter;
+import com.example.paygenix.dto.request.TransferRequest;
+import com.example.paygenix.dto.response.TransferResponse;
+import com.example.paygenix.entity.Cards;
+import com.example.paygenix.entity.Transactions;
+import com.example.paygenix.entity.Transfer;
+import com.example.paygenix.enums.TransactionStatus;
+import com.example.paygenix.exceptions.InsufficientBalanceException;
+import com.example.paygenix.exceptions.NotFoundException;
+import com.example.paygenix.repository.CardRepository;
+import com.example.paygenix.repository.TransactionRepository;
+import com.example.paygenix.repository.TransferRepository;
+import jakarta.transaction.Transaction;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class TransferService {
+    private final TransferRepository transferRepository;
+    private final CardRepository cardRepository;
+    private final TransactionService transactionService;
+    private final TransactionRepository transactionRepository;
+    private final TransferConverter converter;
+
+    @Transactional
+    public TransferResponse transfer(TransferRequest req) {
+        Transactions transaction = new Transactions();
+
+
+        Cards from = cardRepository.findByCardNumber(req.fromCardNumber())
+                .orElseThrow(() -> new NotFoundException("Card number not found"));
+        Cards to   = cardRepository.findByCardNumber(req.toCardNumber())
+                .orElseThrow(() -> new NotFoundException("Card number not found"));
+        if(from.getAmount().compareTo(req.amount()) <= 0) {
+            throw new InsufficientBalanceException("Amount must be greater than or equal to amount");
+        }
+        BigDecimal ratePercent = transaction.getCommissionRate();
+        BigDecimal commissionAmount = req.amount()
+                .multiply(ratePercent)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal totalAmount = commissionAmount.add(req.amount());
+
+        from.setAmount(from.getAmount().subtract(totalAmount));
+        to.setAmount(to.getAmount().add(req.amount()));
+
+        Cards savedFrom = cardRepository.save(from);
+        Cards savedTo = cardRepository.save(to);
+        transaction.setAmount(req.amount());
+        transaction.setFrom_card_id(from.getCardNumber());
+        transaction.setTo_card_id(to.getCardNumber());
+        transaction.setCurrency(from.getCurrency());
+        transaction.setTransactionId(transactionService.generateTransactionId());
+        transaction.setStatus(TransactionStatus.COMPLETED);
+        transaction.setCommissionValue(commissionAmount);
+        transaction.setTotalAmount(totalAmount);
+
+        transactionRepository.save(transaction);
+
+        Transfer transfer = converter.toTransfer(req);
+        transferRepository.save(transfer);
+
+        return converter.toTransferResponse(transfer);
+    }
+
+    public List<TransferResponse> getAllTransfers() {
+        List<Transfer> transfers = transferRepository.findAll();
+        return converter.toTransferResponseList(transfers);
+    }
+}

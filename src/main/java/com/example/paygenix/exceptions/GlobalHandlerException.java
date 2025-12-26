@@ -19,7 +19,7 @@ public class GlobalHandlerException {
 
         String path = request.getRequestURI();
         if (path.contains("/v3/api-docs") || path.contains("/swagger-ui")) {
-            return ResponseEntity.ok().build(); // Spring bu zaman default davranışı edəcək
+            return ResponseEntity.ok().build();
         }
 
         Map<String, Object> error = new LinkedHashMap<>();
@@ -31,4 +31,22 @@ public class GlobalHandlerException {
 
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
+
+    @ExceptionHandler(InsufficientBalanceException.class)
+    public ResponseEntity<Map<String, Object>> insufficientBalance(InsufficientBalanceException ex, HttpServletRequest request){
+
+        String path = request.getRequestURI();
+        if (path.contains("/v3/api-docs") || path.contains("/swagger-ui")) {
+            return ResponseEntity.ok().build();
+        }
+
+        Map<String, Object> error = new LinkedHashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.CONFLICT.value());
+        error.put("message", ex.getMessage());
+        error.put("path", request.getRequestURI());
+
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+
 }
