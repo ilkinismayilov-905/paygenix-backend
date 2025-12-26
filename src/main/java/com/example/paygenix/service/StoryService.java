@@ -115,7 +115,7 @@ public class StoryService {
                     .map(s -> new StoryResponse(
                             s.getId(),
                             s.getMediaType(),
-                            mediaService.getDownloadUrl(s.getObjectName()),
+                            mediaService.getDownloadUrl("centralBaku.jpeg"),
                             s.getExpiresAt(),
                             viewedStoryIds.contains(s.getId())
                     ))
