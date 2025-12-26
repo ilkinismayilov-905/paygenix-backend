@@ -7,8 +7,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
+import java.util.Date;
 
 @Entity
 @Table
@@ -50,4 +52,7 @@ public class Cards {
         this.cardNetwork = cardNetwork;
         this.currency = currency;
     }
+
+    @CreationTimestamp
+    private Date creationDate;
 }
