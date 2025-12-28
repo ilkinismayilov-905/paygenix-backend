@@ -8,6 +8,9 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -20,6 +23,11 @@ public class TransactionConverter {
         BigDecimal total =
                 transactions.getAmount().add(transactions.getCommissionValue());
 
+        OffsetDateTime createdAt =
+                transactions.getCreationDate()   // Instant
+                        .atZone(ZoneId.of("Asia/Baku"))
+                        .toOffsetDateTime();
+
         return new TransactionsResponse(
                 transactions.getTransactionId(),
                 mask(transactions.getFrom_card_id()),
@@ -29,8 +37,7 @@ public class TransactionConverter {
                 formatAmount(transactions.getCommissionValue(),transactions.getCurrency()),
                 formatAmount(total, transactions.getCurrency()),
                 transactions.getStatus(),
-                formatDate(transactions.getCreationDate())
-        );
+                createdAt);
     }
 
     public List<TransactionsResponse> toTransactionsResponseList(List<Transactions> transactions){
@@ -48,9 +55,6 @@ public class TransactionConverter {
                 cardNumber.substring(cardNumber.length() - 4);
     }
 
-    private String formatDate(Date date) {
-        return new SimpleDateFormat("yyyy-MM-dd HH:mm").format(date);
-    }
     private String formatAmount(BigDecimal amount, Currency currency) {
         NumberFormat nf = NumberFormat.getNumberInstance(Locale.US);
         nf.setMinimumFractionDigits(2);

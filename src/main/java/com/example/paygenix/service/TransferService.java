@@ -14,13 +14,16 @@ import com.example.paygenix.repository.TransactionRepository;
 import com.example.paygenix.repository.TransferRepository;
 import jakarta.transaction.Transaction;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TransferService {
@@ -71,7 +74,15 @@ public class TransferService {
     }
 
     public List<TransferResponse> getAllTransfers() {
+        log.info("Getting all transfers");
         List<Transfer> transfers = transferRepository.findAll();
         return converter.toTransferResponseList(transfers);
+    }
+
+    public TransferResponse getTransferById(Long id) {
+        log.info("Getting transfer with id {}", id);
+        Transfer transfer = transferRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Transfer not found"));
+        return converter.toTransferResponse(transfer);
     }
 }
