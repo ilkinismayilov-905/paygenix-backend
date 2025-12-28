@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 
 @Entity
@@ -26,5 +27,5 @@ public class Transfer {
     private BigDecimal amount;
 
     @CreationTimestamp
-    private LocalDate creationDate;
+    private Instant creationDate;
 }

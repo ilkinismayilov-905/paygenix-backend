@@ -5,6 +5,7 @@ import com.example.paygenix.dto.response.TransferResponse;
 import com.example.paygenix.entity.Transfer;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -31,7 +32,7 @@ public class TransferConverter {
                .toCardNumber(request.toCardNumber())
                .fromCardNumber(request.fromCardNumber())
                .amount(request.amount())
-               .creationDate(LocalDate.now())
+               .creationDate(Instant.now())
                .build();
     }
 

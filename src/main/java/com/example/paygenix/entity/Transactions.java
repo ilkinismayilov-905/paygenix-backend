@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Date;
 
 @Entity
@@ -53,7 +54,7 @@ public class Transactions {
     private TransactionStatus status;
 
     @CreationTimestamp
-    private Date creationDate;
+    private Instant creationDate;
 
 
 }
