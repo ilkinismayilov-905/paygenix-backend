@@ -49,4 +49,9 @@ public class GlobalHandlerException {
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<String> handleRuntime(RuntimeException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(e.getMessage());
+    }
 }
