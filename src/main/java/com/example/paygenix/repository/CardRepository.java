@@ -13,7 +13,7 @@ import static jakarta.persistence.LockModeType.PESSIMISTIC_WRITE;
 
 @Repository
 public interface CardRepository extends JpaRepository<Cards, Long> {
-    @Lock(PESSIMISTIC_WRITE)
+
     Optional<Cards> findByCardNumber(String cardNumber);
 
 

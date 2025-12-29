@@ -1,6 +1,7 @@
 package com.example.paygenix.service;
 
-import com.example.paygenix.converter.UserConverter;
+//import com.example.paygenix.converter.UserConverter;
+import com.example.paygenix.mapper.UserMapper;
 import com.example.paygenix.dto.request.LoginRequest;
 import com.example.paygenix.dto.response.JwtTokenResponse;
 import com.example.paygenix.entity.RefreshToken;
@@ -35,7 +36,8 @@ public class AuthService {
     private final JwtService jwtService;
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final UserConverter converter;
+//    private final UserConverter converter;
+    private final UserMapper mapper;
 
     public JwtTokenResponse login(LoginRequest loginRequest) {
     Authentication authentication = authenticationManager.authenticate(
@@ -68,7 +70,7 @@ public class AuthService {
                 .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .expiresIn(jwtExpiration)
-                .user(converter.mapToUserResponse(user))
+                .user(mapper.userToUserResponse(user))
             .build();
 
 }
@@ -122,7 +124,7 @@ public class AuthService {
                     .refreshToken(newRefreshToken)
                     .tokenType("Bearer")
                     .expiresIn(604800L)
-                    .user(converter.mapToUserResponse(user))
+                    .user(mapper.userToUserResponse(user))
                     .build();
         } catch (Exception e) {
             log.error("Token refresh zamanı xəta: {}", e.getMessage());

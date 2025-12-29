@@ -1,4 +1,4 @@
-package com.example.paygenix.converter;
+package com.example.paygenix.mapper;
 
 import com.example.paygenix.dto.request.CardRequest;
 import com.example.paygenix.dto.response.CardResponse;

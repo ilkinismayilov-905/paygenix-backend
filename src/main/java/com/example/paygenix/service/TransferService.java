@@ -1,6 +1,7 @@
 package com.example.paygenix.service;
 
-import com.example.paygenix.converter.TransferConverter;
+//import com.example.paygenix.converter.TransferConverter;
+import com.example.paygenix.mapper.TransferMapper;
 import com.example.paygenix.dto.request.TransferRequest;
 import com.example.paygenix.dto.response.TransferResponse;
 import com.example.paygenix.entity.Cards;
@@ -12,7 +13,6 @@ import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.repository.CardRepository;
 import com.example.paygenix.repository.TransactionRepository;
 import com.example.paygenix.repository.TransferRepository;
-import jakarta.transaction.Transaction;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -31,8 +30,8 @@ public class TransferService {
     private final CardRepository cardRepository;
     private final TransactionService transactionService;
     private final TransactionRepository transactionRepository;
-    private final TransferConverter converter;
-
+//    private final TransferConverter converter;
+    private final TransferMapper mapper;
     @Transactional
     public TransferResponse transfer(TransferRequest req) {
         Transactions transaction = new Transactions();
@@ -67,22 +66,22 @@ public class TransferService {
 
         transactionRepository.save(transaction);
 
-        Transfer transfer = converter.toTransfer(req);
+        Transfer transfer = mapper.mapToTransfer(req);
         transferRepository.save(transfer);
 
-        return converter.toTransferResponse(transfer);
+        return mapper.mapToTransferResponse(transfer);
     }
 
     public List<TransferResponse> getAllTransfers() {
         log.info("Getting all transfers");
         List<Transfer> transfers = transferRepository.findAll();
-        return converter.toTransferResponseList(transfers);
+        return mapper.mapToTransferResponseList(transfers);
     }
 
     public TransferResponse getTransferById(Long id) {
         log.info("Getting transfer with id {}", id);
         Transfer transfer = transferRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Transfer not found"));
-        return converter.toTransferResponse(transfer);
+        return mapper.mapToTransferResponse(transfer);
     }
 }

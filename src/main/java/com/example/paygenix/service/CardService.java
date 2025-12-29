@@ -1,6 +1,8 @@
 package com.example.paygenix.service;
 
-import com.example.paygenix.converter.CardConverter;
+
+import com.example.paygenix.mapper.CardConverter;
+import com.example.paygenix.mapper.CardMapper;
 import com.example.paygenix.dto.request.CardRequest;
 import com.example.paygenix.dto.response.CardResponse;
 import com.example.paygenix.entity.Cards;
@@ -8,11 +10,9 @@ import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.repository.CardRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.convert.converter.Converter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.smartcardio.Card;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -23,6 +23,7 @@ import java.util.List;
 public class CardService {
     private final CardRepository cardRepository;
     private final CardConverter converter;
+//    private final CardMapper mapper;
 
     @Transactional
     public CardResponse addCard(CardRequest card) {
