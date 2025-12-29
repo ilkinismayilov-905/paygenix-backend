@@ -46,6 +46,21 @@ public class UserService {
         return user;
     }
 
+    public User getByUsername(String username) {
+        log.info("Getting user by username: {}", username);
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        return user;
+    }
+
+    public User getByEmail(String email) {
+        log.info("Getting user by email: {}", email);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        return user;
+    }
+
     public Media addMedia(MultipartFile mediaFile) {
         Media media = new Media();
         try {
