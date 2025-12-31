@@ -19,10 +19,10 @@ public class MediaService {
 
     private final MinioClient minioClient;
 
-    @Value("${minio.bucket}")
-    private String bucket;
 
-    @Value("${story.presign-seconds:3600}")
+    private String bucket = "stories";
+
+    @Value("${story.presign-seconds}")
     private int presignSeconds;
 
     public String upload(MultipartFile file) {
