@@ -1,7 +1,7 @@
 package com.example.paygenix.mapper;
 
 import com.example.paygenix.dto.request.EditProfileRequest;
-import com.example.paygenix.dto.request.EditProfileResponse;
+import com.example.paygenix.dto.response.EditProfileResponse;
 import com.example.paygenix.entity.EditProfile;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

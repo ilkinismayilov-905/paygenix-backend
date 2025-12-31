@@ -1,6 +1,7 @@
 package com.example.paygenix.entity;
 
 import com.example.paygenix.enums.Gender;
+import com.example.paygenix.enums.MediaType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import lombok.AllArgsConstructor;
@@ -44,6 +45,13 @@ public class EditProfile {
     @OneToOne(optional = false)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
+
+    @Column(nullable = true, length = 512)
+    private String objectName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = true, length = 16)
+    private MediaType mediaType;
 
     @CreationTimestamp
     private Instant createdAt;
