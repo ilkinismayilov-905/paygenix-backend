@@ -26,10 +26,10 @@ import java.time.LocalDateTime;
 @Slf4j
 public class AuthService {
 
-    @Value("${REFRESH_EXPIRATION}")
+    @Value("${jwt.refresh-expiration}")
     private Long refreshExpiration;
 
-    @Value("${EXPIRATION}")
+    @Value("${jwt.expiration}")
     private Long jwtExpiration;
 
     private final AuthenticationManager authenticationManager;

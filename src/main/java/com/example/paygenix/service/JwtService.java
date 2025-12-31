@@ -27,13 +27,13 @@ import java.util.function.Function;
 @Slf4j
 public class JwtService {
 
-    @Value("${JWT_SECRET}")
+    @Value("${jwt.secret}")
     private String jwtSecret;
 
-    @Value("${EXPIRATION}")
+    @Value("${jwt.expiration}")
     private Long jwtExpiration;
 
-    @Value("${REFRESH_EXPIRATION}")
+    @Value("${jwt.refresh-expiration}")
     private Long refreshExpiration;
 
     private final JwtEncoder jwtEncoder;
