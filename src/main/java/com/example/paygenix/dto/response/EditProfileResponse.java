@@ -1,4 +1,4 @@
-package com.example.paygenix.dto.request;
+package com.example.paygenix.dto.response;
 
 import com.example.paygenix.enums.Gender;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -12,6 +12,7 @@ public record EditProfileResponse(
 
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy")
         LocalDate dateOfBirth,
-        Gender gender
+        Gender gender,
+        String objectName
 ) {
 }

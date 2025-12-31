@@ -1,6 +1,6 @@
 //package com.example.paygenix.mapper;
 //
-//import com.example.paygenix.dto.request.EditProfileResponse;
+//import com.example.paygenix.dto.response.EditProfileResponse;
 //import com.example.paygenix.entity.EditProfile;
 //import com.example.paygenix.entity.User;
 //import org.springframework.stereotype.Component;
