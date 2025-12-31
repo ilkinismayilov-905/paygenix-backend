@@ -33,7 +33,7 @@ public class StoryService {
     private final MediaService mediaService;
     private final UserRepository userRepo;
 
-    @Value("${story.expiry-seconds:86400}")
+    @Value("${story.expiry-seconds}")
     private long expirySeconds;
 
     public List<Long> resolveFeedUserIds(Long currentUserId) {
