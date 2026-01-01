@@ -1,5 +1,6 @@
 package com.example.paygenix.exceptions;
 
+import com.example.paygenix.dto.response.VerificationErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -53,5 +54,17 @@ public class GlobalHandlerException {
     public ResponseEntity<String> handleRuntime(RuntimeException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(e.getMessage());
+    }
+
+    @ExceptionHandler(VerificationFailedException.class)
+    public ResponseEntity<VerificationErrorResponse> handleVerificationFailed(
+            VerificationFailedException ex
+    ) {
+        return ResponseEntity
+                .badRequest()
+                .body(new VerificationErrorResponse(
+                        "Verification failed",
+                        ex.getMismatchedFields()
+                ));
     }
 }
