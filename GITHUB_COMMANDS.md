@@ -16,5 +16,3 @@ git checkout -b "your_new_branch"
 git add .
 git commit -m "commit"
 git push -u origin "your_new_branch"(sonraki zaman sadece "git push")
-
-***REMOVED***
