@@ -58,9 +58,18 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     private Status status;
 
+    @Enumerated(EnumType.STRING)
+    private VerificationStatus verificationStatus = VerificationStatus.PENDING;
+
     public enum Status {
         ACTIVE,
         LOCKED
+    }
+
+    public enum VerificationStatus {
+        PENDING,
+        IDENTITY_VERIFIED,
+        VERIFIED
     }
 
     @CreationTimestamp
