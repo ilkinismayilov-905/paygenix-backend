@@ -1,5 +1,6 @@
 package com.example.paygenix.entity;
 
+import com.example.paygenix.enums.Role;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -50,16 +51,27 @@ public class User implements UserDetails {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
             name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"))
+            joinColumns = @JoinColumn(name = "user_id")
+    )
+    @Enumerated(EnumType.STRING)
     @Column(name = "role")
     @Builder.Default
-    private Set<String> roles = new HashSet<>();
+    private Set<Role> roles = new HashSet<>();
 
     @Enumerated(EnumType.STRING)
     private Status status;
 
     @Enumerated(EnumType.STRING)
+    private AuthProvider provider=AuthProvider.LOCAL;
+
+    @Enumerated(EnumType.STRING)
     private VerificationStatus verificationStatus = VerificationStatus.PENDING;
+
+    @CreationTimestamp
+    private LocalDateTime createdTime;
+
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
 
     public enum Status {
         ACTIVE,
@@ -71,12 +83,10 @@ public class User implements UserDetails {
         IDENTITY_VERIFIED,
         VERIFIED
     }
-
-    @CreationTimestamp
-    private LocalDateTime createdTime;
-
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
+    public enum AuthProvider {
+        LOCAL,
+        GOOGLE
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

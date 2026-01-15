@@ -3,6 +3,7 @@ package com.example.paygenix.service;
 import com.example.paygenix.dto.response.OnboardingTokenResponse;
 import com.example.paygenix.entity.OnboardingFlow;
 import com.example.paygenix.entity.User;
+import com.example.paygenix.enums.Role;
 import com.example.paygenix.repository.OnboardingFlowRepository;
 import com.example.paygenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -91,7 +92,7 @@ public class OnboardingService {
                 .username(flow.getUsernameCandidate())
                 .pinHash(encoder.encode(pin))
                 .status(User.Status.ACTIVE)
-                .roles(new HashSet<>(Set.of("USER_ROLE")))
+                .roles(Set.of(Role.ROLE_USER))
                 .build();
         userRepo.save(user);
 

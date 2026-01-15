@@ -1,13 +1,17 @@
 package com.example.paygenix.config;
 
+import com.example.paygenix.repository.UserRepository;
 import com.example.paygenix.security.JwtFilter;
+import com.example.paygenix.security.OAuth2SuccessHandler;
+import com.example.paygenix.service.CustomOAuth2UserService;
+import com.example.paygenix.service.JwtService;
 import jakarta.annotation.PostConstruct;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -36,6 +40,10 @@ public class SecurityConfig {
 
     private final UserDetailsService userDetailsService;
     private final JwtFilter jwtFilter;
+    private final UserRepository userRepository;
+    private final JwtService jwtService;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final CustomOAuth2UserService customOAuth2UserService;
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -46,18 +54,26 @@ public class SecurityConfig {
                         sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/onboarding/email", "/api/onboarding/*/otp").permitAll()
+                        .requestMatchers("/api/onboarding/email",
+                                "/api/onboarding/*/otp",
+                                "/api/auth/login",
+                                "/api/auth/refresh-token",
+                                "/api/stripe/test/**",
+                                "/actuator/health").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/cards").permitAll()
                         .requestMatchers("/api/onboarding/**").hasAuthority("SCOPE_onboarding")
-                        .requestMatchers("/api/auth/login","/api/auth/refresh-token").permitAll()
                         .anyRequest().authenticated()
                 )
 
                 .formLogin(Customizer.withDefaults())
+                .httpBasic(basic -> basic.disable())
                 .logout(Customizer.withDefaults())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .oauth2Login(Customizer.withDefaults())
-                .oauth2ResourceServer(oauth ->
-                        oauth.jwt(jwt -> {}));
+                //.oauth2Login(Customizer.withDefaults())
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                        .successHandler(oAuth2SuccessHandler)
+                );
         return http.build();
     }
     @Bean
