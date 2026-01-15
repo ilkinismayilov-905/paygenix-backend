@@ -100,8 +100,16 @@ public class JwtFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
+        String path = request.getRequestURI();
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        if(path.startsWith("/api/stripe/test/")
+                || path.equals("/actuator/health")){
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        if (authHeader == null
+                || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
