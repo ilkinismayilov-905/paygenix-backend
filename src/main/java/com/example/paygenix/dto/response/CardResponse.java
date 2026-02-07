@@ -10,6 +10,6 @@ public record CardResponse(
         String expirationDate,   // 03/27
         String cardHolderName,
         CardNetwork cardNetwork,
-        String displayAmount
-) {
+        String displayAmount) {
+
 }

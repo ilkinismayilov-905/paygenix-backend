@@ -92,7 +92,7 @@ public class OnboardingService {
                 .username(flow.getUsernameCandidate())
                 .pinHash(encoder.encode(pin))
                 .status(User.Status.ACTIVE)
-                .roles(Set.of(Role.ROLE_USER))
+                .roles(Set.of(Role.USER_ROLE))
                 .build();
         userRepo.save(user);
 

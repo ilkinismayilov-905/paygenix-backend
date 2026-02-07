@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @Transactional
@@ -36,7 +37,8 @@ public class AuthService {
     private final JwtService jwtService;
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
-//    private final UserConverter converter;
+    private final EmailService emailService;
+
     private final UserMapper mapper;
 
     public JwtTokenResponse login(LoginRequest loginRequest) {
@@ -131,4 +133,5 @@ public class AuthService {
             throw new RuntimeException("Token refresh edilə bilmədi: " + e.getMessage());
         }
     }
+
 }

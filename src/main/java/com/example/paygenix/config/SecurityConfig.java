@@ -62,6 +62,9 @@ public class SecurityConfig {
                                 "/actuator/health").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/cards").permitAll()
                         .requestMatchers("/api/onboarding/**").hasAuthority("SCOPE_onboarding")
+                        .requestMatchers("/api/").hasAuthority("SCOPE_onboarding")
+                        .requestMatchers("/api/**").authenticated()
+
                         .anyRequest().authenticated()
                 )
 
