@@ -1,5 +1,6 @@
 package com.example.paygenix.exceptions;
 
+import com.example.paygenix.dto.response.ErrorResponse;
 import com.example.paygenix.dto.response.VerificationErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -50,12 +51,6 @@ public class GlobalHandlerException {
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);
     }
 
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<String> handleRuntime(RuntimeException e) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(e.getMessage());
-    }
-
     @ExceptionHandler(VerificationFailedException.class)
     public ResponseEntity<VerificationErrorResponse> handleVerificationFailed(
             VerificationFailedException ex
@@ -66,5 +61,20 @@ public class GlobalHandlerException {
                         "Verification failed",
                         ex.getMismatchedFields()
                 ));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleBadRequest(IllegalArgumentException ex) {
+        return ResponseEntity
+                .badRequest()
+                .body(new ErrorResponse(false, ex.getMessage()));
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ErrorResponse> handleRuntime(RuntimeException ex) {
+        log.error("Unhandled exception", ex);
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse(false, "INTERNAL_SERVER_ERROR"));
     }
 }

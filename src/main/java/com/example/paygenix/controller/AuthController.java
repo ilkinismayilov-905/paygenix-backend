@@ -1,6 +1,7 @@
 package com.example.paygenix.controller;
 
 import com.example.paygenix.dto.request.LoginRequest;
+import com.example.paygenix.dto.request.PinRequest;
 import com.example.paygenix.dto.request.RefreshTokenRequest;
 import com.example.paygenix.dto.response.JwtTokenResponse;
 import com.example.paygenix.dto.response.UserMeResponse;
