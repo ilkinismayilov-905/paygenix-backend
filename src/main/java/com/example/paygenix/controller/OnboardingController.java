@@ -19,7 +19,7 @@ public class OnboardingController {
     private final OnboardingService service;
 
     @PostMapping("/email")
-    public ResponseEntity<Map<String,Object>> email(@RequestBody EmailRequest r) {
+    public ResponseEntity<Map<String,Object>> email(@RequestBody LoginRequest r) {
         Map<String,Object> response = new HashMap<>();
         try {
             String dto = service.submitEmail(r.email());
