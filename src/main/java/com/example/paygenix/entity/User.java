@@ -2,6 +2,7 @@ package com.example.paygenix.entity;
 
 import com.example.paygenix.enums.Role;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,6 +14,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.HashSet;
@@ -62,16 +64,25 @@ public class User implements UserDetails {
     private Status status;
 
     @Enumerated(EnumType.STRING)
-    private AuthProvider provider=AuthProvider.LOCAL;
+    private AuthProvider provider;
 
     @Enumerated(EnumType.STRING)
-    private VerificationStatus verificationStatus = VerificationStatus.PENDING;
+    private VerificationStatus verificationStatus;
+
+    @Pattern(regexp = "^\\+?[0-9]{10,15}$")
+    String phoneNumber;
 
     @CreationTimestamp
     private LocalDateTime createdTime;
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    void prePersist() {
+        verificationStatus = VerificationStatus.PENDING;
+        provider=AuthProvider.LOCAL;
+    }
 
     public enum Status {
         ACTIVE,
