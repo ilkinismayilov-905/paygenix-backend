@@ -16,3 +16,9 @@ git checkout -b "your_new_branch"
 git add .
 git commit -m "commit"
 git push -u origin "your_new_branch"(sonraki zaman sadece "git push")
+
+# Change mvn version
+echo 'export JAVA_HOME=$(/usr/libexec/java_home -v 21)' >> ~/.zshrc
+echo 'export PATH="$JAVA_HOME/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+
