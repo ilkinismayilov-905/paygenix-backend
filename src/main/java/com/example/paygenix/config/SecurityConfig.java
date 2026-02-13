@@ -59,8 +59,9 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/refresh-token",
                                 "/api/stripe/test/**",
-                                "/actuator/health").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/cards").permitAll()
+                                "/actuator/health","/swagger-ui/**","/swagger-ui.html",
+                                "/v3/api-docs/**", "/login/oauth2/**", "/oauth2/authorization/**",
+                                "/home", "/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/onboarding/**").hasAuthority("SCOPE_onboarding")
                         .requestMatchers("/api/").hasAuthority("SCOPE_onboarding")
                         .requestMatchers("/api/**").authenticated()
@@ -68,7 +69,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
-                .formLogin(Customizer.withDefaults())
+//                .formLogin(Customizer.withDefaults())
                 .httpBasic(basic -> basic.disable())
                 .logout(Customizer.withDefaults())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)

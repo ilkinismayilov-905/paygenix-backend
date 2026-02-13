@@ -9,10 +9,7 @@ public record LoginRequest(
         @NotBlank(message = "Email cannot be blank")
         String email,
         @NotBlank(message = "Password cannot be blank")
-        String password,
-        @Pattern(regexp = "^\\+?[0-9]{10,15}$",
-                 message = "Invalid phone number")
-        String phoneNumber
+        String password
 )
 {
 }

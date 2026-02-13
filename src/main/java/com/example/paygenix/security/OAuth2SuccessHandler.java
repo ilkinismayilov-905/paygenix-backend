@@ -77,7 +77,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         String token = jwtUtil.generateJwtToken(userDetails, userId, fullName);
         String refreshToken = jwtUtil.generateJwtRefreshToken(userDetails);
 
-        String redirectUrl = "http://localhost:8080/oauth2/success"
+        String redirectUrl = "http://localhost:8000/oauth2/success"
                 + "?token=" + token
                 + "&refreshToken=" + refreshToken;
 
