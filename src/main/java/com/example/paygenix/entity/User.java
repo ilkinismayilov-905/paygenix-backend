@@ -78,6 +78,9 @@ public class User implements UserDetails {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    @Transient
+    private long expiresIn;
+
     @PrePersist
     void prePersist() {
         verificationStatus = VerificationStatus.PENDING;
