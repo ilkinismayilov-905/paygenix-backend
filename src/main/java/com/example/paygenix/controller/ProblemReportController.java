@@ -26,11 +26,15 @@ public class ProblemReportController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @ExceptionHandler
-    public CreateProblemReportResponse create(
+    public ResponseEntity<ApiResponse<CreateProblemReportResponse>> create(
             @RequestBody @Valid CreateProblemReportRequest request
     ) {
         ProblemReport saved = service.create(request);
-        return new CreateProblemReportResponse(saved.getId(), saved.getStatus().name(), saved.getCreatedAt());
+        CreateProblemReportResponse c = new CreateProblemReportResponse(
+                saved.getId(),
+                saved.getStatus().name(),
+                saved.getCreatedAt());
+        return ResponseEntity.ok(ApiResponse.success(c));
     }
 
     @ExceptionHandler

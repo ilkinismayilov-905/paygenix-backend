@@ -1,5 +1,6 @@
 package com.example.paygenix.controller;
 
+import com.example.paygenix.dto.ApiResponse;
 import com.example.paygenix.dto.response.UserResponse;
 import com.example.paygenix.entity.Media;
 import com.example.paygenix.repository.MediaRepository;
@@ -31,76 +32,21 @@ public class UserController {
     private final MediaService mediaService;
 
     @GetMapping
-    public ResponseEntity<Map<String,Object>> getAllUsers() {
-        Map<String,Object> response = new HashMap<>();
-
-        try {
-            List<UserResponse> list = userService.getAll();
-
-            response.put("success", true);
-            response.put("data", list);
-
-            return ResponseEntity.status(HttpStatus.OK).body(response);
-        }catch (IllegalArgumentException e){
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        }
-        catch (Exception e) {
-
-            response.put("success", false);
-            response.put("message", e.getMessage());
-
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsers() {
+        List<UserResponse> list = userService.getAll();
+        return ResponseEntity.ok(ApiResponse.success(list));
     }
 
     @PostMapping("/media")
-    public ResponseEntity<Map<String,Object>> uploadMedia(@RequestParam("file") MultipartFile file) {
-        Map<String,Object> response = new HashMap<>();
-        try {
-           String s = mediaService.upload(file);
-
-            response.put("success", true);
-            response.put("data", s);
-
-            return ResponseEntity.ok(response);
-        }catch (IllegalArgumentException e){
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        }
-        catch (Exception e) {
-
-            response.put("success", false);
-            response.put("message", e.getMessage());
-
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+    public ResponseEntity<ApiResponse<String>> uploadMedia(@RequestParam("file") MultipartFile file) {
+        String s = mediaService.upload(file);
+       return ResponseEntity.ok(ApiResponse.success(s));
     }
 
     @GetMapping("/media-download")
-    public ResponseEntity<Map<String,Object>> downloadMedia(@RequestParam String objectName) {
-        Map<String,Object> response = new HashMap<>();
-        try {
-            String s = mediaService.getDownloadUrl(objectName);
-
-            response.put("success", true);
-            response.put("data", s);
-
-            return ResponseEntity.ok(response);
-        }catch (IllegalArgumentException e){
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        }
-        catch (Exception e) {
-
-            response.put("success", false);
-            response.put("message", e.getMessage());
-
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+    public ResponseEntity<ApiResponse<String>> downloadMedia(@RequestParam String objectName) {
+        String s = mediaService.getDownloadUrl(objectName);
+        return ResponseEntity.ok(ApiResponse.success(s));
     }
 
 

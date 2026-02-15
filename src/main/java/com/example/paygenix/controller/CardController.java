@@ -26,43 +26,39 @@ public class CardController {
     @PostMapping
     public ResponseEntity<ApiResponse<CardResponse>> addCard(@RequestBody CardRequest request) {
         CardResponse card = cardService.addCard(request);
-        ApiResponse<CardResponse> response = ApiResponse.build(
+
+        return ResponseEntity.ok(ApiResponse.build(
                 HttpStatus.CREATED,
                 "Card added successfully",
                 card
-        );
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        ));
     }
 
     // -------------------- GET CARD BY NUMBER --------------------
     @GetMapping("/number/{cardNumber}")
     public ResponseEntity<ApiResponse<CardResponse>> getCardByNumber(@PathVariable String cardNumber) {
         CardResponse card = cardService.getCardByNumber(cardNumber);
-        ApiResponse<CardResponse> response = ApiResponse.success(
+        return ResponseEntity.ok(ApiResponse.success(
                 card
-        );
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        ));
     }
 
     // -------------------- GET CARD BY ID --------------------
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<CardResponse>> getCardById(@PathVariable Long id) {
         CardResponse card = cardService.findById(id);
-        ApiResponse<CardResponse> response = ApiResponse.success(
+        return ResponseEntity.ok(ApiResponse.success(
                 card
-        );
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        ));
     }
 
     // -------------------- GET ALL CARDS --------------------
     @GetMapping
     public ResponseEntity<ApiResponse<List<CardResponse>>>  getAllCards() {
         List<CardResponse> cards = cardService.getAllCards();
-        ApiResponse<List<CardResponse>> response = ApiResponse.success(
+        return ResponseEntity.ok(ApiResponse.success(
                 cards
-        );
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        ));
     }
 
     // -------------------- UPDATE CARD --------------------
@@ -72,10 +68,9 @@ public class CardController {
             @RequestBody CardRequest request
     ) {
         CardResponse card = cardService.updateCard(id, request);
-        ApiResponse<CardResponse> response = ApiResponse.success(
+        return ResponseEntity.ok(ApiResponse.success(
                 card
-        );
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        ));
     }
 
     // -------------------- DELETE CARD --------------------
@@ -83,10 +78,10 @@ public class CardController {
     public ResponseEntity<ApiResponse<CardResponse>>  deleteCard(@PathVariable Long id) {
         CardResponse card = cardService.findById(id);
         cardService.deleteCard(id);
-        ApiResponse<CardResponse> response = ApiResponse.success(
-                card
-        );
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                    card
+        ));
 
     }
 
@@ -97,10 +92,9 @@ public class CardController {
             @RequestParam BigDecimal amount
     ) {
         CardResponse card = cardService.addAmount(cardNumber, amount);
-        ApiResponse<CardResponse> response = ApiResponse.success(
+        return ResponseEntity.ok(ApiResponse.success(
                 card
-        );
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        ));
 
     }
 }

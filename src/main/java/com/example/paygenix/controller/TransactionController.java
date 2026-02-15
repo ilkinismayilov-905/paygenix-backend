@@ -1,5 +1,6 @@
 package com.example.paygenix.controller;
 
+import com.example.paygenix.dto.ApiResponse;
 import com.example.paygenix.dto.response.TransactionsResponse;
 import com.example.paygenix.dto.response.TransferResponse;
 import com.example.paygenix.service.TransactionService;
@@ -27,71 +28,23 @@ public class TransactionController {
     private final TransactionService transactionService;
 
     @GetMapping
-    public ResponseEntity<Map<String,Object>> getAllTransactions() {
-        Map<String,Object> response = new HashMap<>();
-        try {
-            List<TransactionsResponse> list = transactionService.getAll();
-            response.put("success", true);
-            response.put("data", list);
-            return ResponseEntity.status(HttpStatus.OK).body(response);
-        }catch (IllegalArgumentException e){
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        }
-        catch (Exception e) {
-
-            response.put("success", false);
-            response.put("message", e.getMessage());
-
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+    public ResponseEntity<ApiResponse<List<TransactionsResponse>>> getAllTransactions() {
+        List<TransactionsResponse> list = transactionService.getAll();
+        return ResponseEntity.ok(ApiResponse.success(list));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Map<String,Object>> getTransactionById(@PathVariable Long id) {
-        Map<String,Object> response = new HashMap<>();
-        try {
-            TransactionsResponse list = transactionService.getByID(id);
-            response.put("success", true);
-            response.put("data", list);
-            return ResponseEntity.status(HttpStatus.OK).body(response);
-        }catch (IllegalArgumentException e){
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        }
-        catch (Exception e) {
-
-            response.put("success", false);
-            response.put("message", e.getMessage());
-
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+    public ResponseEntity<ApiResponse<TransactionsResponse>> getTransactionById(@PathVariable Long id) {
+        TransactionsResponse list = transactionService.getByID(id);
+        return ResponseEntity.ok(ApiResponse.success(list));
     }
 
     @GetMapping("/between")
-    public ResponseEntity<Map<String,Object>> getBetweenDates(@RequestParam("start") @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate start,
+    public ResponseEntity<ApiResponse<List<TransactionsResponse>>> getBetweenDates(@RequestParam("start") @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate start,
                                                               @RequestParam("end") @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate end){
         log.info("REST request to get events between: {} and {}", start, end);
 
-        Map<String,Object> response = new HashMap<>();
-
-        try {
-            List<TransactionsResponse> events = transactionService.getByCreationDateBetween(start, end);
-            response.put("success", true);
-            response.put("data", events);
-            response.put("count", events.size());
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        } catch (Exception e) {
-            log.error("Error fetching events between dates: {}", e.getMessage());
-            response.put("success", false);
-            response.put("message", "Failed to fetch events: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+        List<TransactionsResponse> events = transactionService.getByCreationDateBetween(start, end);
+       return ResponseEntity.ok(ApiResponse.success(events));
     }
 }
