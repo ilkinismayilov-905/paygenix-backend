@@ -160,7 +160,10 @@ public class JwtFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return request.getRequestURI().startsWith("/api/onboarding");
+        String path = request.getRequestURI();
+        return path.startsWith("/api/onboarding")
+                ||path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs");
     }
 
 }

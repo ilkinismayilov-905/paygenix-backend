@@ -1,5 +1,6 @@
 package com.example.paygenix.controller;
 
+import com.example.paygenix.dto.ApiResponse;
 import com.example.paygenix.dto.request.CardRequest;
 import com.example.paygenix.dto.response.CardResponse;
 import com.example.paygenix.service.CardService;
@@ -24,23 +25,15 @@ public class CardController {
 
     // -------------------- ADD CARD --------------------
     @PostMapping
-    public ResponseEntity<Map<String, Object>> addCard(@RequestBody CardRequest request) {
-        Map<String, Object> response = new HashMap<>();
-        try {
-            CardResponse card = cardService.addCard(request);
-            response.put("success", true);
-            response.put("data", card);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (IllegalArgumentException e) {
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
-        } catch (Exception e) {
-            log.error("Error adding card", e);
-            response.put("success", false);
-            response.put("message", "Internal server error");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+    public ResponseEntity<ApiResponse<CardResponse>> addCard(@RequestBody CardRequest request) {
+        CardResponse card = cardService.addCard(request);
+        ApiResponse<CardResponse> response = ApiResponse.build(
+                HttpStatus.CREATED,
+                "Card added successfully",
+                card
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     // -------------------- GET CARD BY NUMBER --------------------

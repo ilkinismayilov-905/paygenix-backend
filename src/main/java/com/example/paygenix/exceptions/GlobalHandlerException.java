@@ -1,5 +1,6 @@
 package com.example.paygenix.exceptions;
 
+import com.example.paygenix.dto.ApiResponse;
 import com.example.paygenix.dto.response.ErrorResponse;
 import com.example.paygenix.dto.response.VerificationErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -91,4 +92,63 @@ public class GlobalHandlerException {
         return new ErrorResponse(
                 OffsetDateTime.now(), 401, "Email or password is incorrect", "BAD_CREDENTIALS");
     }
+
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessException(
+            BusinessException ex,
+            HttpServletRequest request
+    ) {
+
+        String path = request.getRequestURI();
+        if (path.contains("/v3/api-docs") || path.contains("/swagger-ui")) {
+            return ResponseEntity.ok().build();
+        }
+
+        HttpStatus status = resolveStatus(ex);
+
+        return ResponseEntity
+                .status(status)
+                .body(new ErrorResponse(
+                        OffsetDateTime.now(),
+                        status.value(),
+                        ex.getMessage(),
+                        ex.getErrorCode()
+                ));
+    }
+
+    @ExceptionHandler(UserNotLoginException.class)
+    public ResponseEntity<ApiResponse<Object>> handleNotLoginUser(
+            UserNotLoginException ex) {
+        log.warn("Unauthorized access attempt: {}", ex.getMessage());
+
+
+        return buildErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Unexpected server error",
+                ex.getMessage()
+        );
+    }
+
+
+    private HttpStatus resolveStatus(BusinessException ex) {
+
+        if (ex instanceof InvalidReportCategoryException ||
+                ex instanceof InvalidReportMessageException) {
+            return HttpStatus.BAD_REQUEST;
+        }
+
+        if (ex instanceof TooManyReportsException) {
+            return HttpStatus.TOO_MANY_REQUESTS;
+        }
+
+        return HttpStatus.INTERNAL_SERVER_ERROR;
+    }
+
+    private ResponseEntity<ApiResponse<Object>> buildErrorResponse(
+            HttpStatus status, String message, Object details) {
+        return ResponseEntity.status(status).body(ApiResponse.build(status, message, details));
+    }
+
+
+
 }
