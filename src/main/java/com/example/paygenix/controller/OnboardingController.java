@@ -68,21 +68,21 @@ public class OnboardingController {
         }
     }
 
-    @PreAuthorize("hasAuthority('SCOPE_onboarding')")
+    @PreAuthorize("hasAuthority('onboarding')")
     @PutMapping("/{flowId}/full-name")
     public void fullName(@PathVariable String flowId,
                          @RequestBody FullNameRequest r) {
         service.setFullName(flowId, r.fullName());
     }
 
-    @PreAuthorize("hasAuthority('SCOPE_onboarding')")
+    @PreAuthorize("hasAuthority('onboarding')")
     @PutMapping("/{flowId}/username")
     public void username(@PathVariable String flowId,
                          @RequestBody UsernameRequest r) {
         service.setUsername(flowId, r.username());
     }
 
-    @PreAuthorize("hasAuthority('SCOPE_onboarding')")
+    @PreAuthorize("hasAuthority('onboarding')")
     @PutMapping("/{flowId}/pin")
     public ResponseEntity<Map<String, Object>> pin(@PathVariable String flowId,
                                                    @RequestBody PinRequest r) {
