@@ -1,5 +1,6 @@
 package com.example.paygenix.controller;
 
+import com.example.paygenix.dto.ApiResponse;
 import com.example.paygenix.dto.request.ConfirmPaymentRequest;
 import com.example.paygenix.dto.request.PaymentRequest;
 import com.example.paygenix.dto.request.TransferRequest;
@@ -32,7 +33,7 @@ public class PaymentController {
     private final PaymentTransactionService ptService;
 
     @PostMapping("/initiate")
-    public ResponseEntity<String> initiatePayment(
+    public ResponseEntity<ApiResponse<String>> initiatePayment(
             @RequestBody PaymentRequest request,
             @AuthenticationPrincipal Jwt jwt
     ) {
@@ -40,13 +41,12 @@ public class PaymentController {
 
         log.info("JWT subject = {}", jwt.getSubject());
 
-
         String flowId = paymentService.transfer(request, username);
-        return ResponseEntity.ok(flowId);
+        return ResponseEntity.ok(ApiResponse.success(flowId));
     }
 
     @PostMapping("/confirm")
-    public ResponseEntity<PaymentResponse> confirmPayment(
+    public ResponseEntity<ApiResponse<PaymentResponse>> confirmPayment(
             @RequestBody ConfirmPaymentRequest request,
             @AuthenticationPrincipal Jwt jwt
     ) {
@@ -59,13 +59,13 @@ public class PaymentController {
                         username
                 );
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/history")
-    public ResponseEntity<List<PaymentTransactionResponse>> history(){
+    public ResponseEntity<ApiResponse<List<PaymentTransactionResponse>>> history(){
         List<PaymentTransactionResponse> list = ptService.getHistory();
-        return ResponseEntity.ok(list);
+        return ResponseEntity.ok(ApiResponse.success(list));
     }
 
     private UserDetails extractUser(Authentication authentication) {
