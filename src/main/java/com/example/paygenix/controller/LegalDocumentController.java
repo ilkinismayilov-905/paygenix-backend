@@ -1,13 +1,13 @@
 package com.example.paygenix.controller;
 
+import com.example.paygenix.dto.ApiResponse;
 import com.example.paygenix.dto.response.LegalDocumentResponse;
 import com.example.paygenix.entity.LegalDocument;
 import com.example.paygenix.service.LegalDocumentService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/legal")
@@ -17,24 +17,33 @@ public class LegalDocumentController {
     private final LegalDocumentService service;
 
     @GetMapping("/terms")
-    public LegalDocumentResponse getDocumentTerms() {
+    public ResponseEntity<ApiResponse<LegalDocumentResponse>> getDocumentTerms() {
         var doc = service.getActiveDocument("TERMS");
-        return new LegalDocumentResponse(
+        LegalDocumentResponse docResponse = new LegalDocumentResponse(
                 doc.getType(),
                 doc.getVersion(),
                 doc.getEffectiveDate(),
                 doc.getContent()
         );
+
+        return ResponseEntity.ok(ApiResponse.success(
+                docResponse
+        ));
     }
     @GetMapping("/privacy")
-    public LegalDocumentResponse getDocumentPrivacy() {
+    @ExceptionHandler
+    public ResponseEntity<ApiResponse<LegalDocumentResponse>> getDocumentPrivacy() {
         var doc = service.getActiveDocument("PRIVACY");
-        return new LegalDocumentResponse(
-                doc.getType(),
-                doc.getVersion(),
-                doc.getEffectiveDate(),
-                doc.getContent()
-        );
+       LegalDocumentResponse docResponse = new LegalDocumentResponse(
+                       doc.getType(),
+                       doc.getVersion(),
+                       doc.getEffectiveDate(),
+                       doc.getContent()
+               );
+
+        return ResponseEntity.ok(ApiResponse.success(
+                docResponse
+        ));
     }
 }
 

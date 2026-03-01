@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -18,6 +19,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Date;
 
 @Component
 @RequiredArgsConstructor
@@ -102,8 +105,7 @@ public class JwtFilter extends OncePerRequestFilter {
         String authHeader = request.getHeader("Authorization");
         String path = request.getRequestURI();
 
-        if(path.startsWith("/api/stripe/test/")
-                || path.equals("/actuator/health")){
+        if(path.startsWith("/api/stripe/test/") || path.equals("/actuator/health")){
             filterChain.doFilter(request, response);
             return;
         }
@@ -119,8 +121,20 @@ public class JwtFilter extends OncePerRequestFilter {
         try {
             String tokenType = jwtService.extractClaim(token, c -> c.get("scope", String.class));
 
-            // onboarding token-ları burax
             if ("onboarding".equals(tokenType)) {
+                // Onboarding tokenində subject adətən "onboarding" və ya müvəqqəti ID olur
+                String subject = jwtService.extractUsername(token);
+
+                // Onboarding üçün müvəqqəti Authority yaradırıq
+                SimpleGrantedAuthority authority = new SimpleGrantedAuthority("onboarding");
+
+                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                        subject, null, Collections.singletonList(authority));
+
+                auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(auth);
+
+                log.info("Onboarding token authenticated for: {}", subject);
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -134,6 +148,15 @@ public class JwtFilter extends OncePerRequestFilter {
                         userDetailsService.loadUserByUsername(username);
 
                 if (jwtService.validateToken(token, userDetails)) {
+
+                    if (userDetails instanceof User user) {
+                        Date expirationDate = jwtService.extractExpiration(token);
+                        if (expirationDate != null) {
+                            long secondsLeft = (expirationDate.getTime() - System.currentTimeMillis()) / 1000;
+                            user.setExpiresIn(Math.max(secondsLeft, 0));
+                            log.debug("Token for user {} expires in {} seconds", username, secondsLeft);
+                        }
+                    }
 
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(
@@ -153,6 +176,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
         } catch (Exception e) {
             log.error("JWT authentication error: {}", e.getMessage());
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);
@@ -161,9 +185,14 @@ public class JwtFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.startsWith("/api/onboarding")
-                ||path.startsWith("/swagger-ui")
-                || path.startsWith("/v3/api-docs");
+        // 1. OTP endpointi: /api/onboarding/{uuid}/otp
+        boolean isEmailStep = path.equals("/api/onboarding/email");
+        boolean isOtpStep = path.matches("/api/onboarding/[^/]+/otp");
+        return isOtpStep || isEmailStep
+                || path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/api/auth/login")
+                || path.startsWith("/api/auth/register");
     }
 
 }

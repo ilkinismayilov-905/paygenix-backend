@@ -16,139 +16,88 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
+
 
 @RestControllerAdvice
 @Slf4j
 public class GlobalHandlerException {
+
+    // 1. Ümumi cavab hazırlayan köməkçi metod (Kod təkrarını azaldır)
+    private ResponseEntity<ErrorResponse> buildError(HttpStatus status, String message, String errorCode) {
+        ErrorResponse error = new ErrorResponse(
+                OffsetDateTime.now(),
+                status.value(),
+                message,
+                errorCode
+        );
+        return ResponseEntity.status(status).body(error);
+    }
+
+    // 2. Tapılmadı xətaları (NotFoundException)
     @ExceptionHandler(NotFoundException.class)
-    public ResponseEntity<Object> userNotFound(NotFoundException ex, HttpServletRequest request) {
-
-        String path = request.getRequestURI();
-        if (path.contains("/v3/api-docs") || path.contains("/swagger-ui")) {
-            return ResponseEntity.ok().build();
-        }
-
-        Map<String, Object> error = new LinkedHashMap<>();
-        error.put("timestamp", LocalDateTime.now());
-        error.put("status", HttpStatus.NOT_FOUND.value());
-        error.put("error", "Not Found");
-        error.put("message", ex.getMessage());
-        error.put("path", request.getRequestURI());
-
-        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException ex) {
+        return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), "NOT_FOUND");
     }
 
+    // 3. Balans çatışmazlığı (InsufficientBalanceException)
     @ExceptionHandler(InsufficientBalanceException.class)
-    public ResponseEntity<Map<String, Object>> insufficientBalance(InsufficientBalanceException ex, HttpServletRequest request) {
-
-        String path = request.getRequestURI();
-        if (path.contains("/v3/api-docs") || path.contains("/swagger-ui")) {
-            return ResponseEntity.ok().build();
-        }
-
-        Map<String, Object> error = new LinkedHashMap<>();
-        error.put("timestamp", LocalDateTime.now());
-        error.put("status", HttpStatus.CONFLICT.value());
-        error.put("message", ex.getMessage());
-        error.put("path", request.getRequestURI());
-
-        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    public ResponseEntity<ErrorResponse> handleInsufficientBalance(InsufficientBalanceException ex) {
+        return buildError(HttpStatus.CONFLICT, ex.getMessage(), "INSUFFICIENT_BALANCE");
     }
 
+    // 4. Doğrulama xətası (VerificationFailedException)
+    // Qeyd: Əgər VerificationErrorResponse xüsusi sahələrə malikdirsə onu saxlaya bilərsən,
+    // lakin vahidlik üçün mesaj hissəsinə sahələri də əlavə etdim.
     @ExceptionHandler(VerificationFailedException.class)
-    public ResponseEntity<VerificationErrorResponse> handleVerificationFailed(
-            VerificationFailedException ex
-    ) {
-        return ResponseEntity
-                .badRequest()
-                .body(new VerificationErrorResponse(
-                        "Verification failed",
-                        ex.getMismatchedFields()
-                ));
+    public ResponseEntity<ErrorResponse> handleVerificationFailed(VerificationFailedException ex) {
+        String details = "Mismatched fields: " + ex.getMismatchedFields().stream()
+                .map(Object::toString)
+                .collect(Collectors.joining(", "));
+        return buildError(HttpStatus.BAD_REQUEST, details, "VERIFICATION_FAILED");
     }
 
+    // 5. Yanlış arqumentlər (IllegalArgumentException)
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleBadRequest(IllegalArgumentException ex) {
-        return ResponseEntity.badRequest().body(new ErrorResponse(OffsetDateTime.now(), HttpStatus.BAD_REQUEST.value(), ex.getMessage(), "BAD_REQUEST"));
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), "BAD_REQUEST");
     }
 
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ErrorResponse> handleRuntime(RuntimeException ex) {
-        log.error("Unhandled exception", ex);
-        return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse(
-                        OffsetDateTime.now(),
-                        HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                        "Internal server error",
-                        "INTERNAL_SERVER_ERROR"
-                ));
-    }
-
-
+    // 6. Təhlükəsizlik xətaları (BadCredentialsException)
     @ExceptionHandler(BadCredentialsException.class)
-    @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    public ErrorResponse handleBadCredentials(BadCredentialsException ex) {
-        return new ErrorResponse(
-                OffsetDateTime.now(), 401, "Email or password is incorrect", "BAD_CREDENTIALS");
+    public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException ex) {
+        return buildError(HttpStatus.UNAUTHORIZED, "Email or password is incorrect", "UNAUTHORIZED");
     }
 
+    // 7. Biznes xətaları (BusinessException)
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ErrorResponse> handleBusinessException(
-            BusinessException ex,
-            HttpServletRequest request
-    ) {
-
-        String path = request.getRequestURI();
-        if (path.contains("/v3/api-docs") || path.contains("/swagger-ui")) {
-            return ResponseEntity.ok().build();
-        }
-
+    public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException ex) {
         HttpStatus status = resolveStatus(ex);
-
-        return ResponseEntity
-                .status(status)
-                .body(new ErrorResponse(
-                        OffsetDateTime.now(),
-                        status.value(),
-                        ex.getMessage(),
-                        ex.getErrorCode()
-                ));
+        return buildError(status, ex.getMessage(), ex.getErrorCode());
     }
 
+    // 8. Giriş edilməyib (UserNotLoginException)
     @ExceptionHandler(UserNotLoginException.class)
-    public ResponseEntity<ApiResponse<Object>> handleNotLoginUser(
-            UserNotLoginException ex) {
+    public ResponseEntity<ErrorResponse> handleNotLoginUser(UserNotLoginException ex) {
         log.warn("Unauthorized access attempt: {}", ex.getMessage());
-
-
-        return buildErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "Unexpected server error",
-                ex.getMessage()
-        );
+        return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage(), "USER_NOT_LOGGED_IN");
     }
 
+    // 9. Gözlənilməyən sistem xətaları (RuntimeException / Exception)
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
+        log.error("Unhandled exception: ", ex);
+        return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", "INTERNAL_SERVER_ERROR");
+    }
 
+    // Köməkçi status həll edici
     private HttpStatus resolveStatus(BusinessException ex) {
-
-        if (ex instanceof InvalidReportCategoryException ||
-                ex instanceof InvalidReportMessageException) {
+        if (ex instanceof InvalidReportCategoryException || ex instanceof InvalidReportMessageException) {
             return HttpStatus.BAD_REQUEST;
         }
-
         if (ex instanceof TooManyReportsException) {
             return HttpStatus.TOO_MANY_REQUESTS;
         }
-
         return HttpStatus.INTERNAL_SERVER_ERROR;
     }
-
-    private ResponseEntity<ApiResponse<Object>> buildErrorResponse(
-            HttpStatus status, String message, Object details) {
-        return ResponseEntity.status(status).body(ApiResponse.build(status, message, details));
-    }
-
-
-
 }
