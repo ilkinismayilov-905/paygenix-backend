@@ -7,10 +7,13 @@ import com.example.paygenix.repository.OnboardingChangePinRepository;
 import com.example.paygenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -19,11 +22,22 @@ import java.util.concurrent.ThreadLocalRandom;
 @Slf4j
 @RequiredArgsConstructor
 public class OnboardingChangePinService {
+
+    private static final Duration OTP_TTL = Duration.ofSeconds(300);          // 5 dəqiqə
+    private static final Duration SEND_COOLDOWN = Duration.ofSeconds(60);     // 60 saniyə
+    private static final int MAX_VERIFY_ATTEMPTS = 5;
+
+    private static final String KEY_SEND_LOCK_PREFIX = "otp:send:";
+    private static final String KEY_ATTEMPTS_PREFIX = "otp:attempts:";
+
+
     private final UserRepository userRepo;
     private final PasswordEncoder encoder;
     private final JwtService jwtService;
     private final EmailService emailService;
     private final OnboardingChangePinRepository changePinRepository;
+    private final RedisTemplate<String, Object> redisTemplate;
+
 
     @Transactional
     public String submitEmail(String email) {
@@ -32,8 +46,10 @@ public class OnboardingChangePinService {
             throw new RuntimeException("USER_NOT_FOUND");
         }
 
+        enforceSendCoolDown(email);
+
         String otp = generateOtp();
-        OnboardingChangePin flow =OnboardingChangePin.builder()
+        OnboardingChangePin flow = OnboardingChangePin.builder()
                 .id(UUID.randomUUID().toString())
                 .email(email)
                 .step(OnboardingChangePin.Step.OTP_SENT)
@@ -42,24 +58,35 @@ public class OnboardingChangePinService {
                 .build();
 
 
-        OnboardingChangePin f =changePinRepository.save(flow);
-        emailService.sendOtp(email,otp);
+        changePinRepository.save(flow);
+
+        initAttempts(flow.getId());
+
+        emailService.sendOtp(email, otp);
         log.info("Email sent");
         return flow.getId();
     }
 
     @Transactional
-    public void verifyOtp(String flowId,String otp) {
-        OnboardingChangePin flow =getFlow(flowId, OnboardingChangePin.Step.OTP_SENT);
+    public void verifyOtp(String flowId, String otp) {
+        OnboardingChangePin flow = getFlow(flowId, OnboardingChangePin.Step.OTP_SENT);
 
         if (Instant.now().isAfter(flow.getOtpExpiresAt())) {
+            clearAttempts(flowId);
             throw new RuntimeException("OTP_EXPIRED");
         }
 
+        int attempts = incrementAttemptsOrThrow(flowId);
+
         if (!encoder.matches(otp, flow.getOtpHash())) {
+            if (attempts >= MAX_VERIFY_ATTEMPTS) {
+                clearAttempts(flowId);
+                throw new RuntimeException("TOO_MANY_ATTEMPTS");
+            }
             throw new RuntimeException("INVALID_OTP");
         }
 
+        clearAttempts(flowId);
 
         flow.setOtpHash(null);
         flow.setOtpExpiresAt(null);
@@ -68,26 +95,27 @@ public class OnboardingChangePinService {
     }
 
     @Transactional
-    public void changePin(String flowId,String newPin,String reEnterNewPin) {
-        OnboardingChangePin flow =getFlow(flowId, OnboardingChangePin.Step.OTP_VERIFIED);
+    public void changePin(String flowId, String newPin, String reEnterNewPin) {
+        OnboardingChangePin flow = getFlow(flowId, OnboardingChangePin.Step.OTP_VERIFIED);
+
         User user = userRepo.findByEmail(flow.getEmail())
                 .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
 
-        if(newPin == null || reEnterNewPin == null){
-            throw  new RuntimeException("NEW_PIN CANNOT BE NULL");
+        if (newPin == null || reEnterNewPin == null) {
+            throw new RuntimeException("NEW_PIN CANNOT BE NULL");
         }
 
-        if(encoder.matches(newPin, user.getPinHash())) {
+        if (encoder.matches(newPin, user.getPinHash())) {
             throw new RuntimeException("New pin can not be same with old pin");
         }
 
-        if (!newPin.equals(reEnterNewPin)){
+        if (!newPin.equals(reEnterNewPin)) {
             throw new RuntimeException("NEW_PIN DOES NOT MATCH");
         }
 
-
         user.setPinHash(encoder.encode(newPin));
         userRepo.save(user);
+
         flow.setStep(OnboardingChangePin.Step.COMPLETED);
         log.info("PIN CHANGED");
     }
@@ -106,6 +134,55 @@ public class OnboardingChangePinService {
             throw new RuntimeException("INVALID_STEP");
 
         return flow;
+    }
+
+
+    private void enforceSendCoolDown(String email) {
+        String key = KEY_SEND_LOCK_PREFIX + normalizeEmail(email);
+        ValueOperations<String, Object> ops = redisTemplate.opsForValue();
+
+        Boolean ok = ops.setIfAbsent(key, "1", SEND_COOLDOWN);
+        if (ok == null || !ok) {
+            throw new RuntimeException("OTP_SEND_TOO_FREQUENT");
+        }
+
+    }
+
+    private void initAttempts(String flowId) {
+        String key = KEY_ATTEMPTS_PREFIX + flowId;
+        redisTemplate.opsForValue().set(key, 0, OTP_TTL);
+    }
+
+    private int incrementAttemptsOrThrow(String flowId) {
+        String key = KEY_ATTEMPTS_PREFIX + flowId;
+
+        Long val = redisTemplate.opsForValue().increment(key);
+
+        if (val == null) {
+            redisTemplate.opsForValue().set(key, 1, OTP_TTL);
+            return 1;
+        }
+
+        Long ttl = redisTemplate.getExpire(key);
+        if (ttl == null || ttl <= 0) {
+            redisTemplate.expire(key, OTP_TTL);
+        }
+
+        if (val > MAX_VERIFY_ATTEMPTS) {
+            throw new RuntimeException("TOO_MANY_ATTEMPTS");
+        }
+
+        return val.intValue();
+
+    }
+
+    private void clearAttempts(String flowId) {
+        redisTemplate.delete(KEY_ATTEMPTS_PREFIX + flowId);
+    }
+
+
+    private String normalizeEmail(String email) {
+        return email == null ? "" : email.trim().toLowerCase();
     }
 
 }

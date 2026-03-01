@@ -1,6 +1,7 @@
 package com.example.paygenix.service;
 
 
+import com.example.paygenix.cache.CacheNames;
 import com.example.paygenix.mapper.CardConverter;
 import com.example.paygenix.mapper.CardMapper;
 import com.example.paygenix.dto.request.CardRequest;
@@ -10,6 +11,10 @@ import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.repository.CardRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,9 +31,18 @@ public class CardService {
 //    private final CardMapper mapper;
 
     @Transactional
+    @Caching(put = {
+            @CachePut(cacheNames = CacheNames.CARD_BY_ID, key = "#result.id"),
+            @CachePut(cacheNames = CacheNames.CARD_BY_NUMBER, key = "#result.cardNumber")
+
+    },
+            evict = {
+                    @CacheEvict(cacheNames = CacheNames.CARD_ALL, allEntries = true)
+            }
+    )
     public CardResponse addCard(CardRequest card) {
         log.info("Adding card {}", card);
-        Cards c =  converter.toCards(card);
+        Cards c = converter.toCards(card);
 
         if (c.getAmount() == null) {
             c.setAmount(BigDecimal.ZERO.setScale(2));
@@ -41,6 +55,7 @@ public class CardService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.CARD_BY_NUMBER, key = "#number")
     public CardResponse getCardByNumber(String number) {
         log.info("Getting card by number {}", number);
         Cards c = cardRepository.findByCardNumber(number)
@@ -49,6 +64,7 @@ public class CardService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.CARD_ALL, key = "'all'")
     public List<CardResponse> getAllCards() {
         log.info("Getting all cards");
         List<Cards> cards = cardRepository.findAll();
@@ -56,7 +72,16 @@ public class CardService {
     }
 
     @Transactional
-    public CardResponse updateCard(Long id,CardRequest card) {
+    @Caching(put = {
+            @CachePut(cacheNames = CacheNames.CARD_BY_ID, key = "#result.id"),
+            @CachePut(cacheNames = CacheNames.CARD_BY_NUMBER, key = "#result.cardNumber")
+
+    },
+            evict = {
+                    @CacheEvict(cacheNames = CacheNames.CARD_ALL, allEntries = true)
+            }
+    )
+    public CardResponse updateCard(Long id, CardRequest card) {
         log.info("Updating card {}", card);
         Cards cards = cardRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Card not found by id"));
@@ -65,7 +90,12 @@ public class CardService {
         Cards savedCard = cardRepository.save(cards);
         return converter.toResponse(savedCard);
     }
+
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.CARD_BY_ID, key = "#id"),
+            @CacheEvict(cacheNames = CacheNames.CARD_ALL, allEntries = true)
+    })
     public void deleteCard(Long id) {
         log.info("Deleting card {}", id);
 
@@ -73,6 +103,7 @@ public class CardService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.CARD_BY_ID, key = "#id")
     public CardResponse findById(Long id) {
         log.info("Getting card by id {}", id);
         Cards cards = cardRepository.findById(id)
@@ -81,6 +112,15 @@ public class CardService {
     }
 
     @Transactional
+    @Caching(put = {
+            @CachePut(cacheNames = CacheNames.CARD_BY_ID, key = "#result.id"),
+            @CachePut(cacheNames = CacheNames.CARD_BY_NUMBER, key = "#result.cardNumber")
+
+    },
+            evict = {
+                    @CacheEvict(cacheNames = CacheNames.CARD_ALL, allEntries = true)
+            }
+    )
     public CardResponse addAmount(String cardNumber, BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Amount must be greater than 0");
