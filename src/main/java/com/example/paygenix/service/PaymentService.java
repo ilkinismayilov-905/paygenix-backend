@@ -1,12 +1,12 @@
 package com.example.paygenix.service;
 
 import com.example.paygenix.dto.request.PaymentRequest;
-import com.example.paygenix.dto.request.TransferRequest;
 import com.example.paygenix.dto.response.PaymentResponse;
-import com.example.paygenix.dto.response.TransferResponse;
-import com.example.paygenix.entity.*;
+import com.example.paygenix.entity.Cards;
+import com.example.paygenix.entity.Payment;
+import com.example.paygenix.entity.PaymentOnboarding;
+import com.example.paygenix.entity.PaymentTransaction;
 import com.example.paygenix.enums.PaymentStatus;
-import com.example.paygenix.enums.TransactionStatus;
 import com.example.paygenix.exceptions.InsufficientBalanceException;
 import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.mapper.PaymentMapper;
@@ -17,12 +17,13 @@ import com.example.paygenix.repository.PaymentRepository;
 import com.example.paygenix.repository.PaymentTransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -30,6 +31,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class PaymentService {
+
+    private static final String KEY_CONFIRM_LOCK_PREFIX = "pay:confirm:lock:";
+    private static final Duration CONFIRM_LOCK_TTL = Duration.ofSeconds(60);
+
     private final PaymentRepository paymentRepository;
     private final PaymentTransactionRepository ptRepository;
     private final PaymentTransactionMapper ptMapper;
@@ -39,17 +44,19 @@ public class PaymentService {
     private final PaymentOnboardingRepository poRepository;
     private final PinValidationService pinValidationService;
     private final UserService userService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Transactional
     public String transfer(PaymentRequest req, String email) {
-
-        User user = userService.getByEmail(email);
+        var user = userService.getByEmail(email);
 
         Cards from = cardRepository.findByCardNumber(req.fromCardNumber())
                 .orElseThrow(() -> new NotFoundException("Card number not found"));
-        if(from.getAmount().compareTo(req.amount()) <= 0) {
-            throw new InsufficientBalanceException("Amount must be greater than or equal to amount");
+
+        if (from.getAmount().compareTo(req.amount()) < 0) {
+            throw new InsufficientBalanceException("Insufficient balance");
         }
+
         PaymentOnboarding onboarding = PaymentOnboarding.builder()
                 .id(UUID.randomUUID().toString())
                 .amount(req.amount())
@@ -60,69 +67,88 @@ public class PaymentService {
                 .userId(user.getId())
                 .build();
 
-       PaymentOnboarding po = poRepository.save(onboarding);
-       return onboarding.getId();
+        poRepository.save(onboarding);
+        return onboarding.getId();
     }
 
     @Transactional
-    public PaymentResponse confirmPayment(String flowId,String pin,String username) {
-        PaymentOnboarding onboarding = getFlow(flowId,PaymentStatus.PENDING);
+    public PaymentResponse confirmPayment(String flowId, String pin, String username) {
+        String lockKey = KEY_CONFIRM_LOCK_PREFIX + flowId;
 
-        User user = userService.getByEmail(username);
+        if (!acquireLock(lockKey, CONFIRM_LOCK_TTL)) {
+            throw new RuntimeException("PAYMENT_ALREADY_PROCESSING");
+        }
 
-        pinValidationService.validatePin(user.getId(), pin);
+        try {
+            PaymentOnboarding onboarding = getFlow(flowId, PaymentStatus.PENDING);
 
-        PaymentTransaction transaction = new PaymentTransaction();
+            var user = userService.getByEmail(username);
+            pinValidationService.validatePin(user.getId(), pin);
 
-        Cards from = cardRepository.findByCardNumber(onboarding.getFromCardNumber())
-                .orElseThrow(() -> new NotFoundException("Card number not found"));
+            Cards from = cardRepository.findByCardNumber(onboarding.getFromCardNumber())
+                    .orElseThrow(() -> new NotFoundException("Card number not found"));
 
-        BigDecimal cashbackPercent = transaction.getCashbackPercent();
-        BigDecimal cashbackAmount = onboarding.getAmount()
-                .multiply(cashbackPercent)
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.DOWN);
+            if (from.getAmount().compareTo(onboarding.getAmount()) < 0) {
+                throw new InsufficientBalanceException("Insufficient balance");
+            }
 
-        BigDecimal newBalance = from.getAmount()
-                .subtract(onboarding.getAmount())
-                .add(cashbackAmount);
+            PaymentTransaction transaction = new PaymentTransaction();
 
-        from.setAmount(newBalance);
+            BigDecimal cashbackPercent = transaction.getCashbackPercent();
+            BigDecimal cashbackAmount = onboarding.getAmount()
+                    .multiply(cashbackPercent)
+                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.DOWN);
 
-        cardRepository.save(from);
-        transaction.setTransactionId(ptService.generatePaymentTransactionId());
-        transaction.setFrom_card_id(from.getCardNumber());
-        transaction.setAmount(onboarding.getAmount());
-        transaction.setCashbackPercent(cashbackPercent);
-        transaction.setCashbackValue(cashbackAmount);
-        transaction.setCurrency(from.getCurrency());
-        transaction.setStatus(PaymentStatus.COMPLETED);
-        transaction.setPhone_number(onboarding.getPhoneNumber());
+            BigDecimal newBalance = from.getAmount()
+                    .subtract(onboarding.getAmount())
+                    .add(cashbackAmount);
 
-        ptRepository.save(transaction);
+            from.setAmount(newBalance);
+            cardRepository.save(from);
 
-        Payment payment = Payment.builder()
-                .amount(onboarding.getAmount())
-                .creationDate(Instant.now())
-                .fromCardNumber(from.getCardNumber())
-                .phoneNumber(onboarding.getPhoneNumber())
-                .build();
-        paymentRepository.save(payment);
+            transaction.setTransactionId(ptService.generatePaymentTransactionId());
+            transaction.setFrom_card_id(from.getCardNumber());
+            transaction.setAmount(onboarding.getAmount());
+            transaction.setCashbackPercent(cashbackPercent);
+            transaction.setCashbackValue(cashbackAmount);
+            transaction.setCurrency(from.getCurrency());
+            transaction.setStatus(PaymentStatus.COMPLETED);
+            transaction.setPhone_number(onboarding.getPhoneNumber());
+            ptRepository.save(transaction);
 
-        onboarding.setPaymentStatus(PaymentStatus.COMPLETED);
-        poRepository.save(onboarding);
+            Payment payment = Payment.builder()
+                    .amount(onboarding.getAmount())
+                    .creationDate(Instant.now())
+                    .fromCardNumber(from.getCardNumber())
+                    .phoneNumber(onboarding.getPhoneNumber())
+                    .build();
+            paymentRepository.save(payment);
 
-        return paymentMapper.toPaymentResponse(payment);
+            onboarding.setPaymentStatus(PaymentStatus.COMPLETED);
+            poRepository.save(onboarding);
+
+            return paymentMapper.toPaymentResponse(payment);
+        } finally {
+            releaseLock(lockKey);
+        }
+    }
+
+    private boolean acquireLock(String key, Duration ttl) {
+        Boolean ok = redisTemplate.opsForValue().setIfAbsent(key, "1", ttl);
+        return ok != null && ok;
+    }
+
+    private void releaseLock(String key) {
+        redisTemplate.delete(key);
     }
 
     private PaymentOnboarding getFlow(String id, PaymentStatus status) {
-        PaymentOnboarding flow = poRepository.findById(id)
-                .orElseThrow();
+        PaymentOnboarding flow = poRepository.findById(id).orElseThrow();
 
-        if (flow.getPaymentStatus() != status)
+        if (flow.getPaymentStatus() != status) {
             throw new RuntimeException("INVALID_STATUS");
+        }
 
         return flow;
     }
-
-
 }
