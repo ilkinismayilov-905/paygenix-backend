@@ -1,42 +1,32 @@
-name: Deploy Paygenix
+name: Paygenix Deploy
 
 on:
   push:
-    branches:
-      - main
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    branches: [ "main" ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Copy project files to server
+      - name: Copy files to Server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
+          username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          source: "src,pom.xml,Dockerfile,docker-compose.yaml,.dockerignore"
+          source: "."
           target: "/root/paygenix"
 
-      - name: Deploy on server
+      - name: Build and Run on Server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
+          username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-          
             cd /root/paygenix
-
-            echo "${{ secrets.ENV_FILE }}" > .env
-
-            docker compose down
-            docker compose up --build -d
-            docker image prune -af
+            docker-compose up -d --build
+            docker image prune -f
