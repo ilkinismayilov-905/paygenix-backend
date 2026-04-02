@@ -22,7 +22,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          source: "src,pom.xml,Dockerfile,compose.yaml,.dockerignore"
+          source: "src,pom.xml,Dockerfile,docker-compose.yaml,.dockerignore"
           target: "/root/paygenix"
 
       - name: Deploy on server
