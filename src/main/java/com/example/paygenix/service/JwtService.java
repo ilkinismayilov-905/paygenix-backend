@@ -53,13 +53,13 @@ public class JwtService {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
-    public String generateJwtToken(UserDetails userDetails,Long userId,String fullName) {
+    public String generateJwtToken(UserDetails userDetails, Long userId, String fullName) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("userId",userId);
-        claims.put("fullName",fullName);
-        claims.put("authorities",userDetails.getAuthorities());
+        claims.put("userId", userId);
+        claims.put("fullName", fullName);
+        claims.put("authorities", userDetails.getAuthorities());
 
-        return createToken(claims,userDetails.getUsername(),jwtExpiration);
+        return createToken(claims, userDetails.getUsername(), jwtExpiration);
     }
 
     public String generateJwtRefreshToken(UserDetails userDetails) {
@@ -77,12 +77,11 @@ public class JwtService {
                 .build();
 
 
-
-        return jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader,claims))
+        return jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader, claims))
                 .getTokenValue();
     }
 
-    public String generateOnboardingUserToken(User user){
+    public String generateOnboardingUserToken(User user) {
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .subject(user.getId().toString())
                 .issuedAt(Instant.now())
@@ -90,7 +89,7 @@ public class JwtService {
                 .claim("roles", user.getRoles())
                 .build();
 
-        return jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader,claims))
+        return jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader, claims))
                 .getTokenValue();
     }
 

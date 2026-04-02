@@ -28,7 +28,7 @@ public class MediaService {
     public String upload(MultipartFile file) {
 
         try {
-            String fileName =file.getOriginalFilename();
+            String fileName = file.getOriginalFilename();
 
             minioClient.putObject(
                     PutObjectArgs.builder()
