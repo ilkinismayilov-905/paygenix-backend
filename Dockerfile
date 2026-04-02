@@ -5,7 +5,7 @@ COPY pom.xml .
 RUN mvn -q -DskipTests dependency:go-offline
 
 COPY src src
-RUN mvn clean package -DskipTests
+RUN mvn -q package -DskipTests
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
@@ -13,5 +13,4 @@ WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 8000
-
 ENTRYPOINT ["java", "-jar", "app.jar"]
