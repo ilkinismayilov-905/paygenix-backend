@@ -21,9 +21,6 @@ ENV JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport -XX:InitialRAMPercentage=25.0 -X
 
 COPY --from=build /workspace/target/Paygenix-0.0.1-SNAPSHOT.jar /app/app.jar
 
-RUN chown app:app /app/app.jar
-USER app
-
 # --- KRİTİK DÜZƏLİŞ 2 ---
 # Sənin application.properties-də port 8000-dir, ona görə bura da 8000 yazılmalıdır.
 EXPOSE 8000
