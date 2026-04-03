@@ -1,85 +1,97 @@
 package com.example.paygenix.controller;
 
-import com.example.paygenix.dto.ApiResponse;
+import com.example.paygenix.dto.ApiResponseData;
 import com.example.paygenix.dto.request.ConfirmPaymentRequest;
 import com.example.paygenix.dto.request.PaymentRequest;
-import com.example.paygenix.dto.request.TransferRequest;
 import com.example.paygenix.dto.response.PaymentResponse;
 import com.example.paygenix.dto.response.PaymentTransactionResponse;
-import com.example.paygenix.dto.response.TransferResponse;
-import com.example.paygenix.entity.PaymentTransaction;
-import com.example.paygenix.entity.UserPrincipal;
 import com.example.paygenix.service.PaymentService;
 import com.example.paygenix.service.PaymentTransactionService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
 
 @RestController
 @RequestMapping("/api/payment")
 @CrossOrigin
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Payment Management", description = "APIs for initiating, confirming, and viewing payment transactions")
+@SecurityRequirement(name = "bearerAuth")
 public class PaymentController {
+
     private final PaymentService paymentService;
     private final PaymentTransactionService ptService;
 
+    @Operation(
+            summary = "Initiate payment transfer",
+            description = "Starts a payment flow between cards. Returns a Flow ID required for confirmation."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Payment flow initiated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid payment request (e.g., insufficient balance)"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized access")
+    })
     @PostMapping("/initiate")
-    public ResponseEntity<ApiResponse<String>> initiatePayment(
-            @RequestBody PaymentRequest request,
+    public ResponseEntity<ApiResponseData<String>> initiatePayment(
+            @Valid @RequestBody PaymentRequest request,
             @AuthenticationPrincipal Jwt jwt
     ) {
         String username = jwt.getSubject();
-
-        log.info("JWT subject = {}", jwt.getSubject());
+        log.info("Initiating payment for user: {}", username);
 
         String flowId = paymentService.transfer(request, username);
-        return ResponseEntity.ok(ApiResponse.success(flowId));
+        return ResponseEntity.ok(ApiResponseData.success(flowId));
     }
 
+    @Operation(
+            summary = "Confirm payment",
+            description = "Finalizes the payment using the Flow ID and user's secure PIN."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Payment confirmed and processed successfully"),
+            @ApiResponse(responseCode = "403", description = "Incorrect PIN provided"),
+            @ApiResponse(responseCode = "404", description = "Payment flow ID not found")
+    })
     @PostMapping("/confirm")
-    public ResponseEntity<ApiResponse<PaymentResponse>> confirmPayment(
-            @RequestBody ConfirmPaymentRequest request,
+    public ResponseEntity<ApiResponseData<PaymentResponse>> confirmPayment(
+            @Valid @RequestBody ConfirmPaymentRequest request,
             @AuthenticationPrincipal Jwt jwt
     ) {
         String username = jwt.getSubject();
+        log.info("Confirming payment flow: {} for user: {}", request.flowId(), username);
 
-        PaymentResponse response =
-                paymentService.confirmPayment(
-                        request.flowId(),
-                        request.pin(),
-                        username
-                );
+        PaymentResponse response = paymentService.confirmPayment(
+                request.flowId(),
+                request.pin(),
+                username
+        );
 
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResponseData.success(response));
     }
 
+    @Operation(
+            summary = "Get transaction history",
+            description = "Retrieves a list of all past payment transactions for the authenticated user."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Transaction history retrieved successfully")
+    })
     @GetMapping("/history")
-    public ResponseEntity<ApiResponse<List<PaymentTransactionResponse>>> history(){
+    public ResponseEntity<ApiResponseData<List<PaymentTransactionResponse>>> getPaymentHistory() {
+        log.info("Fetching payment transaction history");
         List<PaymentTransactionResponse> list = ptService.getHistory();
-        return ResponseEntity.ok(ApiResponse.success(list));
-    }
-
-    private UserDetails extractUser(Authentication authentication) {
-
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("Unauthenticated request");
-        }
-
-        Object principal = authentication.getPrincipal();
-
-        if (!(principal instanceof UserDetails user)) {
-            throw new RuntimeException("Invalid authentication principal");
-        }
-
-        return user;
+        return ResponseEntity.ok(ApiResponseData.success(list));
     }
 }
