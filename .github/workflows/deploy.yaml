@@ -21,6 +21,8 @@ jobs:
           target: "/root/paygenix"
           overwrite: true
           timeout: 60s
+          use_insecure_cipher: true
+          strip_components: 0
           command_timeout: 10m
 
       - name: Build and Run on Server
