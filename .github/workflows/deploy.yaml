@@ -19,6 +19,9 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "."
           target: "/root/paygenix"
+          overwrite: true
+          timeout: 60s
+          command_timeout: 10m
 
       - name: Build and Run on Server
         uses: appleboy/ssh-action@v1.0.3
