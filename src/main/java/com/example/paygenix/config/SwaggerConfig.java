@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class SwaggerConfig {
-    @Value("${app.base-url}")
+    @Value("${app.web-url}")
     private String baseUrl;
 
     @Value("${app.name}")
