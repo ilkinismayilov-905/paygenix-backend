@@ -53,6 +53,7 @@ public class JwtService {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
+
     public String generateJwtToken(UserDetails userDetails, Long userId, String fullName) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);

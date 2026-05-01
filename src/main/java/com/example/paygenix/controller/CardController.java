@@ -24,13 +24,15 @@ import java.util.List;
 @RequestMapping("/api/cards")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Card Management", description = "APIs for managing bank cards, balance top-ups, and CRUD operations")
+@Tag(name = "Card Management",
+        description = "APIs for managing bank cards, balance top-ups, and CRUD operations")
 @SecurityRequirement(name = "bearerAuth")
 public class CardController {
 
     private final CardService cardService;
 
-    @Operation(summary = "Create a new card", description = "Registers a new bank card in the system.")
+    @Operation(summary = "Create a new card"
+            , description = "Registers a new bank card in the system.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Card successfully created"),
             @ApiResponse(responseCode = "400", description = "Invalid request payload"),
@@ -48,7 +50,8 @@ public class CardController {
         ));
     }
 
-    @Operation(summary = "Get card by card number", description = "Retrieves card details based on the unique 16-digit card number.")
+    @Operation(summary = "Get card by card number",
+            description = "Retrieves card details based on the unique 16-digit card number.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Card found and retrieved"),
             @ApiResponse(responseCode = "404", description = "Card not found with the provided number")

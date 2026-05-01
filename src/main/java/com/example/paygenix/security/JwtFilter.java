@@ -185,7 +185,7 @@ public class JwtFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        // 1. OTP endpointi: /api/onboarding/{uuid}/otp
+
         boolean isEmailStep = path.equals("/api/onboarding/email");
         boolean isOtpStep = path.matches("/api/onboarding/[^/]+/otp");
         return isOtpStep || isEmailStep

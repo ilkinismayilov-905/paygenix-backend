@@ -79,6 +79,7 @@ public class GlobalHandlerException {
     // 9. Gözlənilməyən sistem xətaları (RuntimeException / Exception)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
+        ex.printStackTrace();
         log.error("Unhandled exception: ", ex);
         return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", "INTERNAL_SERVER_ERROR");
     }
