@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.OffsetDateTime;
 import java.util.stream.Collectors;
@@ -70,7 +71,10 @@ public class GlobalHandlerException {
     }
 
     // 8. Giriş edilməyib (UserNotLoginException)
-    @ExceptionHandler(UserNotLoginException.class)
+    @ExceptionHandler({
+            UserNotLoginException.class,
+            NoResourceFoundException.class
+    })
     public ResponseEntity<ErrorResponse> handleNotLoginUser(UserNotLoginException ex) {
         log.warn("Unauthorized access attempt: {}", ex.getMessage());
         return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage(), "USER_NOT_LOGGED_IN");
