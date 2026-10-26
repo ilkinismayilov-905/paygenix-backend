@@ -47,7 +47,6 @@ public class AuthService {
 
     private final UserMapper mapper;
 
-    @CachePut(cacheNames = CacheNames.USER_BY_ID, key = "#result.user.id")
     public JwtTokenResponse login(LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password())
