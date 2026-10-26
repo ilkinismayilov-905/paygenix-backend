@@ -4,7 +4,6 @@ import com.example.paygenix.entity.OnboardingFlow;
 import com.example.paygenix.entity.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,12 +41,6 @@ public class JwtService {
     JwsHeader jwsHeader = JwsHeader
             .with(MacAlgorithm.HS256)
             .build();
-
-    @PostConstruct
-    public void test() {
-        System.out.println("JWT_SECRET = " + jwtSecret);
-    }
-
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());
