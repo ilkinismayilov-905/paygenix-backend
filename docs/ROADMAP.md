@@ -1,6 +1,6 @@
 # Paygenix Roadmap
 
-Paygenix is a consumer wallet backend: virtual cards, internal transfers, top-ups and promo stories.
+Paygenix is a consumer wallet (backend first, frontend later): virtual cards, internal transfers, top-ups and promo stories.
 This roadmap orders the work by risk. Security and money correctness come before new features.
 
 ## Milestones
@@ -8,10 +8,10 @@ This roadmap orders the work by risk. Security and money correctness come before
 | Milestone | Goal | Tag |
 |---|---|---|
 | 1. Stop the bleeding | Manual-only deploy, no secrets in logs, live instance stopped | — |
-| 2. Secrets | All credentials rotated, git history purged, secret scanning in CI | — |
+| 2. Secret hygiene | Configuration only from the environment, secret scanning in CI and pre-commit | — |
 | 3. Foundation | Integration test harness (Testcontainers), CI on every PR, Flyway baseline with `ddl-auto=validate` | — |
 | 4. Critical security | Token type separation, RBAC, card ownership, safe transfers and payments, row locking | — |
-| 5. Auth model | Password login, 6-digit transaction PIN with lockout, per-device sessions, Google OAuth via one-time code exchange | — |
+| 5. High-severity security & auth model | Rate limiting, hardened errors and CORS, password login, 6-digit transaction PIN with lockout, per-device sessions, Google OAuth via one-time code exchange | — |
 | 6. Stabilization | Latest Spring Boot 4.0.x, springdoc 3.x, current stripe-java, quality tooling | v0.1.0 |
 | 7. Money core | Double-entry ledger, configurable fees, idempotency keys, payment state machine, Stripe sandbox top-up, phone top-up adapter | — |
 | 8. Flows | KYC with manual admin review, admin API, promo stories, paginated history, `/api/v1` | — |
@@ -22,8 +22,8 @@ This roadmap orders the work by risk. Security and money correctness come before
 ## Key decisions
 
 - **Virtual cards only.** The system generates Luhn-valid card numbers and stores only the last four digits. No CVV is stored.
-- **Double-entry ledger.** Every money movement is a set of debit and credit entries that sum to zero. Commission (2%) goes to a fee revenue account. Cashback (0.5%) is funded by a marketing expense account. Rates come from configuration.
-- **Top-ups through Stripe (sandbox).** The balance is credited only after a verified webhook, never from the client response.
+- **Double-entry ledger.** Every money movement is a set of debit and credit entries that sum to zero. Commission (2%) goes to a fee revenue account. Cashback (0.5%) is funded by a marketing expense account. Rates come from configuration. Stripe funds pass through a clearing account. Rounding is HALF_EVEN to 2 decimals.
+- **Top-ups through Stripe (sandbox).** The balance is credited only after a signature-verified, idempotently processed webhook, never from the client response.
 - **Phone top-up through a provider adapter**, with a mock provider for success, failure and timeout cases.
 - **No currency exchange.** Transfers between cards in different currencies are rejected with a clear error code.
 - **KYC by manual admin review.** Documents are stored in a private bucket and served through presigned URLs.
