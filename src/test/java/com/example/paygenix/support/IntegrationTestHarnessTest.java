@@ -26,9 +26,8 @@ class IntegrationTestHarnessTest extends IntegrationTest {
     }
 
     @Test
-    void protectedEndpointWithoutTokenIsNotOk() throws Exception {
-        // currently 302 to the login page (SEC-22); tighten to 401 when form login is removed
-        int code = mockMvc.perform(get("/api/auth/me")).andReturn().getResponse().getStatus();
-        assertThat(code).isNotEqualTo(200);
+    void protectedEndpointWithoutTokenIsRejected() throws Exception {
+        // currently a redirect to the login page (SEC-22); tighten to 401 when form login is removed
+        mockMvc.perform(get("/api/auth/me")).andExpect(status().is3xxRedirection());
     }
 }
