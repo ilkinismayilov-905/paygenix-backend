@@ -20,6 +20,21 @@ services:
     ports:
       - "${REDIS_PORT:-6379}:6379"
 
+  minio:
+    # shortcut: minio/minio is no longer pullable from Docker Hub; this digest (RELEASE.2025-09-07T16-13-09Z) only works where it is cached. Pick a maintained image or S3-compatible store before CI/deploy.
+    image: minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    container_name: paygenix-minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - miniodata:/data
+
   # 3. Java Spring Boot App
   paygenix-app:
     build: .
@@ -28,6 +43,7 @@ services:
     depends_on:
       - postgres-db
       - redis
+      - minio
     ports:
       - "${SERVER_PORT:-8000}:8000"
     # Bu hissə vacibdir: .env faylındakı bütün dataları Java-ya ötürür
@@ -37,7 +53,9 @@ services:
       # YAML daxili linkləri bura yazırıq ki, application.properties bunları tanısın
       - DB_URL=jdbc:postgresql://postgres-db:5432/${DB_NAME}
       - REDIS_HOST=redis
+      - MINIO_URL=http://minio:9000
       - APP_BASE_URL=${APP_BASE_URL}
 
 volumes:
   pgdata:
+  miniodata:
