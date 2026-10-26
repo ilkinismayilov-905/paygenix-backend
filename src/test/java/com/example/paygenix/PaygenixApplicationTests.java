@@ -1,10 +1,9 @@
 package com.example.paygenix;
 
+import com.example.paygenix.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class PaygenixApplicationTests {
+class PaygenixApplicationTests extends IntegrationTest {
 
 	@Test
 	void contextLoads() {
