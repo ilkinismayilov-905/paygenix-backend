@@ -1,9 +1,8 @@
 name: Deploy Paygenix
 
+# Manual only until the pipeline is rebuilt (no build/test gate, runs as root).
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
