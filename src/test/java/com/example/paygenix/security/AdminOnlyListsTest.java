@@ -35,6 +35,13 @@ class AdminOnlyListsTest extends IntegrationTest {
         assertThat(statusOf(path, bearer(createUser(Role.ADMIN_ROLE)))).isEqualTo(200);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"/api/transaction/1", "/api/transfer/1"})
+    void adminPassesAuthorizationOnLookups(String path) throws Exception {
+        // no such record in the test DB, so anything but 403 means the admin got through
+        assertThat(statusOf(path, bearer(createUser(Role.ADMIN_ROLE)))).isNotEqualTo(403);
+    }
+
     private int statusOf(String path, String authorization) throws Exception {
         return mockMvc.perform(get(path).header("Authorization", authorization)).andReturn().getResponse().getStatus();
     }

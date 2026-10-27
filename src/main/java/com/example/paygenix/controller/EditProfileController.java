@@ -1,7 +1,6 @@
 package com.example.paygenix.controller;
 
 import com.example.paygenix.dto.ApiResponseData;
-import org.springframework.security.access.prepost.PreAuthorize;
 import com.example.paygenix.dto.request.EditProfileRequest;
 import com.example.paygenix.dto.response.EditProfileResponse;
 import com.example.paygenix.entity.User;
@@ -20,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;

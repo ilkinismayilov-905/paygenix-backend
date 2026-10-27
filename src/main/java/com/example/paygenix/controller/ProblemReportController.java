@@ -1,7 +1,6 @@
 package com.example.paygenix.controller;
 
 import com.example.paygenix.dto.ApiResponseData;
-import org.springframework.security.access.prepost.PreAuthorize;
 import com.example.paygenix.dto.request.CreateProblemReportRequest;
 import com.example.paygenix.dto.response.CreateProblemReportResponse;
 import com.example.paygenix.dto.response.ProblemReportResponse;
@@ -17,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -71,7 +71,7 @@ public class ProblemReportController {
     @PreAuthorize("hasRole('ADMIN_ROLE')")
     @GetMapping
     public ResponseEntity<ApiResponseData<List<ProblemReportResponse>>> getAllReports() {
-        log.info("Fetching all problem reports for the current user");
+        log.info("Fetching all problem reports (admin)");
         List<ProblemReportResponse> reports = service.getAllReports();
 
         return ResponseEntity.ok(ApiResponseData.build(
