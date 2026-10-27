@@ -114,9 +114,9 @@ class TransferValidationTest extends IntegrationTest {
         String to = issueCard(createUser(), "AZN");
         setBalance(from, "100.00");
 
-        int status = transfer(sender, from, to, "10.00", "000000").andReturn().getResponse().getStatus();
+        // 404 today (PinValidationService); expected to become 401/403 with PIN attempt limits
+        transfer(sender, from, to, "10.00", "000000").andExpect(status().isNotFound());
 
-        assertThat(status).isGreaterThanOrEqualTo(400).isLessThan(500);
         assertThat(balanceOf(from)).isEqualByComparingTo("100.00");
     }
 
@@ -124,6 +124,22 @@ class TransferValidationTest extends IntegrationTest {
     void malformedCardNumberIsBadRequest() throws Exception {
         User sender = createUser();
         transfer(sender, "1234", issueCard(createUser(), "AZN"), "10.00", PIN).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void amountWithThreeDecimalsIsRejected() throws Exception {
+        User sender = createUser();
+        transfer(sender, issueCard(sender, "AZN"), issueCard(createUser(), "AZN"), "10.001", PIN)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    void nonNumericAmountIsMalformed() throws Exception {
+        User sender = createUser();
+        transfer(sender, issueCard(sender, "AZN"), issueCard(createUser(), "AZN"), "\"abc\"", PIN)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"));
     }
 
     private ResultActions transfer(User caller, String from, String to, String amount, String pin) throws Exception {
