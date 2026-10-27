@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -40,6 +41,7 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "User list retrieved successfully"),
             @ApiResponse(responseCode = "401", description = "Unauthorized access")
     })
+    @PreAuthorize("hasRole('ADMIN_ROLE')")
     @GetMapping
     public ResponseEntity<ApiResponseData<List<UserResponse>>> getAllUsers() {
         log.info("Fetching all users from the system");

@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -90,6 +91,7 @@ public class PaymentController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Transaction history retrieved successfully")
     })
+    @PreAuthorize("hasRole('ADMIN_ROLE')")
     @GetMapping("/history")
     public ResponseEntity<ApiResponseData<List<PaymentTransactionResponse>>> getPaymentHistory() {
         log.info("Fetching payment transaction history");

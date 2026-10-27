@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -49,9 +50,10 @@ public class TransferController {
 
     @Operation(
             summary = "Get all transfers",
-            description = "Retrieves a complete list of all past transfers associated with the user."
+            description = "Retrieves all transfers of all users (admin only)."
     )
     @ApiResponse(responseCode = "200", description = "Transfer list retrieved successfully")
+    @PreAuthorize("hasRole('ADMIN_ROLE')")
     @GetMapping
     public ResponseEntity<ApiResponseData<List<TransferResponse>>> getTransfers() {
         log.info("Fetching all transfers");
@@ -67,6 +69,7 @@ public class TransferController {
             @ApiResponse(responseCode = "200", description = "Transfer details retrieved successfully"),
             @ApiResponse(responseCode = "404", description = "Transfer not found with the given ID")
     })
+    @PreAuthorize("hasRole('ADMIN_ROLE')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponseData<TransferResponse>> getTransferById(
             @Parameter(description = "Unique ID of the transfer", example = "105")
