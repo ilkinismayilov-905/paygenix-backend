@@ -2,6 +2,7 @@ package com.example.paygenix.security;
 
 import com.example.paygenix.dto.request.TransferRequest;
 import com.example.paygenix.entity.User;
+import com.example.paygenix.exceptions.InsufficientBalanceException;
 import com.example.paygenix.service.TransferService;
 import com.example.paygenix.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
@@ -65,7 +66,7 @@ class ConcurrentTransferTest extends IntegrationTest {
         try {
             transferService.transfer(caller, new TransferRequest(from, to, new BigDecimal(amount), PIN));
             return true;
-        } catch (RuntimeException rejected) {
+        } catch (InsufficientBalanceException rejected) {
             return false;
         }
     }
