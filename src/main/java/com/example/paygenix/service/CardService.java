@@ -19,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 
 @Service
@@ -108,31 +107,6 @@ public class CardService {
         log.info("Getting card by id {}", id);
         Cards cards = cardRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Card not found by id"));
-        return converter.toResponse(cards);
-    }
-
-    @Transactional
-    @Caching(put = {
-            @CachePut(cacheNames = CacheNames.CARD_BY_ID, key = "#result.id"),
-            @CachePut(cacheNames = CacheNames.CARD_BY_NUMBER, key = "#result.cardNumber")
-
-    },
-            evict = {
-                    @CacheEvict(cacheNames = CacheNames.CARD_ALL, allEntries = true)
-            }
-    )
-    public CardResponse addAmount(String cardNumber, BigDecimal amount) {
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Amount must be greater than 0");
-        }
-        log.info("Adding amount {}", amount);
-        Cards cards = cardRepository.findByCardNumber(cardNumber)
-                .orElseThrow(() -> new NotFoundException("Card not found by cardNumber"));
-        BigDecimal newAmount = cards.getAmount()
-                .add(amount)
-                .setScale(2, RoundingMode.HALF_UP);
-        cards.setAmount(newAmount);
-        cardRepository.save(cards);
         return converter.toResponse(cards);
     }
 }
