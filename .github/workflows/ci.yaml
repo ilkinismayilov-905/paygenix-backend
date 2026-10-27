@@ -5,6 +5,9 @@ on:
     branches: [main]
   push:
     branches: [main]
+  # weekly scan so new advisories against main show up without waiting for a PR
+  schedule:
+    - cron: "0 6 * * 1"
 
 permissions:
   contents: read
