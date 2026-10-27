@@ -3,9 +3,10 @@ package com.example.paygenix.controller;
 import com.example.paygenix.dto.ApiResponseData;
 import com.example.paygenix.dto.request.CardRequest;
 import com.example.paygenix.dto.response.CardResponse;
+import com.example.paygenix.dto.response.IssuedCardResponse;
+import com.example.paygenix.entity.User;
 import com.example.paygenix.service.CardService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -16,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,96 +27,71 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Card Management",
-        description = "APIs for managing bank cards, balance top-ups, and CRUD operations")
+        description = "Virtual cards: issue, list and close")
 @SecurityRequirement(name = "bearerAuth")
 public class CardController {
 
     private final CardService cardService;
 
-    @Operation(summary = "Create a new card"
-            , description = "Registers a new bank card in the system.")
+    @Operation(summary = "Issue a new virtual card",
+            description = "Issues a card in the chosen currency for the logged-in user. The full card number is in this response only; afterwards just the last four digits are shown.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Card successfully created"),
+            @ApiResponse(responseCode = "201", description = "Card issued"),
             @ApiResponse(responseCode = "400", description = "Invalid request payload"),
             @ApiResponse(responseCode = "401", description = "Unauthorized access")
     })
     @PostMapping
-    public ResponseEntity<ApiResponseData<CardResponse>> addCard(@Valid @RequestBody CardRequest request) {
-        log.info("Request received to add a new card");
-        CardResponse card = cardService.addCard(request);
-
+    public ResponseEntity<ApiResponseData<IssuedCardResponse>> issueCard(
+            @AuthenticationPrincipal User user,
+            @Valid @RequestBody CardRequest request) {
+        IssuedCardResponse card = cardService.issueCard(user, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponseData.build(
                 HttpStatus.CREATED,
-                "Card added successfully",
+                "Card issued successfully",
                 card
         ));
     }
 
-    @Operation(summary = "Get card by card number",
-            description = "Retrieves card details based on the unique 16-digit card number.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Card found and retrieved"),
-            @ApiResponse(responseCode = "404", description = "Card not found with the provided number")
-    })
-    @GetMapping("/number/{cardNumber}")
-    public ResponseEntity<ApiResponseData<CardResponse>> getCardByNumber(
-            @Parameter(description = "16-digit card number", example = "4169XXXXXXXX1234")
-            @PathVariable String cardNumber) {
-        log.info("Fetching card with number: {}", cardNumber);
-        CardResponse card = cardService.getCardByNumber(cardNumber);
-        return ResponseEntity.ok(ApiResponseData.success(card));
+    @Operation(summary = "List my cards", description = "Returns the logged-in user's cards.")
+    @ApiResponse(responseCode = "200", description = "Cards retrieved")
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponseData<List<CardResponse>>> getMyCards(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(ApiResponseData.success(cardService.getMyCards(user)));
     }
 
-    @Operation(summary = "Get card by ID", description = "Retrieves specific card information using its internal database ID.")
+    @Operation(summary = "Get one of my cards", description = "Returns a card owned by the logged-in user.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Card details retrieved"),
-            @ApiResponse(responseCode = "404", description = "No card found with the given ID")
+            @ApiResponse(responseCode = "404", description = "No such card for this user")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponseData<CardResponse>> getCardById(@PathVariable Long id) {
-        log.info("Fetching card with ID: {}", id);
-        CardResponse card = cardService.findById(id);
-        return ResponseEntity.ok(ApiResponseData.success(card));
+    public ResponseEntity<ApiResponseData<CardResponse>> getCardById(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponseData.success(cardService.getMyCard(user, id)));
     }
 
-    @Operation(summary = "Get all cards", description = "Returns a complete list of all cards registered in the system.")
+    @Operation(summary = "Get all cards", description = "Returns every card in the system (admin only).")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "List of cards retrieved successfully")
     })
     @PreAuthorize("hasRole('ADMIN_ROLE')")
     @GetMapping
     public ResponseEntity<ApiResponseData<List<CardResponse>>> getAllCards() {
-        log.info("Fetching all registered cards");
-        List<CardResponse> cards = cardService.getAllCards();
-        return ResponseEntity.ok(ApiResponseData.success(cards));
+        return ResponseEntity.ok(ApiResponseData.success(cardService.getAllCards()));
     }
 
-    @Operation(summary = "Update card details", description = "Updates an existing card's information by its ID.")
+    @Operation(summary = "Close a card", description = "Closes one of the logged-in user's cards. The balance must be zero.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Card updated successfully"),
-            @ApiResponse(responseCode = "400", description = "Validation failed for updated data"),
-            @ApiResponse(responseCode = "404", description = "Card to update not found")
-    })
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponseData<CardResponse>> updateCard(
-            @PathVariable Long id,
-            @Valid @RequestBody CardRequest request
-    ) {
-        log.info("Updating card details for ID: {}", id);
-        CardResponse card = cardService.updateCard(id, request);
-        return ResponseEntity.ok(ApiResponseData.success(card));
-    }
-
-    @Operation(summary = "Delete a card", description = "Permanently removes a card from the system using its ID.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Card successfully deleted"),
-            @ApiResponse(responseCode = "404", description = "Card to delete not found")
+            @ApiResponse(responseCode = "200", description = "Card closed"),
+            @ApiResponse(responseCode = "404", description = "No such card for this user"),
+            @ApiResponse(responseCode = "409", description = "Card still holds a balance")
     })
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponseData<CardResponse>> deleteCard(@PathVariable Long id) {
-        log.warn("Request to delete card with ID: {}", id);
-        CardResponse card = cardService.findById(id);
-        cardService.deleteCard(id);
-        return ResponseEntity.ok(ApiResponseData.success(card));
+    public ResponseEntity<ApiResponseData<Void>> closeCard(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long id) {
+        cardService.closeCard(user, id);
+        return ResponseEntity.ok(ApiResponseData.success(null));
     }
 }

@@ -5,9 +5,6 @@ public final class CacheNames {
     public static final String REFRESH_TOKEN_BY_USER_ID = "refreshTokenByUserId";
     public static final String REFRESH_TOKEN_BY_TOKEN_HASH = "refreshTokenByTokenHash";
 
-    public static final String CARD_BY_ID = "cardById";
-    public static final String CARD_BY_NUMBER = "cardByNumber";
-    public static final String CARD_ALL = "cardAll";
 
     public static final String EDIT_PROFILE_BY_ID = "editProfileById";
     public static final String EDIT_PROFILE_BY_EMAIL = "editProfileByEmail";

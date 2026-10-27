@@ -6,7 +6,9 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
@@ -23,17 +25,24 @@ public class Cards {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false,unique = true)
-    private String cardNumber;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "owner_id", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private User owner;
+
+    // The full card number is never stored; see PanService.
+    @Column(nullable = false, length = 4)
+    private String last4;
+
+    @Column(nullable = false, unique = true, length = 64)
+    private String panHmac;
 
     @Column(nullable = false)
     private String expirationDate;
 
     @Column(nullable = false)
     private String cardHolderName;
-
-    @Column(nullable = false,unique = true)
-    private String cvv;
 
     @Enumerated(EnumType.STRING)
     private CardNetwork cardNetwork;
@@ -43,15 +52,6 @@ public class Cards {
 
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
-
-    public Cards(String cardNumber, String expirationDate, String cardHolderName, String cvv, CardNetwork cardNetwork, Currency currency) {
-        this.cardNumber = cardNumber;
-        this.expirationDate = expirationDate;
-        this.cardHolderName = cardHolderName;
-        this.cvv = cvv;
-        this.cardNetwork = cardNetwork;
-        this.currency = currency;
-    }
 
     @CreationTimestamp
     private Date creationDate;
