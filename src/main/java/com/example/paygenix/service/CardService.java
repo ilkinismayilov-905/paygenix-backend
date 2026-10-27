@@ -89,6 +89,9 @@ public class CardService {
     // Looks a card up by its full number (e.g. a transfer recipient) without the number ever being stored.
     @Transactional(readOnly = true)
     public Cards findByNumber(String pan) {
+        if (pan == null || pan.isBlank()) {
+            throw new NotFoundException("Card not found");
+        }
         return cardRepository.findByPanHmac(panService.hmac(pan))
                 .orElseThrow(() -> new NotFoundException("Card not found"));
     }
