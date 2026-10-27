@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -20,7 +21,7 @@ class AddAmountRemovedTest extends IntegrationTest {
 
     @Test
     void addAmountCannotCreditACard() throws Exception {
-        String number = String.valueOf(Math.abs(UUID.randomUUID().getMostSignificantBits())).substring(0, 16);
+        String number = String.valueOf(ThreadLocalRandom.current().nextLong(1_000_000_000_000_000L, 10_000_000_000_000_000L));
         Cards card = cardRepository.save(Cards.builder()
                 .cardNumber(number)
                 .expirationDate("12/30")
@@ -30,17 +31,20 @@ class AddAmountRemovedTest extends IntegrationTest {
                 .amount(new BigDecimal("10.00"))
                 .build());
 
-        int status = mockMvc.perform(post("/api/cards/" + number + "/add-amount")
-                .param("amount", "1000000")
-                .header("Authorization", bearer(createUser())))
-                .andReturn().getResponse().getStatus();
+        try {
+            int status = mockMvc.perform(post("/api/cards/" + number + "/add-amount")
+                    .param("amount", "1000000")
+                    .header("Authorization", bearer(createUser())))
+                    .andReturn().getResponse().getStatus();
 
-        // The endpoint must not exist. Before removal it returned 500 only because a Redis cache
-        // serialization bug rolled the transaction back; fixing that bug would have re-enabled it.
-        // Unknown routes currently map to 401 in GlobalHandlerException (separate cleanup).
-        assertThat(status).isIn(401, 404);
-        assertThat(cardRepository.findById(card.getId()).orElseThrow().getAmount()).isEqualByComparingTo("10.00");
-        // shared container DB: leave no card behind for other tests' list endpoints
-        cardRepository.delete(card);
+            // The endpoint must not exist. Before removal it returned 500 only because a Redis cache
+            // serialization bug rolled the transaction back; fixing that bug would have re-enabled it.
+            // Unknown routes currently map to 401 in GlobalHandlerException (separate cleanup).
+            assertThat(status).isIn(401, 404);
+            assertThat(cardRepository.findById(card.getId()).orElseThrow().getAmount()).isEqualByComparingTo("10.00");
+        } finally {
+            // shared container DB: leave no card behind for other tests' list endpoints
+            cardRepository.delete(card);
+        }
     }
 }
