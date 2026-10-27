@@ -11,10 +11,12 @@ import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.mapper.CardConverter;
 import com.example.paygenix.repository.CardRepository;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.LockModeType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -114,10 +116,15 @@ public class CardService {
      * order so two transfers between the same cards in opposite directions cannot deadlock.
      * Must run inside the caller's transaction; the locks are released at commit.
      */
+    @Transactional(propagation = Propagation.MANDATORY)
     public void lockForUpdate(Cards... cards) {
-        Arrays.stream(cards)
-                .sorted(Comparator.comparing(Cards::getId))
-                .forEach(card -> entityManager.refresh(card, LockModeType.PESSIMISTIC_WRITE));
+        try {
+            Arrays.stream(cards)
+                    .sorted(Comparator.comparing(Cards::getId))
+                    .forEach(card -> entityManager.refresh(card, LockModeType.PESSIMISTIC_WRITE));
+        } catch (EntityNotFoundException closedMeanwhile) {
+            throw new NotFoundException("Card not found");
+        }
     }
 
     // Another user's card answers 404, so ids cannot be probed.
