@@ -1,112 +1,101 @@
 package com.example.paygenix.service;
 
-
-import com.example.paygenix.cache.CacheNames;
-import com.example.paygenix.mapper.CardConverter;
-import com.example.paygenix.mapper.CardMapper;
 import com.example.paygenix.dto.request.CardRequest;
 import com.example.paygenix.dto.response.CardResponse;
+import com.example.paygenix.dto.response.IssuedCardResponse;
 import com.example.paygenix.entity.Cards;
+import com.example.paygenix.entity.User;
+import com.example.paygenix.enums.CardNetwork;
+import com.example.paygenix.exceptions.CardHasBalanceException;
 import com.example.paygenix.exceptions.NotFoundException;
+import com.example.paygenix.mapper.CardConverter;
 import com.example.paygenix.repository.CardRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.YearMonth;
 import java.util.List;
+import java.util.Locale;
 
+// Card balances are not cached: they change on every transfer/payment and must be read fresh.
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class CardService {
+
+    private static final int VALID_YEARS = 4;
+    private static final int MAX_ISSUE_ATTEMPTS = 5;
+
     private final CardRepository cardRepository;
     private final CardConverter converter;
-//    private final CardMapper mapper;
+    private final PanService panService;
 
     @Transactional
-    @Caching(put = {
-            @CachePut(cacheNames = CacheNames.CARD_BY_ID, key = "#result.id"),
-            @CachePut(cacheNames = CacheNames.CARD_BY_NUMBER, key = "#result.cardNumber")
-
-    },
-            evict = {
-                    @CacheEvict(cacheNames = CacheNames.CARD_ALL, allEntries = true)
+    public IssuedCardResponse issueCard(User owner, CardRequest request) {
+        String pan;
+        String panHmac;
+        int attempts = 0;
+        do {
+            if (++attempts > MAX_ISSUE_ATTEMPTS) {
+                throw new IllegalStateException("Could not generate a unique card number");
             }
-    )
-    public CardResponse addCard(CardRequest card) {
-        log.info("Adding card {}", card);
-        Cards c = converter.toCards(card);
+            pan = panService.generate();
+            panHmac = panService.hmac(pan);
+        } while (cardRepository.existsByPanHmac(panHmac));
 
-        if (c.getAmount() == null) {
-            c.setAmount(BigDecimal.ZERO.setScale(2));
-        }
+        Cards card = cardRepository.save(Cards.builder()
+                .owner(owner)
+                .last4(PanService.last4(pan))
+                .panHmac(panHmac)
+                .expirationDate(YearMonth.now().plusYears(VALID_YEARS).toString())
+                .cardHolderName(owner.getFullname().toUpperCase(Locale.ROOT))
+                .cardNetwork(CardNetwork.VISA)
+                .currency(request.currency())
+                .amount(BigDecimal.ZERO.setScale(2))
+                .build());
+        log.info("Issued card {} for user {}", card.getId(), owner.getId());
 
-        Cards savedCard = cardRepository.save(c);
-        log.info("Saved Card {}", savedCard.getId());
-
-        return converter.toResponse(savedCard);
+        return new IssuedCardResponse(pan, converter.toResponse(card));
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.CARD_BY_NUMBER, key = "#number")
-    public CardResponse getCardByNumber(String number) {
-        log.info("Getting card by number {}", number);
-        Cards c = cardRepository.findByCardNumber(number)
-                .orElseThrow(() -> new NotFoundException("Card not found by cardNumber"));
-        return converter.toResponse(c);
+    public List<CardResponse> getMyCards(User owner) {
+        return converter.toResponse(cardRepository.findByOwnerId(owner.getId()));
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.CARD_ALL, key = "'all'")
+    public CardResponse getMyCard(User owner, Long id) {
+        return converter.toResponse(ownedCard(owner, id));
+    }
+
+    @Transactional(readOnly = true)
     public List<CardResponse> getAllCards() {
-        log.info("Getting all cards");
-        List<Cards> cards = cardRepository.findAll();
-        return converter.toResponse(cards);
+        return converter.toResponse(cardRepository.findAll());
     }
 
     @Transactional
-    @Caching(put = {
-            @CachePut(cacheNames = CacheNames.CARD_BY_ID, key = "#result.id"),
-            @CachePut(cacheNames = CacheNames.CARD_BY_NUMBER, key = "#result.cardNumber")
-
-    },
-            evict = {
-                    @CacheEvict(cacheNames = CacheNames.CARD_ALL, allEntries = true)
-            }
-    )
-    public CardResponse updateCard(Long id, CardRequest card) {
-        log.info("Updating card {}", card);
-        Cards cards = cardRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Card not found by id"));
-        converter.update(card, cards);
-
-        Cards savedCard = cardRepository.save(cards);
-        return converter.toResponse(savedCard);
+    public void closeCard(User owner, Long id) {
+        Cards card = ownedCard(owner, id);
+        if (card.getAmount().signum() != 0) {
+            throw new CardHasBalanceException();
+        }
+        cardRepository.delete(card);
+        log.info("Closed card {} for user {}", id, owner.getId());
     }
 
-    @Transactional
-    @Caching(evict = {
-            @CacheEvict(cacheNames = CacheNames.CARD_BY_ID, key = "#id"),
-            @CacheEvict(cacheNames = CacheNames.CARD_ALL, allEntries = true)
-    })
-    public void deleteCard(Long id) {
-        log.info("Deleting card {}", id);
-
-        cardRepository.deleteById(id);
-    }
-
+    // Looks a card up by its full number (e.g. a transfer recipient) without the number ever being stored.
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.CARD_BY_ID, key = "#id")
-    public CardResponse findById(Long id) {
-        log.info("Getting card by id {}", id);
-        Cards cards = cardRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Card not found by id"));
-        return converter.toResponse(cards);
+    public Cards findByNumber(String pan) {
+        return cardRepository.findByPanHmac(panService.hmac(pan))
+                .orElseThrow(() -> new NotFoundException("Card not found"));
+    }
+
+    // Another user's card answers 404, so ids cannot be probed.
+    private Cards ownedCard(User owner, Long id) {
+        return cardRepository.findByIdAndOwnerId(id, owner.getId())
+                .orElseThrow(() -> new NotFoundException("Card not found"));
     }
 }

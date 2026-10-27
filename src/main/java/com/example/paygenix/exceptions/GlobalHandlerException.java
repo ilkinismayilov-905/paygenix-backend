@@ -103,6 +103,9 @@ public class GlobalHandlerException {
         if (ex instanceof TooManyReportsException) {
             return HttpStatus.TOO_MANY_REQUESTS;
         }
+        if (ex instanceof CardHasBalanceException) {
+            return HttpStatus.CONFLICT;
+        }
         return HttpStatus.INTERNAL_SERVER_ERROR;
     }
 }

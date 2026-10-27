@@ -40,6 +40,7 @@ public class PaymentService {
     private final PaymentTransactionMapper ptMapper;
     private final PaymentMapper paymentMapper;
     private final CardRepository cardRepository;
+    private final CardService cardService;
     private final PaymentTransactionService ptService;
     private final PaymentOnboardingRepository poRepository;
     private final PinValidationService pinValidationService;
@@ -50,8 +51,7 @@ public class PaymentService {
     public String transfer(PaymentRequest req, String email) {
         var user = userService.getByEmail(email);
 
-        Cards from = cardRepository.findByCardNumber(req.fromCardNumber())
-                .orElseThrow(() -> new NotFoundException("Card number not found"));
+        Cards from = cardService.findByNumber(req.fromCardNumber());
 
         if (from.getAmount().compareTo(req.amount()) < 0) {
             throw new InsufficientBalanceException("Insufficient balance");
@@ -60,7 +60,8 @@ public class PaymentService {
         PaymentOnboarding onboarding = PaymentOnboarding.builder()
                 .id(UUID.randomUUID().toString())
                 .amount(req.amount())
-                .fromCardNumber(from.getCardNumber())
+                .fromCardId(from.getId())
+                .fromCardNumber(from.getLast4())
                 .phoneNumber(req.phoneNumber())
                 .creationDate(Instant.now())
                 .paymentStatus(PaymentStatus.PENDING)
@@ -85,8 +86,8 @@ public class PaymentService {
             var user = userService.getByEmail(username);
             pinValidationService.validatePin(user.getId(), pin);
 
-            Cards from = cardRepository.findByCardNumber(onboarding.getFromCardNumber())
-                    .orElseThrow(() -> new NotFoundException("Card number not found"));
+            Cards from = cardRepository.findById(onboarding.getFromCardId())
+                    .orElseThrow(() -> new NotFoundException("Card not found"));
 
             if (from.getAmount().compareTo(onboarding.getAmount()) < 0) {
                 throw new InsufficientBalanceException("Insufficient balance");
@@ -107,7 +108,7 @@ public class PaymentService {
             cardRepository.save(from);
 
             transaction.setTransactionId(ptService.generatePaymentTransactionId());
-            transaction.setFrom_card_id(from.getCardNumber());
+            transaction.setFrom_card_id(from.getLast4());
             transaction.setAmount(onboarding.getAmount());
             transaction.setCashbackPercent(cashbackPercent);
             transaction.setCashbackValue(cashbackAmount);
@@ -119,7 +120,7 @@ public class PaymentService {
             Payment payment = Payment.builder()
                     .amount(onboarding.getAmount())
                     .creationDate(Instant.now())
-                    .fromCardNumber(from.getCardNumber())
+                    .fromCardNumber(from.getLast4())
                     .phoneNumber(onboarding.getPhoneNumber())
                     .build();
             paymentRepository.save(payment);
