@@ -29,6 +29,7 @@ public class TransferService {
     private final TransferRepository transferRepository;
     private final CardRepository cardRepository;
     private final TransactionService transactionService;
+    private final CardService cardService;
     private final TransactionRepository transactionRepository;
 //    private final TransferConverter converter;
     private final TransferMapper mapper;
@@ -38,10 +39,8 @@ public class TransferService {
         Transactions transaction = new Transactions();
 
 
-        Cards from = cardRepository.findByCardNumber(req.fromCardNumber())
-                .orElseThrow(() -> new NotFoundException("Card number not found"));
-        Cards to   = cardRepository.findByCardNumber(req.toCardNumber())
-                .orElseThrow(() -> new NotFoundException("Card number not found"));
+        Cards from = cardService.findByNumber(req.fromCardNumber());
+        Cards to   = cardService.findByNumber(req.toCardNumber());
         if(from.getAmount().compareTo(req.amount()) <= 0) {
             throw new InsufficientBalanceException("Amount must be greater than or equal to amount");
         }
@@ -57,8 +56,8 @@ public class TransferService {
         Cards savedFrom = cardRepository.save(from);
         Cards savedTo = cardRepository.save(to);
         transaction.setAmount(req.amount());
-        transaction.setFrom_card_id(from.getCardNumber());
-        transaction.setTo_card_id(to.getCardNumber());
+        transaction.setFrom_card_id(from.getLast4());
+        transaction.setTo_card_id(to.getLast4());
         transaction.setCurrency(from.getCurrency());
         transaction.setTransactionId(transactionService.generateTransactionId());
         transaction.setStatus(TransactionStatus.COMPLETED);
@@ -68,6 +67,9 @@ public class TransferService {
         transactionRepository.save(transaction);
 
         Transfer transfer = mapper.mapToTransfer(req);
+        // history keeps only the last four digits, never the full number from the request
+        transfer.setFromCardNumber(from.getLast4());
+        transfer.setToCardNumber(to.getLast4());
         transferRepository.save(transfer);
 
         return mapper.mapToTransferResponse(transfer);

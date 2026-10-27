@@ -12,8 +12,9 @@ class FlywayBaselineTest extends IntegrationTest {
     @Autowired Flyway flyway;
 
     @Test
-    void schemaComesFromMigrations() {
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("1");
+    void allMigrationsAreApplied() {
+        assertThat(flyway.info().current()).isNotNull();
         assertThat(flyway.info().pending()).isEmpty();
+        assertThat(flyway.info().applied()).allMatch(m -> m.getState().isApplied() && !m.getState().isFailed());
     }
 }

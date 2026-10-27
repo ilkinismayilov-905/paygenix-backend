@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -21,12 +20,13 @@ class AddAmountRemovedTest extends IntegrationTest {
 
     @Test
     void addAmountCannotCreditACard() throws Exception {
-        String number = String.valueOf(ThreadLocalRandom.current().nextLong(1_000_000_000_000_000L, 10_000_000_000_000_000L));
+        String number = "4000001234567899";
         Cards card = cardRepository.save(Cards.builder()
-                .cardNumber(number)
-                .expirationDate("12/30")
-                .cardHolderName("Test Holder")
-                .cvv(UUID.randomUUID().toString().substring(0, 8))
+                .owner(createUser())
+                .last4("7899")
+                .panHmac(UUID.randomUUID().toString())
+                .expirationDate("2030-12")
+                .cardHolderName("TEST HOLDER")
                 .currency(Currency.AZN)
                 .amount(new BigDecimal("10.00"))
                 .build());
