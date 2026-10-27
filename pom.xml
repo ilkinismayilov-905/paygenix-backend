@@ -166,7 +166,7 @@
             <artifactId>minio</artifactId>
             <version>8.6.0</version>
         </dependency>
-        <!-- minio uses okhttp 5, whose plain "okhttp" artifact is an empty stub for Maven; the classes live in okhttp-jvm. -->
+        <!-- minio uses okhttp 5, whose plain "okhttp" artifact is an empty stub for Maven; the classes live in okhttp-jvm. Keep in sync with minio's okhttp version. -->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp-jvm</artifactId>
