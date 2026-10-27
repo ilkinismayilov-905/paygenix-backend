@@ -22,7 +22,8 @@ public class PaymentOnboarding {
     private String id;
 
     private String phoneNumber;
-    private String fromCardNumber;
+    private Long fromCardId;
+    private String fromCardNumber; // last four digits only
     private BigDecimal amount;
     private Long userId;
     @Enumerated(value = EnumType.STRING)
