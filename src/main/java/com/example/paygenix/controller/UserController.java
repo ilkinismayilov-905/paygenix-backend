@@ -1,6 +1,7 @@
 package com.example.paygenix.controller;
 
 import com.example.paygenix.dto.ApiResponseData;
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.example.paygenix.dto.response.UserResponse;
 import com.example.paygenix.service.MediaService;
 import com.example.paygenix.service.UserService;
@@ -40,6 +41,7 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "User list retrieved successfully"),
             @ApiResponse(responseCode = "401", description = "Unauthorized access")
     })
+    @PreAuthorize("hasRole('ADMIN_ROLE')")
     @GetMapping
     public ResponseEntity<ApiResponseData<List<UserResponse>>> getAllUsers() {
         log.info("Fetching all users from the system");
