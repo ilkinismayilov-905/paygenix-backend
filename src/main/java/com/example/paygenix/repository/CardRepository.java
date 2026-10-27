@@ -12,6 +12,8 @@ public interface CardRepository extends JpaRepository<Cards, Long> {
 
     Optional<Cards> findByPanHmac(String panHmac);
 
+    Optional<Cards> findByPanHmacAndOwnerId(String panHmac, Long ownerId);
+
     boolean existsByPanHmac(String panHmac);
 
     List<Cards> findByOwnerId(Long ownerId);

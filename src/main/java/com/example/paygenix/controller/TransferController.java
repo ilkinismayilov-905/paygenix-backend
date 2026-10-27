@@ -3,6 +3,7 @@ package com.example.paygenix.controller;
 import com.example.paygenix.dto.ApiResponseData;
 import com.example.paygenix.dto.request.TransferRequest;
 import com.example.paygenix.dto.response.TransferResponse;
+import com.example.paygenix.entity.User;
 import com.example.paygenix.service.TransferService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -41,10 +43,11 @@ public class TransferController {
     })
     @PostMapping
     public ResponseEntity<ApiResponseData<TransferResponse>> createTransfer(
+            @AuthenticationPrincipal User user,
             @Valid @RequestBody TransferRequest transferRequest
     ) {
         log.info("Initiating a new transfer request");
-        TransferResponse transfer = transferService.transfer(transferRequest);
+        TransferResponse transfer = transferService.transfer(user, transferRequest);
         return ResponseEntity.ok(ApiResponseData.success(transfer));
     }
 

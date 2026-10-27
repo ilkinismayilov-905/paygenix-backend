@@ -8,8 +8,10 @@ import com.example.paygenix.entity.Cards;
 import com.example.paygenix.entity.Transactions;
 import com.example.paygenix.entity.Transfer;
 import com.example.paygenix.enums.TransactionStatus;
+import com.example.paygenix.entity.User;
 import com.example.paygenix.exceptions.InsufficientBalanceException;
 import com.example.paygenix.exceptions.NotFoundException;
+import com.example.paygenix.exceptions.TransferRejectedException;
 import com.example.paygenix.repository.CardRepository;
 import com.example.paygenix.repository.TransactionRepository;
 import com.example.paygenix.repository.TransferRepository;
@@ -30,25 +32,34 @@ public class TransferService {
     private final CardRepository cardRepository;
     private final TransactionService transactionService;
     private final CardService cardService;
+    private final PinValidationService pinValidationService;
     private final TransactionRepository transactionRepository;
 //    private final TransferConverter converter;
     private final TransferMapper mapper;
 
     @Transactional
-    public TransferResponse transfer(TransferRequest req) {
+    public TransferResponse transfer(User caller, TransferRequest req) {
         Transactions transaction = new Transactions();
 
+        pinValidationService.validatePin(caller.getId(), req.pin());
 
-        Cards from = cardService.findByNumber(req.fromCardNumber());
+        Cards from = cardService.findOwnedByNumber(caller, req.fromCardNumber());
         Cards to   = cardService.findByNumber(req.toCardNumber());
-        if(from.getAmount().compareTo(req.amount()) <= 0) {
-            throw new InsufficientBalanceException("Amount must be greater than or equal to amount");
+        if (from.getId().equals(to.getId())) {
+            throw TransferRejectedException.sameCard();
         }
+        if (from.getCurrency() != to.getCurrency()) {
+            throw TransferRejectedException.currencyMismatch();
+        }
+
         BigDecimal ratePercent = transaction.getCommissionRate();
         BigDecimal commissionAmount = req.amount()
                 .multiply(ratePercent)
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         BigDecimal totalAmount = commissionAmount.add(req.amount());
+        if (from.getAmount().compareTo(totalAmount) < 0) {
+            throw new InsufficientBalanceException("Insufficient balance for amount plus commission");
+        }
 
         from.setAmount(from.getAmount().subtract(totalAmount));
         to.setAmount(to.getAmount().add(req.amount()));
