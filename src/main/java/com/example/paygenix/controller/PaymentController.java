@@ -43,6 +43,8 @@ public class PaymentController {
             @ApiResponse(responseCode = "400", description = "Invalid payment request (e.g., insufficient balance)"),
             @ApiResponse(responseCode = "401", description = "Unauthorized access")
     })
+    // shortcut: Jwt principal is always null here (SEC-27), so initiate/confirm return 500. Kept until card ownership
+    // and payer checks (SEC-7) land; switching to the User principal first would make SEC-7 exploitable.
     @PostMapping("/initiate")
     public ResponseEntity<ApiResponseData<String>> initiatePayment(
             @Valid @RequestBody PaymentRequest request,

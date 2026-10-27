@@ -43,6 +43,8 @@ public class StoryController {
             @ApiResponse(responseCode = "401", description = "Unauthorized access")
     })
     @PostMapping(consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    // shortcut: still takes a Jwt, which is always null here (SEC-27), so upload stays a 500. Fixing it would expose
+    // SEC-15 (client-chosen object keys). Rebuilt as admin-only promo upload in the stories task.
     public ResponseEntity<ApiResponseData<StoryUploadResponse>> uploadStory(
             @AuthenticationPrincipal Jwt jwt,
             @RequestPart("file") MultipartFile file,
@@ -66,9 +68,9 @@ public class StoryController {
     @ApiResponse(responseCode = "200", description = "Story feed retrieved successfully")
     @GetMapping("/feed")
     public ResponseEntity<ApiResponseData<StoryFeedResponse>> getStoryFeed(
-            @AuthenticationPrincipal Jwt jwt
+            @AuthenticationPrincipal User principal
     ) {
-        Long userId = jwt.getClaim("userId");
+        Long userId = principal.getId();
         log.info("Fetching story feed for user ID: {}", userId);
 
         User user = userService.getById(userId);
@@ -85,9 +87,9 @@ public class StoryController {
     @PostMapping("/{storyId}/view")
     public ResponseEntity<ApiResponseData<Void>> markStoryAsViewed(
             @PathVariable Long storyId,
-            @AuthenticationPrincipal Jwt jwt
+            @AuthenticationPrincipal User principal
     ) {
-        Long userId = jwt.getClaim("userId");
+        Long userId = principal.getId();
         log.info("User {} viewed story {}", userId, storyId);
 
         storyViewService.markViewed(storyId, userId);
@@ -103,9 +105,9 @@ public class StoryController {
     @DeleteMapping("/{storyId}")
     public ResponseEntity<ApiResponseData<Void>> deleteStory(
             @PathVariable Long storyId,
-            @AuthenticationPrincipal Jwt jwt
+            @AuthenticationPrincipal User principal
     ) {
-        Long userId = jwt.getClaim("userId");
+        Long userId = principal.getId();
         log.warn("User {} is deleting story {}", userId, storyId);
 
         User user = userService.getById(userId);
@@ -118,9 +120,9 @@ public class StoryController {
     @GetMapping("/media-download")
     public ResponseEntity<ApiResponseData<String>> getMediaDownloadUrl(
             @Parameter(description = "Storage object name/key") @RequestParam String objectName,
-            @AuthenticationPrincipal Jwt jwt
+            @AuthenticationPrincipal User principal
     ) {
-        Long userId = jwt.getClaim("userId");
+        Long userId = principal.getId();
         User user = userService.getById(userId);
 
         String url = storyService.getMediaDownloadUrl(user, objectName);
