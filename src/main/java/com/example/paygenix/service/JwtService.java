@@ -42,6 +42,12 @@ public class JwtService {
             .with(MacAlgorithm.HS256)
             .build();
 
+    // Which endpoints a token may call; JwtFilter only authenticates the matching use.
+    public static final String TOKEN_USE = "token_use";
+    public static final String ACCESS = "access";
+    public static final String REFRESH = "refresh";
+    public static final String ONBOARDING = "onboarding";
+
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
@@ -52,12 +58,13 @@ public class JwtService {
         claims.put("userId", userId);
         claims.put("fullName", fullName);
         claims.put("authorities", userDetails.getAuthorities());
+        claims.put(TOKEN_USE, ACCESS);
 
         return createToken(claims, userDetails.getUsername(), jwtExpiration);
     }
 
     public String generateJwtRefreshToken(UserDetails userDetails) {
-        return createToken(new HashMap<>(), userDetails.getUsername(), refreshExpiration);
+        return createToken(new HashMap<>(Map.of(TOKEN_USE, REFRESH)), userDetails.getUsername(), refreshExpiration);
     }
 
 
@@ -67,6 +74,7 @@ public class JwtService {
                 .issuedAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(900))
                 .claim("scope", "onboarding")
+                .claim(TOKEN_USE, ONBOARDING)
                 .claim("flowId", flow.getId())
                 .build();
 
@@ -113,6 +121,10 @@ public class JwtService {
 
     public Long extractUserId(String token) {
         return extractClaim(token, claims -> claims.get("userId", Long.class));
+    }
+
+    public String extractTokenUse(String token) {
+        return extractClaim(token, claims -> claims.get(TOKEN_USE, String.class));
     }
 
     public String extractFullName(String token) {
