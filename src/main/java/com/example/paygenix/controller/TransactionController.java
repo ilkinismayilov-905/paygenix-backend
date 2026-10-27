@@ -1,7 +1,6 @@
 package com.example.paygenix.controller;
 
 import com.example.paygenix.dto.ApiResponseData;
-import org.springframework.security.access.prepost.PreAuthorize;
 import com.example.paygenix.dto.response.TransactionsResponse;
 import com.example.paygenix.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -30,7 +30,7 @@ public class TransactionController {
 
     private final TransactionService transactionService;
 
-    @Operation(summary = "Get all transactions", description = "Retrieves a complete list of all transactions for the current user.")
+    @Operation(summary = "Get all transactions", description = "Retrieves all transactions of all users (admin only).")
     @ApiResponse(responseCode = "200", description = "Transaction list retrieved successfully")
     @PreAuthorize("hasRole('ADMIN_ROLE')")
     @GetMapping
