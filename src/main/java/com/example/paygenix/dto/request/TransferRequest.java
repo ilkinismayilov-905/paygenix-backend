@@ -17,6 +17,7 @@ public record TransferRequest(
         @Digits(integer = 15, fraction = 2, message = "Amount can have at most 2 decimal places")
         BigDecimal amount,
         @NotBlank(message = "PIN is required")
+        @Pattern(regexp = "\\d{6}", message = "PIN must be 6 digits")
         String pin
 ) {
     // Never print card numbers or the PIN.

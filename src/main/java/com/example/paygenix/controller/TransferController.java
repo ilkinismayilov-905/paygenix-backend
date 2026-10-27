@@ -34,12 +34,14 @@ public class TransferController {
 
     @Operation(
             summary = "Create a new transfer",
-            description = "Executes a money transfer between accounts or cards based on the provided request details."
+            description = "Moves money from one of the caller's cards to any card in the same currency, confirmed with the caller's PIN. A 2% commission is added to the debit."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Transfer completed successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid transfer details or insufficient balance"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized access")
+            @ApiResponse(responseCode = "400", description = "Validation failed, same card, or currency mismatch"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized access"),
+            @ApiResponse(responseCode = "404", description = "Card not found or invalid PIN"),
+            @ApiResponse(responseCode = "409", description = "Insufficient balance for amount plus commission")
     })
     @PostMapping
     public ResponseEntity<ApiResponseData<TransferResponse>> createTransfer(
