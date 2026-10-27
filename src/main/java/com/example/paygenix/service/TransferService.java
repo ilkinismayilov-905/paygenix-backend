@@ -51,6 +51,8 @@ public class TransferService {
         if (from.getCurrency() != to.getCurrency()) {
             throw TransferRejectedException.currencyMismatch();
         }
+        // balances are read only after the rows are locked, so concurrent debits cannot overspend
+        cardService.lockForUpdate(from, to);
 
         BigDecimal ratePercent = transaction.getCommissionRate();
         BigDecimal commissionAmount = req.amount()

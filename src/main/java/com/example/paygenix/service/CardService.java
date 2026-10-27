@@ -10,6 +10,8 @@ import com.example.paygenix.exceptions.CardHasBalanceException;
 import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.mapper.CardConverter;
 import com.example.paygenix.repository.CardRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.YearMonth;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
@@ -32,6 +36,7 @@ public class CardService {
     private final CardRepository cardRepository;
     private final CardConverter converter;
     private final PanService panService;
+    private final EntityManager entityManager;
 
     @Transactional
     public IssuedCardResponse issueCard(User owner, CardRequest request) {
@@ -79,6 +84,7 @@ public class CardService {
     @Transactional
     public void closeCard(User owner, Long id) {
         Cards card = ownedCard(owner, id);
+        lockForUpdate(card); // a concurrent credit must not land on a card being deleted
         if (card.getAmount().signum() != 0) {
             throw new CardHasBalanceException();
         }
@@ -101,6 +107,17 @@ public class CardService {
     public Cards findOwnedByNumber(User owner, String pan) {
         return cardRepository.findByPanHmacAndOwnerId(panService.hmac(pan), owner.getId())
                 .orElseThrow(() -> new NotFoundException("Card not found"));
+    }
+
+    /**
+     * Locks the cards' rows (SELECT ... FOR UPDATE) and re-reads their balances, always in ascending id
+     * order so two transfers between the same cards in opposite directions cannot deadlock.
+     * Must run inside the caller's transaction; the locks are released at commit.
+     */
+    public void lockForUpdate(Cards... cards) {
+        Arrays.stream(cards)
+                .sorted(Comparator.comparing(Cards::getId))
+                .forEach(card -> entityManager.refresh(card, LockModeType.PESSIMISTIC_WRITE));
     }
 
     // Another user's card answers 404, so ids cannot be probed.
