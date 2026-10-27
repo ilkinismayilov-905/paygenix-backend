@@ -1,6 +1,7 @@
 package com.example.paygenix.controller;
 
 import com.example.paygenix.dto.ApiResponseData;
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.example.paygenix.dto.request.CreateProblemReportRequest;
 import com.example.paygenix.dto.response.CreateProblemReportResponse;
 import com.example.paygenix.dto.response.ProblemReportResponse;
@@ -67,6 +68,7 @@ public class ProblemReportController {
             @ApiResponse(responseCode = "200", description = "Reports retrieved successfully"),
             @ApiResponse(responseCode = "401", description = "Unauthorized access")
     })
+    @PreAuthorize("hasRole('ADMIN_ROLE')")
     @GetMapping
     public ResponseEntity<ApiResponseData<List<ProblemReportResponse>>> getAllReports() {
         log.info("Fetching all problem reports for the current user");

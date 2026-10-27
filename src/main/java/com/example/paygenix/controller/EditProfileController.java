@@ -1,6 +1,7 @@
 package com.example.paygenix.controller;
 
 import com.example.paygenix.dto.ApiResponseData;
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.example.paygenix.dto.request.EditProfileRequest;
 import com.example.paygenix.dto.response.EditProfileResponse;
 import com.example.paygenix.entity.User;
@@ -61,6 +62,7 @@ public class EditProfileController {
 
     @Operation(summary = "Get all profiles", description = "Fetches a list of all profiles (Admin/Internal use).")
     @ApiResponse(responseCode = "200", description = "Profiles retrieved successfully")
+    @PreAuthorize("hasRole('ADMIN_ROLE')")
     @GetMapping
     public ResponseEntity<ApiResponseData<List<EditProfileResponse>>> getAllProfiles() {
         log.info("Fetching all profiles");
