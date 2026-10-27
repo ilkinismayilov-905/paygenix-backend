@@ -4,8 +4,10 @@ import com.example.paygenix.dto.response.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -64,6 +66,21 @@ public class GlobalHandlerException {
         return buildError(HttpStatus.UNAUTHORIZED, "Email or password is incorrect", "UNAUTHORIZED");
     }
 
+    // Field names and messages only: rejected values may be card numbers or PINs.
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
+        String message = ex.getBindingResult().getFieldErrors().stream()
+                .map(e -> e.getField() + ": " + e.getDefaultMessage())
+                .sorted()
+                .collect(Collectors.joining("; "));
+        return buildError(HttpStatus.BAD_REQUEST, message, "VALIDATION_FAILED");
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleUnreadableBody(HttpMessageNotReadableException ex) {
+        return buildError(HttpStatus.BAD_REQUEST, "Malformed request body", "MALFORMED_REQUEST");
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
         log.warn("Access denied: {}", ex.getMessage());
@@ -102,6 +119,9 @@ public class GlobalHandlerException {
         }
         if (ex instanceof TooManyReportsException) {
             return HttpStatus.TOO_MANY_REQUESTS;
+        }
+        if (ex instanceof TransferRejectedException) {
+            return HttpStatus.BAD_REQUEST;
         }
         if (ex instanceof CardHasBalanceException) {
             return HttpStatus.CONFLICT;
