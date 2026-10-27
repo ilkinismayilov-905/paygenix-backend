@@ -114,6 +114,14 @@ class VirtualCardsTest extends IntegrationTest {
         assertThat(stored).noneMatch(s -> s.contains(fromPan) || s.contains(toPan));
     }
 
+    @Test
+    void missingCardNumberIsNotFoundNotServerError() throws Exception {
+        mockMvc.perform(post("/api/transfer").header("Authorization", bearer(createUser()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"amount\":10.00}"))
+                .andExpect(status().isNotFound());
+    }
+
     private String issue(User owner, String currency) throws Exception {
         String body = mockMvc.perform(post("/api/cards").header("Authorization", bearer(owner))
                         .contentType(MediaType.APPLICATION_JSON)
