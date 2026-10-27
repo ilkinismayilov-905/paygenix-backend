@@ -38,7 +38,8 @@
 				<artifactId>bcprov-jdk18on</artifactId>
 				<version>1.86</version>
 			</dependency>
-			<!-- minio 8.6.0 pulls guava 33.4.8 (GHSA-xxph-c9ww-hj94) and snappy-java 1.1.10.7 (3 advisories). -->
+			<!-- minio 8.6.0 pulls guava 33.4.8 (GHSA-xxph-c9ww-hj94, fixed 33.7.2) and snappy-java 1.1.10.7
+			     (GHSA-gwq9-9ffj-mvrv, GHSA-q233-g92q-qxp6, GHSA-xqrx-qh46-34m7, fixed 1.1.10.9). Drop once minio ships these. -->
 			<dependency>
 				<groupId>com.google.guava</groupId>
 				<artifactId>guava</artifactId>
