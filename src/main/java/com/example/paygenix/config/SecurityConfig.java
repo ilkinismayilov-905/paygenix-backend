@@ -74,7 +74,7 @@ public class SecurityConfig {
                                 "/api/v1/auth/**"
                         ).permitAll()
                         .requestMatchers("/api/onboarding/**").hasAuthority("onboarding")
-                        .requestMatchers("/api/**").authenticated()
+                        .requestMatchers("/api/**").hasAnyRole("USER_ROLE", "ADMIN_ROLE")
 
                         .anyRequest().authenticated()
                 )
