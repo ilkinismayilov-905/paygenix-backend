@@ -96,6 +96,13 @@ public class CardService {
                 .orElseThrow(() -> new NotFoundException("Card not found"));
     }
 
+    // The caller's own card by full number. Someone else's card gets the same 404 as an unknown number.
+    @Transactional(readOnly = true)
+    public Cards findOwnedByNumber(User owner, String pan) {
+        return cardRepository.findByPanHmacAndOwnerId(panService.hmac(pan), owner.getId())
+                .orElseThrow(() -> new NotFoundException("Card not found"));
+    }
+
     // Another user's card answers 404, so ids cannot be probed.
     private Cards ownedCard(User owner, Long id) {
         return cardRepository.findByIdAndOwnerId(id, owner.getId())
