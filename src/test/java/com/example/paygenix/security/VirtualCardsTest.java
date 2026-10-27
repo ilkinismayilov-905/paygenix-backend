@@ -105,7 +105,7 @@ class VirtualCardsTest extends IntegrationTest {
 
         mockMvc.perform(post("/api/transfer").header("Authorization", bearer(sender))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"fromCardNumber\":\"" + fromPan + "\",\"toCardNumber\":\"" + toPan + "\",\"amount\":10.00}"))
+                        .content("{\"fromCardNumber\":\"" + fromPan + "\",\"toCardNumber\":\"" + toPan + "\",\"amount\":10.00,\"pin\":\"" + PIN + "\"}"))
                 .andExpect(status().isOk());
 
         assertThat(cardRepository.findById(to.getId()).orElseThrow().getAmount()).isEqualByComparingTo("10.00");
@@ -115,11 +115,12 @@ class VirtualCardsTest extends IntegrationTest {
     }
 
     @Test
-    void missingCardNumberIsNotFoundNotServerError() throws Exception {
+    void missingCardNumberIsRejectedNotServerError() throws Exception {
         mockMvc.perform(post("/api/transfer").header("Authorization", bearer(createUser()))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"amount\":10.00}"))
-                .andExpect(status().isNotFound());
+                        .content("{\"amount\":10.00,\"pin\":\"" + PIN + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
     }
 
     private String issue(User owner, String currency) throws Exception {

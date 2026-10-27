@@ -1,19 +1,28 @@
 package com.example.paygenix.support;
 
+import com.example.paygenix.entity.Cards;
 import com.example.paygenix.entity.User;
 import com.example.paygenix.enums.Role;
+import com.example.paygenix.repository.CardRepository;
 import com.example.paygenix.repository.UserRepository;
 import com.example.paygenix.service.JwtService;
+import com.example.paygenix.service.PanService;
+import com.jayway.jsonpath.JsonPath;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.util.Set;
 import java.util.UUID;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Base for integration tests: real Postgres and Redis in containers, MockMvc, and user/token helpers. */
 @SpringBootTest
@@ -28,6 +37,8 @@ public abstract class IntegrationTest {
     @Autowired protected UserRepository userRepository;
     @Autowired protected PasswordEncoder passwordEncoder;
     @Autowired protected JwtService jwtService;
+    @Autowired protected CardRepository cardRepository;
+    @Autowired protected PanService panService;
 
     protected User createUser(Role... roles) {
         String id = UUID.randomUUID().toString().substring(0, 8);
@@ -43,5 +54,29 @@ public abstract class IntegrationTest {
 
     protected String bearer(User user) {
         return "Bearer " + jwtService.generateJwtToken(user, user.getId(), user.getUsername());
+    }
+
+    /** Issues a card through the API and returns the full number (only ever visible in that response). */
+    protected String issueCard(User owner, String currency) throws Exception {
+        String body = mockMvc.perform(post("/api/cards").header("Authorization", bearer(owner))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currency\":\"" + currency + "\"}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return JsonPath.read(body, "$.data.cardNumber");
+    }
+
+    protected Cards cardOf(String pan) {
+        return cardRepository.findByPanHmac(panService.hmac(pan)).orElseThrow();
+    }
+
+    protected void setBalance(String pan, String amount) {
+        Cards card = cardOf(pan);
+        card.setAmount(new BigDecimal(amount));
+        cardRepository.save(card);
+    }
+
+    protected BigDecimal balanceOf(String pan) {
+        return cardOf(pan).getAmount();
     }
 }
