@@ -1,0 +1,9 @@
+# osv-scanner config (picked up next to pom.xml). The CI dependency scan is a blocking check.
+# When a new advisory fails CI:
+#   1. Upgrade the dependency if a fixed version exists (preferred).
+#   2. Otherwise add an ignore entry in its own PR, with a reason and an expiry of 30 days or less:
+#
+# [[IgnoredVulns]]
+# id = "GHSA-xxxx-xxxx-xxxx"
+# ignoreUntil = 2026-12-01
+# reason = "No fixed release yet; vulnerable code path not used (explain why)."
