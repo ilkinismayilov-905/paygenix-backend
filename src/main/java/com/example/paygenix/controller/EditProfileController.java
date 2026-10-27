@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -61,6 +62,7 @@ public class EditProfileController {
 
     @Operation(summary = "Get all profiles", description = "Fetches a list of all profiles (Admin/Internal use).")
     @ApiResponse(responseCode = "200", description = "Profiles retrieved successfully")
+    @PreAuthorize("hasRole('ADMIN_ROLE')")
     @GetMapping
     public ResponseEntity<ApiResponseData<List<EditProfileResponse>>> getAllProfiles() {
         log.info("Fetching all profiles");

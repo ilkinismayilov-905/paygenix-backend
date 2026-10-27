@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -29,8 +30,9 @@ public class TransactionController {
 
     private final TransactionService transactionService;
 
-    @Operation(summary = "Get all transactions", description = "Retrieves a complete list of all transactions for the current user.")
+    @Operation(summary = "Get all transactions", description = "Retrieves all transactions of all users (admin only).")
     @ApiResponse(responseCode = "200", description = "Transaction list retrieved successfully")
+    @PreAuthorize("hasRole('ADMIN_ROLE')")
     @GetMapping
     public ResponseEntity<ApiResponseData<List<TransactionsResponse>>> getAllTransactions() {
         log.info("Fetching all transactions");
@@ -43,6 +45,7 @@ public class TransactionController {
             @ApiResponse(responseCode = "200", description = "Transaction details found"),
             @ApiResponse(responseCode = "404", description = "Transaction not found")
     })
+    @PreAuthorize("hasRole('ADMIN_ROLE')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponseData<TransactionsResponse>> getTransactionById(@PathVariable Long id) {
         log.info("Fetching transaction with ID: {}", id);
@@ -58,6 +61,7 @@ public class TransactionController {
             @ApiResponse(responseCode = "200", description = "Filtered transactions retrieved successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid date format or range")
     })
+    @PreAuthorize("hasRole('ADMIN_ROLE')")
     @GetMapping("/between")
     public ResponseEntity<ApiResponseData<List<TransactionsResponse>>> getTransactionsBetweenDates(
             @Parameter(description = "Start date in dd-MM-yyyy format", example = "01-01-2024")
