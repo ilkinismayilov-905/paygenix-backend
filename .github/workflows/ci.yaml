@@ -35,8 +35,6 @@ jobs:
     name: dependency-scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # shortcut: report-only until the dependency upgrades (docs/ROADMAP.md, milestone 6) land; make it required after that.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
