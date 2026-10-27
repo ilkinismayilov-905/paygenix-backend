@@ -95,6 +95,10 @@ public class AuthService {
                 throw new RuntimeException("Refresh token boşdur!");
             }
 
+            if (!JwtService.REFRESH.equals(jwtService.extractTokenUse(refreshToken))) {
+                throw new RuntimeException("Not a refresh token");
+            }
+
             if (jwtService.isTokenExpired(refreshToken)) {
                 throw new RuntimeException("Refresh token is not validated!");
             }

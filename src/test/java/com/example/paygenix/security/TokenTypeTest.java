@@ -2,18 +2,24 @@ package com.example.paygenix.security;
 
 import com.example.paygenix.entity.OnboardingFlow;
 import com.example.paygenix.entity.User;
+import com.example.paygenix.service.AuthService;
 import com.example.paygenix.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 
+import java.util.HashMap;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 // SEC-3: only access tokens may call business endpoints; onboarding tokens only the onboarding flow.
 class TokenTypeTest extends IntegrationTest {
+
+    @Autowired AuthService authService;
 
     @Test
     void accessTokenOpensBusinessEndpoint() throws Exception {
@@ -40,6 +46,24 @@ class TokenTypeTest extends IntegrationTest {
     @Test
     void accessTokenIsRejectedOnOnboardingEndpoint() throws Exception {
         assertRejected(setFullNameStatus(bearer(createUser())));
+    }
+
+    @Test
+    void legacyTokenWithoutTokenUseIsRejected() throws Exception {
+        User user = createUser();
+        String legacy = jwtService.createToken(new HashMap<>(), user.getUsername(), 900L);
+        assertRejected(cardsStatus("Bearer " + legacy));
+    }
+
+    @Test
+    void refreshTokenIsRejectedOnOnboardingEndpoint() throws Exception {
+        assertRejected(setFullNameStatus("Bearer " + jwtService.generateJwtRefreshToken(createUser())));
+    }
+
+    @Test
+    void accessTokenCannotBeUsedToRefresh() {
+        String access = bearer(createUser()).substring("Bearer ".length());
+        assertThatThrownBy(() -> authService.refreshToken(access)).hasMessageContaining("Not a refresh token");
     }
 
     private int cardsStatus(String authorization) throws Exception {
