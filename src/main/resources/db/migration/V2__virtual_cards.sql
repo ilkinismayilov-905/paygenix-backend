@@ -26,5 +26,6 @@ UPDATE public.transfer SET from_card_number = right(from_card_number, 4), to_car
 UPDATE public.payment SET from_card_number = right(from_card_number, 4);
 UPDATE public.payment_onboarding SET from_card_number = right(from_card_number, 4);
 
--- Pending payments now point at the card by id.
+-- Pending payments now point at the card by id. Old pending ones referenced cards deleted above.
+DELETE FROM public.payment_onboarding WHERE payment_status = 'PENDING';
 ALTER TABLE public.payment_onboarding ADD COLUMN from_card_id bigint;
