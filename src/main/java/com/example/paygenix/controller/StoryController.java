@@ -43,8 +43,8 @@ public class StoryController {
             @ApiResponse(responseCode = "401", description = "Unauthorized access")
     })
     @PostMapping(consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
-    // shortcut: still takes a Jwt, which is always null here (SEC-27), so upload stays a 500. Fixing it would expose
-    // SEC-15 (client-chosen object keys). Rebuilt as admin-only promo upload in the stories task.
+    // shortcut: still takes a Jwt, which is always null here (SEC-27), so upload stays a 500. User story upload is
+    // being replaced by admin-only promo stories; it is rebuilt there, together with SEC-15 (client-chosen object keys).
     public ResponseEntity<ApiResponseData<StoryUploadResponse>> uploadStory(
             @AuthenticationPrincipal Jwt jwt,
             @RequestPart("file") MultipartFile file,
