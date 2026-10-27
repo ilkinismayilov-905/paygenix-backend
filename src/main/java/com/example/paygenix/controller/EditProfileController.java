@@ -21,7 +21,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -86,9 +85,9 @@ public class EditProfileController {
     public ResponseEntity<ApiResponseData<EditProfileResponse>> uploadProfileImage(
             @Parameter(description = "The image file to upload (PNG, JPG, etc.)")
             @RequestPart("file") MultipartFile file,
-            @AuthenticationPrincipal Jwt jwt) {
+            @AuthenticationPrincipal User user) {
 
-        Long userId = jwt.getClaim("userId");
+        Long userId = user.getId();
         log.info("Uploading profile photo for user ID: {}", userId);
 
         // Note: UserService call is here for fetching user if needed,
