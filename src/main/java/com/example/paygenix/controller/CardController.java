@@ -18,7 +18,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -116,23 +115,6 @@ public class CardController {
         log.warn("Request to delete card with ID: {}", id);
         CardResponse card = cardService.findById(id);
         cardService.deleteCard(id);
-        return ResponseEntity.ok(ApiResponseData.success(card));
-    }
-
-    @Operation(summary = "Add balance to card", description = "Increases the current balance of a specific card.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Amount successfully added to balance"),
-            @ApiResponse(responseCode = "400", description = "Invalid amount provided"),
-            @ApiResponse(responseCode = "404", description = "Target card not found")
-    })
-    @PostMapping("/{cardNumber}/add-amount")
-    public ResponseEntity<ApiResponseData<CardResponse>> addAmount(
-            @PathVariable String cardNumber,
-            @Parameter(description = "Amount to be added", example = "100.00")
-            @RequestParam BigDecimal amount
-    ) {
-        log.info("Adding amount {} to card number: {}", amount, cardNumber);
-        CardResponse card = cardService.addAmount(cardNumber, amount);
         return ResponseEntity.ok(ApiResponseData.success(card));
     }
 }
