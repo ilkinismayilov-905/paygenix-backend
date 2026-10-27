@@ -119,9 +119,10 @@ public class JwtFilter extends OncePerRequestFilter {
         String token = authHeader.substring(7);
 
         try {
-            String tokenType = jwtService.extractClaim(token, c -> c.get("scope", String.class));
+            String tokenUse = jwtService.extractTokenUse(token);
+            boolean onboardingPath = path.startsWith("/api/onboarding/");
 
-            if ("onboarding".equals(tokenType)) {
+            if (JwtService.ONBOARDING.equals(tokenUse) && onboardingPath) {
                 // Onboarding tokenində subject adətən "onboarding" və ya müvəqqəti ID olur
                 String subject = jwtService.extractUsername(token);
 
@@ -135,6 +136,12 @@ public class JwtFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(auth);
 
                 log.info("Onboarding token authenticated for: {}", subject);
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            if (!JwtService.ACCESS.equals(tokenUse) || onboardingPath) {
+                // refresh, onboarding outside its flow, or legacy tokens without token_use
                 filterChain.doFilter(request, response);
                 return;
             }
