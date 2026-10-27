@@ -1,6 +1,7 @@
 package com.example.paygenix.controller;
 
 import com.example.paygenix.dto.ApiResponseData;
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.example.paygenix.dto.request.TransferRequest;
 import com.example.paygenix.dto.response.TransferResponse;
 import com.example.paygenix.service.TransferService;
@@ -52,6 +53,7 @@ public class TransferController {
             description = "Retrieves a complete list of all past transfers associated with the user."
     )
     @ApiResponse(responseCode = "200", description = "Transfer list retrieved successfully")
+    @PreAuthorize("hasRole('ADMIN_ROLE')")
     @GetMapping
     public ResponseEntity<ApiResponseData<List<TransferResponse>>> getTransfers() {
         log.info("Fetching all transfers");
@@ -67,6 +69,7 @@ public class TransferController {
             @ApiResponse(responseCode = "200", description = "Transfer details retrieved successfully"),
             @ApiResponse(responseCode = "404", description = "Transfer not found with the given ID")
     })
+    @PreAuthorize("hasRole('ADMIN_ROLE')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponseData<TransferResponse>> getTransferById(
             @Parameter(description = "Unique ID of the transfer", example = "105")

@@ -1,6 +1,7 @@
 package com.example.paygenix.controller;
 
 import com.example.paygenix.dto.ApiResponseData;
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.example.paygenix.dto.request.CardRequest;
 import com.example.paygenix.dto.response.CardResponse;
 import com.example.paygenix.service.CardService;
@@ -81,6 +82,7 @@ public class CardController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "List of cards retrieved successfully")
     })
+    @PreAuthorize("hasRole('ADMIN_ROLE')")
     @GetMapping
     public ResponseEntity<ApiResponseData<List<CardResponse>>> getAllCards() {
         log.info("Fetching all registered cards");

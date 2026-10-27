@@ -23,18 +23,18 @@ class TokenTypeTest extends IntegrationTest {
 
     @Test
     void accessTokenOpensBusinessEndpoint() throws Exception {
-        assertThat(cardsStatus(bearer(createUser()))).isEqualTo(200);
+        assertThat(businessStatus(bearer(createUser()))).isEqualTo(200);
     }
 
     @Test
     void onboardingTokenIsRejectedOnBusinessEndpoint() throws Exception {
-        assertRejected(cardsStatus("Bearer " + onboardingToken()));
+        assertRejected(businessStatus("Bearer " + onboardingToken()));
     }
 
     @Test
     void refreshTokenIsRejectedOnBusinessEndpoint() throws Exception {
         User user = createUser();
-        assertRejected(cardsStatus("Bearer " + jwtService.generateJwtRefreshToken(user)));
+        assertRejected(businessStatus("Bearer " + jwtService.generateJwtRefreshToken(user)));
     }
 
     @Test
@@ -52,7 +52,7 @@ class TokenTypeTest extends IntegrationTest {
     void legacyTokenWithoutTokenUseIsRejected() throws Exception {
         User user = createUser();
         String legacy = jwtService.createToken(new HashMap<>(), user.getUsername(), 900L);
-        assertRejected(cardsStatus("Bearer " + legacy));
+        assertRejected(businessStatus("Bearer " + legacy));
     }
 
     @Test
@@ -66,8 +66,8 @@ class TokenTypeTest extends IntegrationTest {
         assertThatThrownBy(() -> authService.refreshToken(access)).hasMessageContaining("Not a refresh token");
     }
 
-    private int cardsStatus(String authorization) throws Exception {
-        return mockMvc.perform(get("/api/cards").header("Authorization", authorization))
+    private int businessStatus(String authorization) throws Exception {
+        return mockMvc.perform(get("/api/auth/me").header("Authorization", authorization))
                 .andReturn().getResponse().getStatus();
     }
 

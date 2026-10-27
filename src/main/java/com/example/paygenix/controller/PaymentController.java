@@ -1,6 +1,7 @@
 package com.example.paygenix.controller;
 
 import com.example.paygenix.dto.ApiResponseData;
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.example.paygenix.dto.request.ConfirmPaymentRequest;
 import com.example.paygenix.dto.request.PaymentRequest;
 import com.example.paygenix.dto.response.PaymentResponse;
@@ -90,6 +91,7 @@ public class PaymentController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Transaction history retrieved successfully")
     })
+    @PreAuthorize("hasRole('ADMIN_ROLE')")
     @GetMapping("/history")
     public ResponseEntity<ApiResponseData<List<PaymentTransactionResponse>>> getPaymentHistory() {
         log.info("Fetching payment transaction history");
