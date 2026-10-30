@@ -81,7 +81,9 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 // stateless JSON API: 401 instead of a redirect to a login page (SEC-22)
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(unauthorizedHandler)
+                        .accessDeniedHandler(unauthorizedHandler))
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .logout(logout -> logout.disable())
