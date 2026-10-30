@@ -46,7 +46,7 @@ public class PaymentController {
             @ApiResponse(responseCode = "200", description = "Payment flow initiated successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid payment request (non-positive amount, malformed card number)"),
             @ApiResponse(responseCode = "404", description = "Card not found or not owned by the caller"),
-            @ApiResponse(responseCode = "409", description = "Insufficient balance or card busy"),
+            @ApiResponse(responseCode = "409", description = "Insufficient balance, or card busy (retry with the same Idempotency-Key)"),
             @ApiResponse(responseCode = "422", description = "Idempotency-Key already used for a different request"),
             @ApiResponse(responseCode = "401", description = "Unauthorized access")
     })
@@ -74,7 +74,7 @@ public class PaymentController {
             @ApiResponse(responseCode = "200", description = "Payment confirmed and processed successfully"),
             @ApiResponse(responseCode = "400", description = "Validation failed (flow ID missing, PIN not 6 digits)"),
             @ApiResponse(responseCode = "404", description = "Payment flow not found, not owned by the caller, or invalid PIN"),
-            @ApiResponse(responseCode = "409", description = "Payment already processed, insufficient balance, or busy"),
+            @ApiResponse(responseCode = "409", description = "Payment already processed, insufficient balance, or busy (retry with the same Idempotency-Key)"),
             @ApiResponse(responseCode = "422", description = "Idempotency-Key already used for a different request")
     })
     @PostMapping("/confirm")
