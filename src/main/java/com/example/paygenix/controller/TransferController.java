@@ -42,7 +42,9 @@ public class TransferController {
             @ApiResponse(responseCode = "200", description = "Transfer completed successfully"),
             @ApiResponse(responseCode = "400", description = "Validation failed, same card, or currency mismatch"),
             @ApiResponse(responseCode = "401", description = "Unauthorized access"),
-            @ApiResponse(responseCode = "404", description = "Card not found or invalid PIN"),
+            @ApiResponse(responseCode = "403", description = "Wrong PIN (INVALID_PIN)"),
+            @ApiResponse(responseCode = "404", description = "Card not found"),
+            @ApiResponse(responseCode = "429", description = "Too many wrong PINs; PIN checks locked for 15 minutes (PIN_LOCKED)"),
             @ApiResponse(responseCode = "409", description = "Insufficient balance for amount plus commission, or card busy (retry with the same Idempotency-Key)"),
             @ApiResponse(responseCode = "422", description = "Idempotency-Key already used for a different request")
     })

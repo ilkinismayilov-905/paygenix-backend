@@ -139,6 +139,9 @@ public class GlobalHandlerException {
         if (ex instanceof TransferRejectedException) {
             return HttpStatus.BAD_REQUEST;
         }
+        if (ex instanceof PinRejectedException pin) {
+            return "PIN_LOCKED".equals(pin.getErrorCode()) ? HttpStatus.TOO_MANY_REQUESTS : HttpStatus.FORBIDDEN;
+        }
         if (ex instanceof IdempotencyKeyReusedException) {
             return HttpStatus.UNPROCESSABLE_CONTENT;
         }

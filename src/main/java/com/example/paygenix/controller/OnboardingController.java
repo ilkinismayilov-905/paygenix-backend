@@ -76,7 +76,7 @@ public class OnboardingController {
         return ResponseEntity.ok(ApiResponseData.success(null));
     }
 
-    @Operation(summary = "Set PIN and complete onboarding", description = "Finalizes the onboarding by setting a PIN. The user then signs in through /api/auth/login.")
+    @Operation(summary = "Set PIN and complete onboarding", description = "Finalizes the onboarding with the login password and the 6-digit transaction PIN. The user then signs in through /api/auth/login with email and password.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAuthority('onboarding')")
     @PutMapping("/{flowId}/pin")
@@ -84,7 +84,7 @@ public class OnboardingController {
             @PathVariable String flowId,
             @Valid @RequestBody PinRequest request) {
         log.info("Setting PIN and finalizing onboarding for flow ID: {}", flowId);
-        service.setPin(flowId, request.pin());
+        service.setPin(flowId, request.pin(), request.password());
         return ResponseEntity.ok(ApiResponseData.success(null));
     }
 }

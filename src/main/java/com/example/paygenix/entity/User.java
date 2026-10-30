@@ -50,6 +50,9 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String pinHash;
 
+    // null: no password login (pre-V9 test users, Google accounts)
+    private String passwordHash;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
             name = "user_roles",
@@ -111,7 +114,7 @@ public class User implements UserDetails {
 
     @Override
     public @Nullable String getPassword() {
-        return pinHash;
+        return passwordHash;
     }
 
     @Override

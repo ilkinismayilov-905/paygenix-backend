@@ -41,6 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public abstract class IntegrationTest {
 
     public static final String PIN = "123456";
+    public static final String PASSWORD = "correct-horse-battery";
 
     @Autowired protected MockMvc mockMvc;
     @Autowired protected UserRepository userRepository;
@@ -59,6 +60,7 @@ public abstract class IntegrationTest {
                 .username("user" + id)
                 .fullname("Test User " + id)
                 .pinHash(passwordEncoder.encode(PIN))
+                .passwordHash(passwordEncoder.encode(PASSWORD))
                 .roles(Set.of(roles.length == 0 ? new Role[]{Role.USER_ROLE} : roles))
                 .status(User.Status.ACTIVE)
                 .build());

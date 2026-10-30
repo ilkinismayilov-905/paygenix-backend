@@ -41,13 +41,13 @@ class OnboardingCompletionTest extends IntegrationTest {
         // a finished flow cannot create a second user (500 today: INVALID_STEP is a bare RuntimeException, T-047)
         assertThat(setPin(flow).andReturn().getResponse().getStatus()).isGreaterThanOrEqualTo(400);
 
-        assertThat(authService.login(new LoginRequest(flow.getEmail(), PIN)).token()).isNotBlank();
+        assertThat(authService.login(new LoginRequest(flow.getEmail(), PASSWORD)).token()).isNotBlank();
     }
 
     private ResultActions setPin(OnboardingFlow flow) throws Exception {
         return mockMvc.perform(put("/api/onboarding/" + flow.getId() + "/pin")
                 .header("Authorization", "Bearer " + jwtService.generateOnboardingToken(flow))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"pin\":\"" + PIN + "\"}"));
+                .content("{\"pin\":\"" + PIN + "\",\"password\":\"" + PASSWORD + "\"}"));
     }
 }
