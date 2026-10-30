@@ -1,7 +1,7 @@
 package com.example.paygenix.entity;
 
-import com.example.paygenix.enums.PaymentStatus;
 import com.example.paygenix.enums.Currency;
+import com.example.paygenix.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

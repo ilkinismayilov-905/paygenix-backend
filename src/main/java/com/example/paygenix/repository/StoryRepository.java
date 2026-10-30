@@ -10,6 +10,8 @@ import java.util.List;
 
 public interface StoryRepository extends JpaRepository<Story, Long> {
 
+    boolean existsByIdAndDeletedFalseAndExpiresAtAfter(Long id, Instant now);
+
     @Query(
             """
 select  s from Story s 
