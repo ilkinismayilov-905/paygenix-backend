@@ -6,6 +6,7 @@ import com.example.paygenix.dto.response.TransferResponse;
 import com.example.paygenix.entity.Cards;
 import com.example.paygenix.entity.Transactions;
 import com.example.paygenix.entity.Transfer;
+import com.example.paygenix.enums.SystemAccount;
 import com.example.paygenix.enums.TransactionStatus;
 import com.example.paygenix.entity.User;
 import com.example.paygenix.exceptions.InsufficientBalanceException;
@@ -14,6 +15,7 @@ import com.example.paygenix.exceptions.TransferRejectedException;
 import com.example.paygenix.repository.CardRepository;
 import com.example.paygenix.repository.TransactionRepository;
 import com.example.paygenix.repository.TransferRepository;
+import com.example.paygenix.service.LedgerService.Leg;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -34,6 +36,7 @@ public class TransferService {
     private final PinValidationService pinValidationService;
     private final TransactionRepository transactionRepository;
     private final TransferMapper mapper;
+    private final LedgerService ledgerService;
 
     @Transactional
     public TransferResponse transfer(User caller, TransferRequest req) {
@@ -61,8 +64,11 @@ public class TransferService {
             throw new InsufficientBalanceException("Insufficient balance for amount plus commission");
         }
 
-        from.setAmount(from.getAmount().subtract(totalAmount));
-        to.setAmount(to.getAmount().add(req.amount()));
+        transaction.setTransactionId(transactionService.generateTransactionId());
+        ledgerService.post("TRANSFER", transaction.getTransactionId(), from.getCurrency(), List.of(
+                Leg.card(from, totalAmount.negate()),
+                Leg.card(to, req.amount()),
+                Leg.system(SystemAccount.FEE_REVENUE, commissionAmount)));
 
         cardRepository.save(from);
         cardRepository.save(to);
@@ -70,7 +76,6 @@ public class TransferService {
         transaction.setFrom_card_id(from.getLast4());
         transaction.setTo_card_id(to.getLast4());
         transaction.setCurrency(from.getCurrency());
-        transaction.setTransactionId(transactionService.generateTransactionId());
         transaction.setStatus(TransactionStatus.COMPLETED);
         transaction.setCommissionValue(commissionAmount);
         transaction.setTotalAmount(totalAmount);

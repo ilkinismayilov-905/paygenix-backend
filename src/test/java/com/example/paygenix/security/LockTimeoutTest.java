@@ -8,7 +8,6 @@ import jakarta.persistence.LockModeType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -26,7 +25,6 @@ class LockTimeoutTest extends IntegrationTest {
     private static final long MAX_WAIT_MILLIS = 6_000; // lock_timeout is 3s
 
     @Autowired EntityManager entityManager;
-    @Autowired TransactionTemplate transactionTemplate;
 
     @Test
     void transferOnLockedCardFailsFastWithConflict() throws Exception {
