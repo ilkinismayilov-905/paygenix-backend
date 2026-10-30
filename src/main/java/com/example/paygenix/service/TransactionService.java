@@ -1,6 +1,5 @@
 package com.example.paygenix.service;
 
-//import com.example.paygenix.converter.TransactionConverter;
 import com.example.paygenix.mapper.TransactionMapper;
 import com.example.paygenix.dto.response.TransactionsResponse;
 import com.example.paygenix.entity.Transactions;
@@ -23,7 +22,6 @@ import java.util.UUID;
 @Slf4j
 public class TransactionService {
     private final TransactionRepository transactionRepository;
-//    private final TransactionConverter converter;
     private final TransactionMapper mapper;
 
     @Transactional(readOnly = true)
