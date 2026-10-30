@@ -1,5 +1,8 @@
 package com.example.paygenix.controller;
 
+import com.example.paygenix.dto.request.SetPinRequest;
+import com.example.paygenix.entity.User;
+import jakarta.validation.Valid;
 import com.example.paygenix.dto.ApiResponseData;
 import com.example.paygenix.dto.response.UserResponse;
 import com.example.paygenix.service.MediaService;
@@ -16,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -47,6 +51,20 @@ public class UserController {
         log.info("Fetching all users from the system");
         List<UserResponse> list = userService.getAll();
         return ResponseEntity.ok(ApiResponseData.success(list));
+    }
+
+    @Operation(summary = "Set the first transaction PIN",
+            description = "For Google accounts, which are created without a PIN. Payments and transfers answer 403 PIN_NOT_SET until it is set.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "PIN set"),
+            @ApiResponse(responseCode = "400", description = "PIN is not 6 digits"),
+            @ApiResponse(responseCode = "409", description = "PIN already set (PIN_ALREADY_SET); use the change-PIN flow")
+    })
+    @PostMapping("/pin")
+    public ResponseEntity<ApiResponseData<Void>> setFirstPin(@AuthenticationPrincipal User user,
+                                                             @Valid @RequestBody SetPinRequest request) {
+        userService.setFirstPin(user.getId(), request.pin());
+        return ResponseEntity.ok(ApiResponseData.success(null));
     }
 
     @Operation(

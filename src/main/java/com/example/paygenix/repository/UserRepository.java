@@ -15,6 +15,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUsername(String username);
     Optional<User> findByEmail(String email);
     Optional<User> findByUsername(String username);
+    Optional<User> findByProviderAndProviderId(User.AuthProvider provider, String providerId);
 
     // Serializes one user's PIN checks so parallel requests cannot exceed the attempt limit.
     @Lock(LockModeType.PESSIMISTIC_WRITE)

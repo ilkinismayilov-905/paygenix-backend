@@ -142,7 +142,7 @@ public class GlobalHandlerException {
         if (ex instanceof TooManyReportsException || ex instanceof LoginLockedException) {
             return HttpStatus.TOO_MANY_REQUESTS;
         }
-        if (ex instanceof InvalidRefreshTokenException) {
+        if (ex instanceof InvalidRefreshTokenException || ex instanceof InvalidOAuthCodeException) {
             return HttpStatus.UNAUTHORIZED;
         }
         if (ex instanceof TransferRejectedException) {
@@ -154,7 +154,8 @@ public class GlobalHandlerException {
         if (ex instanceof IdempotencyKeyReusedException) {
             return HttpStatus.UNPROCESSABLE_CONTENT;
         }
-        if (ex instanceof CardHasBalanceException || ex instanceof PaymentAlreadyProcessedException) {
+        if (ex instanceof CardHasBalanceException || ex instanceof PaymentAlreadyProcessedException
+                || ex instanceof PinAlreadySetException) {
             return HttpStatus.CONFLICT;
         }
         return HttpStatus.INTERNAL_SERVER_ERROR;

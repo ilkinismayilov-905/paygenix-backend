@@ -3,6 +3,8 @@ package com.example.paygenix.service;
 import com.example.paygenix.dto.request.LoginRequest;
 import com.example.paygenix.dto.response.JwtTokenResponse;
 import com.example.paygenix.entity.User;
+import com.example.paygenix.exceptions.InvalidOAuthCodeException;
+import com.example.paygenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,6 +22,8 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final LoginAttemptService loginAttemptService;
     private final SessionService sessionService;
+    private final OAuthCodeService oAuthCodeService;
+    private final UserRepository userRepository;
 
     public JwtTokenResponse login(LoginRequest loginRequest, String deviceName) {
         loginAttemptService.countAttempt(loginRequest.email());
@@ -30,6 +34,12 @@ public class AuthService {
 
         User user = (User) authentication.getPrincipal();
         log.info("User logged in successfully: {}", user.getUsername());
+        return sessionService.start(user, deviceName);
+    }
+
+    public JwtTokenResponse loginWithOAuthCode(String code, String deviceName) {
+        User user = userRepository.findById(oAuthCodeService.redeem(code))
+                .orElseThrow(InvalidOAuthCodeException::new);
         return sessionService.start(user, deviceName);
     }
 }
