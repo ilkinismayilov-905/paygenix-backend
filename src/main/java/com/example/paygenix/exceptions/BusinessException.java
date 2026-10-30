@@ -1,5 +1,7 @@
 package com.example.paygenix.exceptions;
 
+import org.springframework.http.HttpStatus;
+
 public abstract class BusinessException extends RuntimeException {
     public BusinessException(String message) {
         super(message);
@@ -9,4 +11,6 @@ public abstract class BusinessException extends RuntimeException {
     }
 
     public abstract String getErrorCode();
+
+    public abstract HttpStatus getStatus();
 }
