@@ -1,7 +1,6 @@
 package com.example.paygenix.service;
 
 import com.example.paygenix.entity.OnboardingFlow;
-import com.example.paygenix.entity.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
