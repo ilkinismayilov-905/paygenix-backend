@@ -1,5 +1,7 @@
 package com.example.paygenix.exceptions;
 
+import org.springframework.http.HttpStatus;
+
 public class InvalidOAuthCodeException extends BusinessException {
 
     public InvalidOAuthCodeException() {
@@ -9,5 +11,10 @@ public class InvalidOAuthCodeException extends BusinessException {
     @Override
     public String getErrorCode() {
         return "INVALID_OAUTH_CODE";
+    }
+
+    @Override
+    public HttpStatus getStatus() {
+        return HttpStatus.UNAUTHORIZED;
     }
 }

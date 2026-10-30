@@ -1,5 +1,7 @@
 package com.example.paygenix.exceptions;
 
+import org.springframework.http.HttpStatus;
+
 public class TransferRejectedException extends BusinessException {
 
     private final String errorCode;
@@ -20,5 +22,10 @@ public class TransferRejectedException extends BusinessException {
     @Override
     public String getErrorCode() {
         return errorCode;
+    }
+
+    @Override
+    public HttpStatus getStatus() {
+        return HttpStatus.BAD_REQUEST;
     }
 }
