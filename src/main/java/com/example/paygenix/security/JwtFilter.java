@@ -106,7 +106,7 @@ public class JwtFilter extends OncePerRequestFilter {
         String authHeader = request.getHeader("Authorization");
         String path = request.getRequestURI();
 
-        if(path.startsWith("/api/stripe/test/") || path.equals("/actuator/health")){
+        if(path.equals("/actuator/health")){
             filterChain.doFilter(request, response);
             return;
         }

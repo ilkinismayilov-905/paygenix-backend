@@ -27,7 +27,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/user")
-@CrossOrigin
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "User Management", description = "APIs for user data retrieval and generic media file handling")

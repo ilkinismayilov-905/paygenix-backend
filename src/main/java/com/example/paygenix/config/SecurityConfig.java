@@ -5,9 +5,9 @@ import com.example.paygenix.security.JwtAuthenticationEntryPoint;
 import com.example.paygenix.security.JwtFilter;
 import com.example.paygenix.service.GoogleOidcUserService;
 import com.example.paygenix.service.JwtService;
-import jakarta.annotation.PostConstruct;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -27,8 +27,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 
 @Configuration
@@ -55,38 +59,32 @@ public class SecurityConfig {
                         sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/resources/**", "/static/**").permitAll()
-                        // 1. Tamamilə açıq yollar (Whitelist)
                         .requestMatchers(
-                                "/login",
-                                "/oauth2/**",       // OAuth2 yolları
+                                "/oauth2/authorization/**",
+                                "/login/oauth2/**",
                                 "/api/onboarding/email",
                                 "/api/onboarding/*/otp",
                                 "/api/auth/login",
                                 "/api/auth/refresh-token",
                                 "/api/auth/oauth/exchange",
-                                "/api/stripe/test/**",
                                 "/actuator/health",
+                                // only served when SWAGGER_ENABLED=true
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/v3/api-docs/**",
-                                "/login/oauth2/**",
-                                "/oauth2/authorization/**",
-                                "/home",
-                                "/api/v1/auth/**"
+                                "/v3/api-docs/**"
                         ).permitAll()
                         .requestMatchers("/api/onboarding/**").hasAuthority("onboarding")
                         .requestMatchers("/api/**").hasAnyRole("USER_ROLE", "ADMIN_ROLE")
-
                         .anyRequest().authenticated()
                 )
-//                .exceptionHandling(exception -> exception
-//                        .authenticationEntryPoint(unauthorizedHandler) // BURANI ƏLAVƏ ET
-//                )
-
-                .formLogin(Customizer.withDefaults())
+                // stateless JSON API: 401 instead of a redirect to a login page (SEC-22)
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
+                .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
-                .logout(Customizer.withDefaults())
+                .logout(logout -> logout.disable())
+                .headers(headers -> headers
+                        .referrerPolicy(referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
+                        .contentSecurityPolicy(csp -> csp.policyDirectives("frame-ancestors 'none'")))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo.oidcUserService(googleOidcUserService))
@@ -95,36 +93,25 @@ public class SecurityConfig {
                 );
         return http.build();
     }
+    // SEC-21: exact origins from config; auth is a Bearer header, so no credentials (cookies) are allowed cross-origin
     @Bean
-    public WebMvcConfigurer corsConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addCorsMappings(CorsRegistry registry) {
-
-                registry.addMapping("/**")
-                        .allowedOriginPatterns(
-                                "*",
-                                "http://localhost:3000",
-                                "http://127.0.0.1:3000",
-                                "http://localhost:5173",
-                                "http://127.0.0.1:5173"
-                        )
-                        .allowedMethods("*")
-                        .allowedHeaders("*")
-                        .allowCredentials(true)
-                        .maxAge(3600);
-            }
-        };
+    CorsConfigurationSource corsConfigurationSource(@Value("${app.cors.allowed-origins}") List<String> allowedOrigins) {
+        CorsConfiguration cors = new CorsConfiguration();
+        cors.setAllowedOrigins(allowedOrigins);
+        cors.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        cors.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key"));
+        cors.setAllowCredentials(false);
+        cors.setMaxAge(3600L);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", cors);
+        return source;
     }
+
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    @PostConstruct
-    void test() {
-        System.out.println("SecurityConfig LOADED");
-    }
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
