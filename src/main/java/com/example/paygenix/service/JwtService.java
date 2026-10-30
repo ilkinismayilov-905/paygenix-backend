@@ -73,23 +73,10 @@ public class JwtService {
                 .subject("onboarding")
                 .issuedAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(900))
-                .claim("scope", "onboarding")
                 .claim(TOKEN_USE, ONBOARDING)
                 .claim("flowId", flow.getId())
                 .build();
 
-
-        return jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader, claims))
-                .getTokenValue();
-    }
-
-    public String generateOnboardingUserToken(User user) {
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-                .subject(user.getId().toString())
-                .issuedAt(Instant.now())
-                .expiresAt(Instant.now().plusSeconds(3600))
-                .claim("roles", user.getRoles())
-                .build();
 
         return jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader, claims))
                 .getTokenValue();

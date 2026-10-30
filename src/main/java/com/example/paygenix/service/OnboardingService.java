@@ -1,6 +1,5 @@
 package com.example.paygenix.service;
 
-import com.example.paygenix.dto.response.OnboardingTokenResponse;
 import com.example.paygenix.entity.OnboardingFlow;
 import com.example.paygenix.entity.User;
 import com.example.paygenix.enums.Role;
@@ -111,7 +110,7 @@ public class OnboardingService {
     }
 
     @Transactional
-    public OnboardingTokenResponse setPin(String flowId, String pin) {
+    public void setPin(String flowId, String pin) {
         OnboardingFlow flow = getFlow(flowId, OnboardingFlow.Step.USERNAME_SET);
 
         User user = User.builder()
@@ -126,7 +125,6 @@ public class OnboardingService {
         userRepo.save(user);
 
         flow.setStep(OnboardingFlow.Step.COMPLETED);
-        return new OnboardingTokenResponse(jwtService.generateOnboardingUserToken(user));
     }
 
     private String generateOtp() {
