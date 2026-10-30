@@ -1,6 +1,10 @@
 package com.example.paygenix.config;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.validation.autoconfigure.ValidationAutoConfiguration;
 
 import java.math.BigDecimal;
 
@@ -31,5 +35,27 @@ class FeePropertiesTest {
     void resultsAlwaysHaveTwoDecimals() {
         assertThat(fees.commissionOf(new BigDecimal("7")).scale()).isEqualTo(2);
         assertThat(fees.cashbackOf(new BigDecimal("7")).scale()).isEqualTo(2);
+    }
+
+    @Test
+    void invalidRatesStopStartup() {
+        runner().withPropertyValues("paygenix.fees.commission-percent=2.00", "paygenix.fees.cashback-percent=0.50")
+                .run(ctx -> assertThat(ctx).hasNotFailed()); // trailing zero is still one fraction digit
+        runner().withPropertyValues("paygenix.fees.commission-percent=101", "paygenix.fees.cashback-percent=0.5")
+                .run(ctx -> assertThat(ctx).hasFailed());
+        runner().withPropertyValues("paygenix.fees.commission-percent=2", "paygenix.fees.cashback-percent=0.55")
+                .run(ctx -> assertThat(ctx).hasFailed());
+        runner().withPropertyValues("paygenix.fees.commission-percent=2")
+                .run(ctx -> assertThat(ctx).hasFailed());
+    }
+
+    private static ApplicationContextRunner runner() {
+        return new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(ValidationAutoConfiguration.class))
+                .withUserConfiguration(Config.class);
+    }
+
+    @EnableConfigurationProperties(FeeProperties.class)
+    static class Config {
     }
 }

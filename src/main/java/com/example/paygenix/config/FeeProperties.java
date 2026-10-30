@@ -24,6 +24,12 @@ public record FeeProperties(
 ) {
     private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
 
+    // "0.50" must pass @Digits(fraction = 1) like "0.5" does
+    public FeeProperties {
+        commissionPercent = commissionPercent == null ? null : commissionPercent.stripTrailingZeros();
+        cashbackPercent = cashbackPercent == null ? null : cashbackPercent.stripTrailingZeros();
+    }
+
     public BigDecimal commissionOf(BigDecimal amount) {
         return percentOf(amount, commissionPercent);
     }

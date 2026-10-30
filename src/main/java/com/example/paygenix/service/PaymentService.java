@@ -94,7 +94,6 @@ public class PaymentService {
 
         PaymentTransaction transaction = new PaymentTransaction();
 
-        BigDecimal cashbackPercent = fees.cashbackPercent();
         BigDecimal cashbackAmount = fees.cashbackOf(onboarding.getAmount());
 
         transaction.setTransactionId(ptService.generatePaymentTransactionId());
@@ -108,7 +107,7 @@ public class PaymentService {
 
         transaction.setFrom_card_id(from.getLast4());
         transaction.setAmount(onboarding.getAmount());
-        transaction.setCashbackPercent(cashbackPercent);
+        transaction.setCashbackPercent(fees.cashbackPercent());
         transaction.setCashbackValue(cashbackAmount);
         transaction.setCurrency(from.getCurrency());
         transaction.setStatus(PaymentStatus.COMPLETED);
