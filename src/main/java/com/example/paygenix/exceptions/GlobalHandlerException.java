@@ -123,7 +123,7 @@ public class GlobalHandlerException {
         if (ex instanceof TransferRejectedException) {
             return HttpStatus.BAD_REQUEST;
         }
-        if (ex instanceof CardHasBalanceException) {
+        if (ex instanceof CardHasBalanceException || ex instanceof PaymentAlreadyProcessedException) {
             return HttpStatus.CONFLICT;
         }
         return HttpStatus.INTERNAL_SERVER_ERROR;
