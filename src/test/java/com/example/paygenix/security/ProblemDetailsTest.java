@@ -17,7 +17,6 @@ import org.springframework.test.web.servlet.ResultActions;
 import java.time.Instant;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -67,7 +66,8 @@ class ProblemDetailsTest extends IntegrationTest {
     void unknownPathIs404NotAHandlerFailure() throws Exception {
         mockMvc.perform(get("/api/does-not-exist").header("Authorization", bearer(createUser())))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.detail").value("Not found"));
     }
 
     @Test
@@ -86,6 +86,7 @@ class ProblemDetailsTest extends IntegrationTest {
         submitEmail(fresh).andExpect(status().isOk()).andExpect(jsonPath("$.data").isString());
 
         verify(emailService, never()).sendOtp(eq(existing.getEmail()), anyString());
+        verify(emailService).sendAccountExists(existing.getEmail());
         verify(emailService).sendOtp(eq(fresh), anyString());
     }
 
@@ -112,11 +113,10 @@ class ProblemDetailsTest extends IntegrationTest {
                 .build()).getId();
         User otherAdmin = createUser(Role.ADMIN_ROLE);
 
-        int status = mockMvc.perform(delete("/api/stories/" + storyId).header("Authorization", bearer(otherAdmin)))
-                .andReturn().getResponse().getStatus();
-        assertThat(status).isEqualTo(403);
+        mockMvc.perform(delete("/api/stories/" + storyId).header("Authorization", bearer(otherAdmin)))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("FORBIDDEN"));
         mockMvc.perform(delete("/api/stories/999999999").header("Authorization", bearer(otherAdmin)))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("NOT_FOUND"));
     }
 
     private ResultActions submitEmail(String email) throws Exception {

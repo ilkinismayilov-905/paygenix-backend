@@ -20,7 +20,9 @@ import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
 
@@ -138,7 +140,23 @@ public class GlobalHandlerException extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(ex, body, headers, status, request);
     }
 
-    // Gives Spring's own Problem Details (405, 415, 404 ...) a `code` too.
+    @Override
+    protected ResponseEntity<Object> handleHandlerMethodValidationException(HandlerMethodValidationException ex, HttpHeaders headers,
+                                                                            HttpStatusCode status, WebRequest request) {
+        String detail = ex.getParameterValidationResults().stream()
+                .map(r -> r.getMethodParameter().getParameterName() + ": invalid value")
+                .sorted()
+                .collect(Collectors.joining("; "));
+        return handleExceptionInternal(ex, problem(status, detail, "VALIDATION_FAILED"), headers, status, request);
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleNoResourceFoundException(NoResourceFoundException ex, HttpHeaders headers,
+                                                                    HttpStatusCode status, WebRequest request) {
+        return handleExceptionInternal(ex, problem(status, "Not found", "NOT_FOUND"), headers, status, request);
+    }
+
+    // Gives Spring's own Problem Details (405, 415, ...) a `code` too, and keeps internals out of server errors.
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(Exception ex, @Nullable Object body, HttpHeaders headers,
                                                              HttpStatusCode status, WebRequest request) {
@@ -147,6 +165,9 @@ public class GlobalHandlerException extends ResponseEntityExceptionHandler {
                 && (problem.getProperties() == null || !problem.getProperties().containsKey(CODE))) {
             HttpStatus resolved = HttpStatus.resolve(status.value());
             problem.setProperty(CODE, resolved != null ? resolved.name() : "ERROR");
+        }
+        if (response != null && response.getBody() instanceof ProblemDetail problem && status.is5xxServerError()) {
+            problem.setDetail("An unexpected error occurred");
         }
         return response;
     }

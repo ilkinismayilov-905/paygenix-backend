@@ -52,8 +52,11 @@ public class ChangePinController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "OTP verified successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid or expired OTP"),
-            @ApiResponse(responseCode = "404", description = "No such flow for this user")
+            @ApiResponse(responseCode = "400", description = "Wrong code (INVALID_OTP) or expired code (OTP_EXPIRED)"),
+            @ApiResponse(responseCode = "404", description = "No such flow for this user (FLOW_NOT_FOUND)"),
+            @ApiResponse(responseCode = "409", description = "Code already verified (INVALID_STEP)"),
+            @ApiResponse(responseCode = "410", description = "Flow expired (FLOW_EXPIRED)"),
+            @ApiResponse(responseCode = "429", description = "Too many wrong codes (TOO_MANY_ATTEMPTS)")
     })
     @PostMapping("/{flowId}/otp")
     public ResponseEntity<SuccessResponse<Void>> verifyOtp(
@@ -74,7 +77,8 @@ public class ChangePinController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "PIN updated successfully"),
             @ApiResponse(responseCode = "400", description = "PINs do not match or invalid format"),
-            @ApiResponse(responseCode = "403", description = "Action forbidden - OTP might not be verified yet"),
+            @ApiResponse(responseCode = "409", description = "Code not verified yet (INVALID_STEP)"),
+            @ApiResponse(responseCode = "410", description = "Flow expired (FLOW_EXPIRED)"),
             @ApiResponse(responseCode = "404", description = "No such flow for this user")
     })
     @PostMapping("/{flowId}/pin")
