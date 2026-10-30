@@ -6,6 +6,7 @@ import com.example.paygenix.security.JwtFilter;
 import com.example.paygenix.service.GoogleOidcUserService;
 import com.example.paygenix.service.JwtService;
 
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -59,6 +60,8 @@ public class SecurityConfig {
                         sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        // let error dispatches render the real status instead of a 401
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(
                                 "/oauth2/authorization/**",
                                 "/login/oauth2/**",
@@ -93,6 +96,7 @@ public class SecurityConfig {
                 );
         return http.build();
     }
+
     // SEC-21: exact origins from config; auth is a Bearer header, so no credentials (cookies) are allowed cross-origin
     @Bean
     CorsConfigurationSource corsConfigurationSource(@Value("${app.cors.allowed-origins}") List<String> allowedOrigins) {
