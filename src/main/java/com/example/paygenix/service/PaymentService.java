@@ -54,6 +54,7 @@ public class PaymentService {
         PaymentOnboarding onboarding = PaymentOnboarding.builder()
                 .id(UUID.randomUUID().toString())
                 .amount(req.amount())
+                .currency(from.getCurrency())
                 .fromCardId(from.getId())
                 .fromCardNumber(from.getLast4())
                 .phoneNumber(req.phoneNumber())
@@ -112,6 +113,7 @@ public class PaymentService {
 
         Payment payment = Payment.builder()
                 .amount(onboarding.getAmount())
+                .currency(onboarding.getCurrency())
                 .creationDate(Instant.now())
                 .fromCardNumber(from.getLast4())
                 .phoneNumber(onboarding.getPhoneNumber())
