@@ -37,7 +37,7 @@ public class PaymentTransaction {
     private BigDecimal amount;
 
     @Column(nullable = false, precision = 3, scale = 1)
-    private BigDecimal cashbackPercent = new BigDecimal("0.5");
+    private BigDecimal cashbackPercent;
 
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal cashbackValue;

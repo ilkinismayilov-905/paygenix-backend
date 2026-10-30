@@ -41,7 +41,7 @@ public class Transactions {
     private Currency currency;
 
     @Column(nullable = false, precision = 5, scale = 2)
-    private BigDecimal commissionRate=BigDecimal.TWO;
+    private BigDecimal commissionRate;
 
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal commissionValue;

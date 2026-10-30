@@ -87,9 +87,9 @@ class LedgerInvariantTest extends IntegrationTest {
         String card = issueCard(payer, "AZN");
         setBalance(card, "10.00");
 
-        pay(payer, card, "1.99"); // 0.5% rounds down to 0.00
+        pay(payer, card, "0.99"); // 0.5% = 0.00495, rounds half-even to 0.00
 
-        assertThat(balanceOf(card)).isEqualByComparingTo("8.01");
+        assertThat(balanceOf(card)).isEqualByComparingTo("9.01");
         assertBooksBalanced();
     }
 

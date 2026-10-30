@@ -1,5 +1,6 @@
 package com.example.paygenix.service;
 
+import com.example.paygenix.config.FeeProperties;
 import com.example.paygenix.mapper.TransferMapper;
 import com.example.paygenix.dto.request.TransferRequest;
 import com.example.paygenix.dto.response.TransferResponse;
@@ -22,7 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 
 @Slf4j
@@ -37,6 +37,7 @@ public class TransferService {
     private final TransactionRepository transactionRepository;
     private final TransferMapper mapper;
     private final LedgerService ledgerService;
+    private final FeeProperties fees;
 
     @Transactional
     public TransferResponse transfer(User caller, TransferRequest req) {
@@ -55,10 +56,7 @@ public class TransferService {
         // balances are read only after the rows are locked, so concurrent debits cannot overspend
         cardService.lockForUpdate(from, to);
 
-        BigDecimal ratePercent = transaction.getCommissionRate();
-        BigDecimal commissionAmount = req.amount()
-                .multiply(ratePercent)
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal commissionAmount = fees.commissionOf(req.amount());
         BigDecimal totalAmount = commissionAmount.add(req.amount());
         if (from.getAmount().compareTo(totalAmount) < 0) {
             throw new InsufficientBalanceException("Insufficient balance for amount plus commission");
@@ -77,6 +75,7 @@ public class TransferService {
         transaction.setTo_card_id(to.getLast4());
         transaction.setCurrency(from.getCurrency());
         transaction.setStatus(TransactionStatus.COMPLETED);
+        transaction.setCommissionRate(fees.commissionPercent());
         transaction.setCommissionValue(commissionAmount);
         transaction.setTotalAmount(totalAmount);
 
