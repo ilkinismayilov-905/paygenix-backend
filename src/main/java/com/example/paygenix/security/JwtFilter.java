@@ -124,8 +124,12 @@ public class JwtFilter extends OncePerRequestFilter {
             boolean onboardingPath = path.startsWith("/api/onboarding/");
 
             if (JwtService.ONBOARDING.equals(tokenUse) && onboardingPath) {
-                // Onboarding tokenində subject adətən "onboarding" və ya müvəqqəti ID olur
-                String subject = jwtService.extractUsername(token);
+                // SEC-19: an onboarding token may only drive the flow it was issued for
+                String subject = jwtService.extractClaim(token, claims -> claims.get(JwtService.FLOW_ID, String.class));
+                if (subject == null || !path.startsWith("/api/onboarding/" + subject + "/")) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
 
                 // Onboarding üçün müvəqqəti Authority yaradırıq
                 SimpleGrantedAuthority authority = new SimpleGrantedAuthority("onboarding");
