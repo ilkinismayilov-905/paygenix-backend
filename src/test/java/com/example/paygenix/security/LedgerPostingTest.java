@@ -7,6 +7,7 @@ import com.example.paygenix.enums.SystemAccount;
 import com.example.paygenix.service.LedgerService.Leg;
 import com.example.paygenix.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -54,6 +55,21 @@ class LedgerPostingTest extends IntegrationTest {
                 Leg.system(SystemAccount.STRIPE_CLEARING, BigDecimal.ZERO))));
         assertThat(txId).isNull();
         assertThat(ledgerService.balanceOf(card)).isEqualByComparingTo("0.00");
+    }
+
+    @Test
+    void ledgerKindEnumMatchesTheDatabaseCheck() throws Exception {
+        Long account = jdbc.queryForObject("SELECT id FROM ledger_accounts WHERE code = 'STRIPE_CLEARING' AND currency = 'AZN'", Long.class);
+        String insert = "INSERT INTO ledger_entries (tx_id, account_id, amount, currency, kind, reference) "
+                + "VALUES (gen_random_uuid(), ?, 1, 'AZN', ?, 'check')";
+        // inside a rolled-back transaction: the rows are unbalanced on purpose and entries cannot be deleted
+        transactionTemplate.executeWithoutResult(tx -> {
+            for (LedgerKind kind : LedgerKind.values()) {
+                jdbc.update(insert, account, kind.name());
+            }
+            tx.setRollbackOnly();
+        });
+        assertThatThrownBy(() -> jdbc.update(insert, account, "BOGUS")).isInstanceOf(DataIntegrityViolationException.class);
     }
 
     private void assertRejected(Currency currency, List<Leg> legs, String message) {

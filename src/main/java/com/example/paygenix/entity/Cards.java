@@ -22,7 +22,7 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-// Closed cards stay in the table for the ledger history but are invisible to every query.
+// Closed cards stay in the table for the ledger history but are invisible to every JPA query (native SQL sees them).
 @SQLRestriction("closed_at IS NULL")
 public class Cards {
     @Id

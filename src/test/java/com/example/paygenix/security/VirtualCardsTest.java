@@ -98,6 +98,26 @@ class VirtualCardsTest extends IntegrationTest {
     }
 
     @Test
+    void closedCardCannotReceiveMoney() throws Exception {
+        User sender = createUser();
+        String from = issue(sender, "AZN");
+        setBalance(cardOf(from), "100.00");
+        User recipient = createUser();
+        String closed = issue(recipient, "AZN");
+        mockMvc.perform(delete("/api/cards/" + cardOf(closed).getId()).header("Authorization", bearer(recipient)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/transfer").header("Authorization", bearer(sender))
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"fromCardNumber\":\"" + from + "\",\"toCardNumber\":\"" + closed + "\",\"amount\":10.00,\"pin\":\"" + PIN + "\"}"))
+                .andExpect(status().isNotFound());
+
+        assertThat(balanceOf(from)).isEqualByComparingTo("100.00");
+        assertBooksBalanced();
+    }
+
+    @Test
     void transferFindsCardsByFullNumberAndKeepsOnlyLast4InHistory() throws Exception {
         User sender = createUser();
         User recipient = createUser();
