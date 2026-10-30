@@ -1,5 +1,6 @@
 package com.example.paygenix.service;
 
+import com.example.paygenix.config.FeeProperties;
 import com.example.paygenix.dto.request.PaymentRequest;
 import com.example.paygenix.dto.response.PaymentResponse;
 import com.example.paygenix.entity.Cards;
@@ -25,7 +26,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -45,6 +45,7 @@ public class PaymentService {
     private final PaymentOnboardingRepository poRepository;
     private final PinValidationService pinValidationService;
     private final LedgerService ledgerService;
+    private final FeeProperties fees;
 
     @Transactional
     public String transfer(PaymentRequest req, User payer) {
@@ -93,16 +94,13 @@ public class PaymentService {
 
         PaymentTransaction transaction = new PaymentTransaction();
 
-        BigDecimal cashbackPercent = transaction.getCashbackPercent();
-        BigDecimal cashbackAmount = onboarding.getAmount()
-                .multiply(cashbackPercent)
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.DOWN);
+        BigDecimal cashbackPercent = fees.cashbackPercent();
+        BigDecimal cashbackAmount = fees.cashbackOf(onboarding.getAmount());
 
         transaction.setTransactionId(ptService.generatePaymentTransactionId());
         ledgerService.post("PAYMENT", transaction.getTransactionId(), from.getCurrency(), List.of(
                 Leg.card(from, onboarding.getAmount().negate()),
                 Leg.system(SystemAccount.PAYMENT_PAYOUT, onboarding.getAmount())));
-        // shortcut: cashback is still the entity default 0.5%, not config (T-061)
         ledgerService.post("CASHBACK", transaction.getTransactionId(), from.getCurrency(), List.of(
                 Leg.system(SystemAccount.CASHBACK_EXPENSE, cashbackAmount.negate()),
                 Leg.card(from, cashbackAmount)));
