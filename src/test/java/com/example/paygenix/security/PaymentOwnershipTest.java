@@ -44,6 +44,28 @@ class PaymentOwnershipTest extends IntegrationTest {
     }
 
     @Test
+    void paymentCarriesItsCardsCurrency() throws Exception {
+        User payer = createUser();
+        String card = issueCard(payer, "USD");
+        setBalance(card, "100.00");
+
+        confirm(payer, initiate(payer, card, "10.00"), PIN)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.currency").value("USD"));
+    }
+
+    @Test
+    void largePaymentCashbackFitsTheColumn() throws Exception {
+        User payer = createUser();
+        String card = issueCard(payer, "AZN");
+        setBalance(card, "300000.00");
+
+        confirm(payer, initiate(payer, card, "200000.00"), PIN).andExpect(status().isOk()); // cashback 1000.00
+
+        assertThat(balanceOf(card)).isEqualByComparingTo("101000.00");
+    }
+
+    @Test
     void cannotInitiateFromSomeoneElsesCard() throws Exception {
         String victimCard = issueCard(createUser(), "AZN");
         setBalance(victimCard, "100.00");
