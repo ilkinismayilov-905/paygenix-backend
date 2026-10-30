@@ -2,8 +2,6 @@ package com.example.paygenix.cache;
 
 public final class CacheNames {
     public static final String USER_BY_ID = "userById";
-    public static final String REFRESH_TOKEN_BY_USER_ID = "refreshTokenByUserId";
-    public static final String REFRESH_TOKEN_BY_TOKEN_HASH = "refreshTokenByTokenHash";
 
 
     public static final String EDIT_PROFILE_BY_ID = "editProfileById";

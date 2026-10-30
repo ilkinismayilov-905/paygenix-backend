@@ -2,7 +2,7 @@ package com.example.paygenix.security;
 
 import com.example.paygenix.entity.OnboardingFlow;
 import com.example.paygenix.entity.User;
-import com.example.paygenix.service.AuthService;
+import com.example.paygenix.exceptions.InvalidRefreshTokenException;
 import com.example.paygenix.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +19,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 // SEC-3: only access tokens may call business endpoints; onboarding tokens only the onboarding flow.
 class TokenTypeTest extends IntegrationTest {
 
-    @Autowired AuthService authService;
 
     @Test
     void accessTokenOpensBusinessEndpoint() throws Exception {
@@ -34,7 +33,7 @@ class TokenTypeTest extends IntegrationTest {
     @Test
     void refreshTokenIsRejectedOnBusinessEndpoint() throws Exception {
         User user = createUser();
-        assertRejected(businessStatus("Bearer " + jwtService.generateJwtRefreshToken(user)));
+        assertRejected(businessStatus("Bearer " + jwtService.generateJwtRefreshToken(user, UUID.randomUUID())));
     }
 
     @Test
@@ -57,13 +56,13 @@ class TokenTypeTest extends IntegrationTest {
 
     @Test
     void refreshTokenIsRejectedOnOnboardingEndpoint() throws Exception {
-        assertRejected(setFullNameStatus("Bearer " + jwtService.generateJwtRefreshToken(createUser())));
+        assertRejected(setFullNameStatus("Bearer " + jwtService.generateJwtRefreshToken(createUser(), UUID.randomUUID())));
     }
 
     @Test
     void accessTokenCannotBeUsedToRefresh() {
         String access = bearer(createUser()).substring("Bearer ".length());
-        assertThatThrownBy(() -> authService.refreshToken(access)).hasMessageContaining("Not a refresh token");
+        assertThatThrownBy(() -> sessionService.refresh(access)).isInstanceOf(InvalidRefreshTokenException.class);
     }
 
     private int businessStatus(String authorization) throws Exception {
