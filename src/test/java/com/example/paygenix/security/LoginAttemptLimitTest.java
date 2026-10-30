@@ -6,12 +6,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -57,9 +57,10 @@ class LoginAttemptLimitTest extends IntegrationTest {
     @Test
     void lockIsPerEmail() throws Exception {
         User locked = createUser();
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 5; i++) {
             login(locked.getEmail(), "wrong-password");
         }
+        login(locked.getEmail(), PASSWORD).andExpect(status().isTooManyRequests());
         login(createUser().getEmail(), PASSWORD).andExpect(status().isOk());
     }
 
