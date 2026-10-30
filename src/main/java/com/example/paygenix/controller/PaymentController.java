@@ -5,6 +5,7 @@ import com.example.paygenix.dto.request.ConfirmPaymentRequest;
 import com.example.paygenix.dto.request.PaymentRequest;
 import com.example.paygenix.dto.response.PaymentResponse;
 import com.example.paygenix.dto.response.PaymentTransactionResponse;
+import com.example.paygenix.entity.User;
 import com.example.paygenix.service.PaymentService;
 import com.example.paygenix.service.PaymentTransactionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,7 +19,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -41,20 +41,19 @@ public class PaymentController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Payment flow initiated successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid payment request (e.g., insufficient balance)"),
+            @ApiResponse(responseCode = "400", description = "Invalid payment request (non-positive amount, malformed card number)"),
+            @ApiResponse(responseCode = "404", description = "Card not found or not owned by the caller"),
+            @ApiResponse(responseCode = "409", description = "Insufficient balance"),
             @ApiResponse(responseCode = "401", description = "Unauthorized access")
     })
-    // shortcut: Jwt principal is always null here (SEC-27), so initiate/confirm return 500. Kept until card ownership
-    // and payer checks (SEC-7) land; switching to the User principal first would make SEC-7 exploitable.
     @PostMapping("/initiate")
     public ResponseEntity<ApiResponseData<String>> initiatePayment(
             @Valid @RequestBody PaymentRequest request,
-            @AuthenticationPrincipal Jwt jwt
+            @AuthenticationPrincipal User user
     ) {
-        String username = jwt.getSubject();
-        log.info("Initiating payment for user: {}", username);
+        log.info("Initiating payment for user: {}", user.getId());
 
-        String flowId = paymentService.transfer(request, username);
+        String flowId = paymentService.transfer(request, user);
         return ResponseEntity.ok(ApiResponseData.success(flowId));
     }
 
@@ -64,22 +63,18 @@ public class PaymentController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Payment confirmed and processed successfully"),
-            @ApiResponse(responseCode = "403", description = "Incorrect PIN provided"),
-            @ApiResponse(responseCode = "404", description = "Payment flow ID not found")
+            @ApiResponse(responseCode = "400", description = "Validation failed (flow ID missing, PIN not 6 digits)"),
+            @ApiResponse(responseCode = "404", description = "Payment flow not found, not owned by the caller, or invalid PIN"),
+            @ApiResponse(responseCode = "409", description = "Payment already processed or insufficient balance")
     })
     @PostMapping("/confirm")
     public ResponseEntity<ApiResponseData<PaymentResponse>> confirmPayment(
             @Valid @RequestBody ConfirmPaymentRequest request,
-            @AuthenticationPrincipal Jwt jwt
+            @AuthenticationPrincipal User user
     ) {
-        String username = jwt.getSubject();
-        log.info("Confirming payment flow: {} for user: {}", request.flowId(), username);
+        log.info("Confirming payment flow: {} for user: {}", request.flowId(), user.getId());
 
-        PaymentResponse response = paymentService.confirmPayment(
-                request.flowId(),
-                request.pin(),
-                username
-        );
+        PaymentResponse response = paymentService.confirmPayment(request.flowId(), request.pin(), user);
 
         return ResponseEntity.ok(ApiResponseData.success(response));
     }
