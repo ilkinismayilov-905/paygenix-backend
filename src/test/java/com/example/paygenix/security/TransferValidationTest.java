@@ -128,8 +128,9 @@ class TransferValidationTest extends IntegrationTest {
         String to = issueCard(createUser(), "AZN");
         setBalance(from, "100.00");
 
-        // 404 today (PinValidationService); expected to become 401/403 with PIN attempt limits
-        transfer(sender, from, to, "10.00", "000000").andExpect(status().isNotFound());
+        transfer(sender, from, to, "10.00", "000000")
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("INVALID_PIN"));
 
         assertThat(balanceOf(from)).isEqualByComparingTo("100.00");
     }
