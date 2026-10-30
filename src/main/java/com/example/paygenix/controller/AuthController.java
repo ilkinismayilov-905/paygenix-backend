@@ -2,6 +2,7 @@ package com.example.paygenix.controller;
 
 import com.example.paygenix.dto.ApiResponseData;
 import com.example.paygenix.dto.request.LoginRequest;
+import com.example.paygenix.dto.request.OAuthExchangeRequest;
 import com.example.paygenix.dto.request.RefreshTokenRequest;
 import com.example.paygenix.dto.response.JwtTokenResponse;
 import com.example.paygenix.dto.response.UserMeResponse;
@@ -93,7 +94,22 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponseData.build(HttpStatus.OK, "Token refreshed successfully", responseDTO));
     }
 
-    @Operation(summary = "OAuth2 Provayderləri", description = "Sistemdə aktiv olan xarici giriş provayderlərinin (Google, GitHub və s.) siyahısını qaytarır.")
+    @Operation(summary = "Google sign-in: exchange code", description = "After Google sign-in the browser lands on "
+            + "FRONTEND_URL/oauth2/callback?code=... The frontend trades the code here, once, within 60 seconds, for the same tokens as /login. "
+            + "On failure it lands on ?error=email_not_verified | account_exists | oauth_failed instead.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Signed in; a new device session was started"),
+            @ApiResponse(responseCode = "401", description = "Code invalid, expired or already used (INVALID_OAUTH_CODE)", content = @Content)
+    })
+    @PostMapping("/oauth/exchange")
+    public ResponseEntity<ApiResponseData<JwtTokenResponse>> exchangeOAuthCode(
+            @Valid @RequestBody OAuthExchangeRequest request,
+            @RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent) {
+        JwtTokenResponse response = authService.loginWithOAuthCode(request.code(), userAgent);
+        return ResponseEntity.ok(ApiResponseData.build(HttpStatus.OK, "Login successful", response));
+    }
+
+    @Operation(summary = "OAuth2 Provayderləri", description = "Sistemdə aktiv olan xarici giriş provayderlərinin (Google) siyahısını qaytarır.")
     @GetMapping("/providers")
     public ResponseEntity<ApiResponseData<List<String>>> getOAuth2Providers() {
         List<String> providers = new ArrayList<>();

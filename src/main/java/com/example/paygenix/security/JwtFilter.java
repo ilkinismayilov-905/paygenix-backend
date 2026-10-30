@@ -4,7 +4,6 @@ import com.example.paygenix.entity.User;
 import com.example.paygenix.service.CustomUserDetailsService;
 import com.example.paygenix.service.JwtService;
 import com.example.paygenix.service.SessionService;
-import com.example.paygenix.service.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,7 +29,6 @@ import java.util.UUID;
 public class JwtFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
-    private final UserService userService;
     private final SessionService sessionService;
 
 //    @Override
