@@ -1,4 +1,7 @@
 package com.example.paygenix.dto.request;
 
-public record OtpRequest(String otp) {
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+
+public record OtpRequest(@NotBlank @Pattern(regexp = "\\d{6}", message = "Code must be 6 digits") String otp) {
 }
