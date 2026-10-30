@@ -78,6 +78,35 @@ class PaymentOwnershipTest extends IntegrationTest {
         initiateRequest(payer, card, "-10.00").andExpect(status().isBadRequest());
         initiateRequest(payer, card, "0").andExpect(status().isBadRequest());
         initiateRequest(payer, card, "null").andExpect(status().isBadRequest());
+        initiateRequest(payer, card, "10.001").andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void wrongPinLeavesFlowPending() throws Exception {
+        User payer = createUser();
+        String card = issueCard(payer, "AZN");
+        setBalance(card, "100.00");
+        String flowId = initiate(payer, card, "10.00");
+
+        // 404 today (PinValidationService); expected to become 401/403 with PIN attempt limits (T-040)
+        confirm(payer, flowId, "000000").andExpect(status().isNotFound());
+        assertThat(balanceOf(card)).isEqualByComparingTo("100.00");
+
+        confirm(payer, flowId, PIN).andExpect(status().isOk());
+    }
+
+    @Test
+    void balanceIsRecheckedAtConfirm() throws Exception {
+        User payer = createUser();
+        String card = issueCard(payer, "AZN");
+        setBalance(card, "100.00");
+        String flowId = initiate(payer, card, "10.00");
+        setBalance(card, "5.00");
+
+        confirm(payer, flowId, PIN)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("INSUFFICIENT_BALANCE"));
+        assertThat(balanceOf(card)).isEqualByComparingTo("5.00");
     }
 
     @Test
