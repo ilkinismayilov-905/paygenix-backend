@@ -1,5 +1,7 @@
 package com.example.paygenix.exceptions;
 
+import org.springframework.http.HttpStatus;
+
 public class InvalidReportMessageException extends BusinessException {
 
     public InvalidReportMessageException() {
@@ -10,5 +12,9 @@ public class InvalidReportMessageException extends BusinessException {
     public String getErrorCode() {
         return "INVALID_REPORT_MESSAGE";
     }
-}
 
+    @Override
+    public HttpStatus getStatus() {
+        return HttpStatus.BAD_REQUEST;
+    }
+}
