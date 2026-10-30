@@ -7,6 +7,7 @@ import com.example.paygenix.dto.response.TransferResponse;
 import com.example.paygenix.entity.Cards;
 import com.example.paygenix.entity.Transactions;
 import com.example.paygenix.entity.Transfer;
+import com.example.paygenix.enums.LedgerKind;
 import com.example.paygenix.enums.SystemAccount;
 import com.example.paygenix.enums.TransactionStatus;
 import com.example.paygenix.entity.User;
@@ -63,7 +64,7 @@ public class TransferService {
         }
 
         transaction.setTransactionId(transactionService.generateTransactionId());
-        ledgerService.post("TRANSFER", transaction.getTransactionId(), from.getCurrency(), List.of(
+        ledgerService.post(LedgerKind.TRANSFER, transaction.getTransactionId(), from.getCurrency(), List.of(
                 Leg.card(from, totalAmount.negate()),
                 Leg.card(to, req.amount()),
                 Leg.system(SystemAccount.FEE_REVENUE, commissionAmount)));

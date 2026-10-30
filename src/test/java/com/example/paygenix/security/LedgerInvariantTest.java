@@ -10,12 +10,10 @@ import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
@@ -29,7 +27,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class LedgerInvariantTest extends IntegrationTest {
 
     @Autowired TransferService transferService;
-    @Autowired JdbcTemplate jdbc;
 
     @Test
     void randomTransfersAndPaymentsKeepTheBooksBalanced() throws Exception {
@@ -122,20 +119,6 @@ class LedgerInvariantTest extends IntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"flowId\":\"" + flowId + "\",\"pin\":\"" + PIN + "\"}"))
                 .andExpect(status().isOk());
-    }
-
-    // Checked across the whole database, so every other test's postings are covered too.
-    private void assertBooksBalanced() {
-        assertThat(jdbc.queryForList(
-                "SELECT tx_id FROM ledger_entries GROUP BY tx_id HAVING SUM(amount) <> 0 OR COUNT(DISTINCT currency) > 1"))
-                .isEmpty();
-        for (Map<String, Object> row : jdbc.queryForList("SELECT currency, SUM(amount) AS total FROM ledger_entries GROUP BY currency")) {
-            assertThat((BigDecimal) row.get("total")).as("sum of %s entries", row.get("currency")).isZero();
-        }
-        assertThat(jdbc.queryForList("""
-                SELECT c.id FROM cards c LEFT JOIN ledger_accounts a ON a.card_id = c.id
-                LEFT JOIN ledger_entries e ON e.account_id = a.id
-                GROUP BY c.id, c.amount HAVING c.amount <> COALESCE(SUM(e.amount), 0)""")).isEmpty();
     }
 
     private BigDecimal systemBalance(String code, String currency) {
