@@ -47,7 +47,7 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String fullname;
 
-    @Column(nullable = false)
+    // null: Google account that has not set its PIN yet
     private String pinHash;
 
     // null: no password login (pre-V9 test users, Google accounts)
@@ -69,6 +69,9 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     private AuthProvider provider;
 
+    // the provider's stable subject id (Google `sub`); null for LOCAL
+    private String providerId;
+
     @Enumerated(EnumType.STRING)
     private VerificationStatus verificationStatus;
 
@@ -87,7 +90,9 @@ public class User implements UserDetails {
     @PrePersist
     void prePersist() {
         verificationStatus = VerificationStatus.PENDING;
-        provider=AuthProvider.LOCAL;
+        if (provider == null) {
+            provider = AuthProvider.LOCAL;
+        }
     }
 
     public enum Status {

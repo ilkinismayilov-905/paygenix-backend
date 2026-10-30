@@ -35,6 +35,9 @@ public class PinValidationService {
     public void validatePin(Long userId, String rawPin) {
         User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
+        if (user.getPinHash() == null) {
+            throw PinRejectedException.notSet();
+        }
         String key = KEY_PREFIX + userId;
         String failures = redis.opsForValue().get(key);
         if (failures != null && Long.parseLong(failures) >= MAX_ATTEMPTS) {

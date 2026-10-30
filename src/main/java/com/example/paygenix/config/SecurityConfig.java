@@ -3,7 +3,7 @@ package com.example.paygenix.config;
 import com.example.paygenix.repository.UserRepository;
 import com.example.paygenix.security.JwtAuthenticationEntryPoint;
 import com.example.paygenix.security.JwtFilter;
-import com.example.paygenix.service.CustomOAuth2UserService;
+import com.example.paygenix.service.GoogleOidcUserService;
 import com.example.paygenix.service.JwtService;
 import jakarta.annotation.PostConstruct;
 
@@ -42,7 +42,8 @@ public class SecurityConfig {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
-    private final CustomOAuth2UserService customOAuth2UserService;
+    private final GoogleOidcUserService googleOidcUserService;
+    private final OAuth2FailureHandler oAuth2FailureHandler;
     private final JwtAuthenticationEntryPoint unauthorizedHandler;
 
     @Bean
@@ -63,6 +64,7 @@ public class SecurityConfig {
                                 "/api/onboarding/*/otp",
                                 "/api/auth/login",
                                 "/api/auth/refresh-token",
+                                "/api/auth/oauth/exchange",
                                 "/api/stripe/test/**",
                                 "/actuator/health",
                                 "/swagger-ui/**",
@@ -87,8 +89,9 @@ public class SecurityConfig {
                 .logout(Customizer.withDefaults())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                        .userInfoEndpoint(userInfo -> userInfo.oidcUserService(googleOidcUserService))
                         .successHandler(oAuth2SuccessHandler)
+                        .failureHandler(oAuth2FailureHandler)
                 );
         return http.build();
     }
