@@ -17,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @Slf4j
@@ -50,7 +49,7 @@ public class OnboardingChangePinService {
 
         enforceSendCoolDown(email);
 
-        String otp = generateOtp();
+        String otp = OtpGenerator.newOtp();
         OnboardingChangePin flow = OnboardingChangePin.builder()
                 .id(UUID.randomUUID().toString())
                 .email(email)
@@ -122,11 +121,6 @@ public class OnboardingChangePinService {
         log.info("PIN CHANGED");
     }
 
-    private String generateOtp() {
-        return String.valueOf(
-                ThreadLocalRandom.current().nextInt(100000, 999999)
-        );
-    }
 
     // SEC-20: only the user who started the flow may continue it, and only for FLOW_TTL
     private OnboardingChangePin getFlow(String id, String callerEmail, OnboardingChangePin.Step step) {

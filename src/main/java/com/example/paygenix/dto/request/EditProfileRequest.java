@@ -13,8 +13,6 @@ public record EditProfileRequest(
         @NotNull(groups = Create.class)
         String fullName,
         @NotNull(groups = Create.class)
-        String email,
-        @NotNull(groups = Create.class)
         @Pattern(
                 regexp = "^\\+994\\d{9}$",
                 message = "Phone number must start with +994 and contain 9 digits after it"
