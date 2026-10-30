@@ -1,6 +1,7 @@
 package com.example.paygenix.entity;
 
 import com.example.paygenix.enums.PaymentStatus;
+import com.example.paygenix.enums.Currency;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,6 +26,9 @@ public class PaymentOnboarding {
     private Long fromCardId;
     private String fromCardNumber; // last four digits only
     private BigDecimal amount;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Currency currency;
     private Long userId;
     @Enumerated(value = EnumType.STRING)
     private PaymentStatus paymentStatus;

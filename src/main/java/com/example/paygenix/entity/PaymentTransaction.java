@@ -39,7 +39,7 @@ public class PaymentTransaction {
     @Column(nullable = false, precision = 3, scale = 1)
     private BigDecimal cashbackPercent = new BigDecimal("0.5");
 
-    @Column(nullable = false, precision = 5, scale = 2)
+    @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal cashbackValue;
 
     @Enumerated(EnumType.STRING)

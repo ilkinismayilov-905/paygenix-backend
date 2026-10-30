@@ -83,6 +83,18 @@ class TransferValidationTest extends IntegrationTest {
     }
 
     @Test
+    void largeTransferCommissionFitsTheColumn() throws Exception {
+        User sender = createUser();
+        String from = issueCard(sender, "AZN");
+        String to = issueCard(createUser(), "AZN");
+        setBalance(from, "60000.00");
+
+        transfer(sender, from, to, "50000.00", PIN).andExpect(status().isOk()); // commission 1000.00
+
+        assertThat(balanceOf(from)).isEqualByComparingTo("9000.00");
+    }
+
+    @Test
     void sameCardIsRejected() throws Exception {
         User sender = createUser();
         String card = issueCard(sender, "AZN");
