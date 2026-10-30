@@ -43,7 +43,7 @@ public class TransferController {
             @ApiResponse(responseCode = "400", description = "Validation failed, same card, or currency mismatch"),
             @ApiResponse(responseCode = "401", description = "Unauthorized access"),
             @ApiResponse(responseCode = "404", description = "Card not found or invalid PIN"),
-            @ApiResponse(responseCode = "409", description = "Insufficient balance for amount plus commission, or card busy"),
+            @ApiResponse(responseCode = "409", description = "Insufficient balance for amount plus commission, or card busy (retry with the same Idempotency-Key)"),
             @ApiResponse(responseCode = "422", description = "Idempotency-Key already used for a different request")
     })
     @PostMapping

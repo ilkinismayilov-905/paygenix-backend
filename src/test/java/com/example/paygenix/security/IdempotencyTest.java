@@ -6,6 +6,7 @@ import com.example.paygenix.entity.User;
 import com.example.paygenix.service.IdempotencyService;
 import com.example.paygenix.service.TransferService;
 import com.example.paygenix.support.IntegrationTest;
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -112,6 +113,53 @@ class IdempotencyTest extends IntegrationTest {
     }
 
     @Test
+    void paymentConfirmRetryReplaysInsteadOfAlreadyProcessed() throws Exception {
+        User payer = createUser();
+        String card = issueCard(payer, "AZN");
+        setBalance(card, "100.00");
+        String body = mockMvc.perform(post("/api/payment/initiate").header("Authorization", bearer(payer))
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"phoneNumber\":\"+994501234567\",\"fromCardNumber\":\"" + card + "\",\"amount\":10.00}"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String flowId = JsonPath.read(body, "$.data");
+        String key = UUID.randomUUID().toString();
+
+        confirm(payer, key, flowId).andExpect(status().isOk());
+        confirm(payer, key, flowId).andExpect(status().isOk()).andExpect(jsonPath("$.data.amount").value(10.00));
+
+        assertThat(balanceOf(card)).isEqualByComparingTo("90.05");
+    }
+
+    @Test
+    void sameKeyOnAnotherEndpointIsRejected() throws Exception {
+        User payer = createUser();
+        String card = issueCard(payer, "AZN");
+        setBalance(card, "100.00");
+        String key = UUID.randomUUID().toString();
+
+        transfer(payer, key, card, issueCard(createUser(), "AZN"), "10.00").andExpect(status().isOk());
+        confirm(payer, key, "some-flow")
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.code").value("IDEMPOTENCY_KEY_REUSED"));
+    }
+
+    @Test
+    void blankOrOverlongKeyIsRejected() throws Exception {
+        User sender = createUser();
+        String from = issueCard(sender, "AZN");
+        String to = issueCard(createUser(), "AZN");
+        setBalance(from, "100.00");
+
+        transfer(sender, " ", from, to, "10.00").andExpect(status().isBadRequest());
+        transfer(sender, "k".repeat(256), from, to, "10.00").andExpect(status().isBadRequest());
+
+        assertThat(balanceOf(from)).isEqualByComparingTo("100.00");
+    }
+
+    // Calls the service directly so all threads start together; the controller builds the same fingerprint.
+    @Test
     void parallelRetriesWithSameKeyMoveMoneyOnce() throws Exception {
         User sender = createUser();
         String from = issueCard(sender, "AZN");
@@ -148,6 +196,13 @@ class IdempotencyTest extends IntegrationTest {
                 .header("Idempotency-Key", key)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body(from, to, amount)));
+    }
+
+    private ResultActions confirm(User payer, String key, String flowId) throws Exception {
+        return mockMvc.perform(post("/api/payment/confirm").header("Authorization", bearer(payer))
+                .header("Idempotency-Key", key)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"flowId\":\"" + flowId + "\",\"pin\":\"" + PIN + "\"}"));
     }
 
     private static String body(String from, String to, String amount) {
