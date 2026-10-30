@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.YearMonth;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -92,7 +93,7 @@ public class CardService {
         if (card.getAmount().signum() != 0) {
             throw new CardHasBalanceException();
         }
-        cardRepository.delete(card);
+        card.setClosedAt(Instant.now());
         log.info("Closed card {} for user {}", id, owner.getId());
     }
 

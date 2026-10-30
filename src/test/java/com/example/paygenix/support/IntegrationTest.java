@@ -2,6 +2,7 @@ package com.example.paygenix.support;
 
 import com.example.paygenix.entity.Cards;
 import com.example.paygenix.entity.User;
+import com.example.paygenix.enums.LedgerKind;
 import com.example.paygenix.enums.Role;
 import com.example.paygenix.enums.SystemAccount;
 import com.example.paygenix.repository.CardRepository;
@@ -16,6 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -23,9 +25,11 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -46,6 +50,7 @@ public abstract class IntegrationTest {
     @Autowired protected PanService panService;
     @Autowired protected LedgerService ledgerService;
     @Autowired protected TransactionTemplate transactionTemplate;
+    @Autowired protected JdbcTemplate jdbc;
 
     protected User createUser(Role... roles) {
         String id = UUID.randomUUID().toString().substring(0, 8);
@@ -86,10 +91,24 @@ public abstract class IntegrationTest {
         transactionTemplate.executeWithoutResult(tx -> {
             Cards managed = cardRepository.findById(card.getId()).orElseThrow();
             BigDecimal delta = new BigDecimal(amount).subtract(managed.getAmount());
-            ledgerService.post("TEST_TOP_UP", "test", managed.getCurrency(), List.of(
+            ledgerService.post(LedgerKind.TOP_UP, "test", managed.getCurrency(), List.of(
                     Leg.system(SystemAccount.STRIPE_CLEARING, delta.negate()),
                     Leg.card(managed, delta)));
         });
+    }
+
+    // Checked across the whole database, so every other test's postings are covered too.
+    protected void assertBooksBalanced() {
+        assertThat(jdbc.queryForList(
+                "SELECT tx_id FROM ledger_entries GROUP BY tx_id HAVING SUM(amount) <> 0 OR COUNT(DISTINCT currency) > 1"))
+                .isEmpty();
+        for (Map<String, Object> row : jdbc.queryForList("SELECT currency, SUM(amount) AS total FROM ledger_entries GROUP BY currency")) {
+            assertThat((BigDecimal) row.get("total")).as("sum of %s entries", row.get("currency")).isZero();
+        }
+        assertThat(jdbc.queryForList("""
+                SELECT c.id FROM cards c LEFT JOIN ledger_accounts a ON a.card_id = c.id
+                LEFT JOIN ledger_entries e ON e.account_id = a.id
+                GROUP BY c.id, c.amount HAVING c.amount <> COALESCE(SUM(e.amount), 0)""")).isEmpty();
     }
 
     protected BigDecimal balanceOf(String pan) {

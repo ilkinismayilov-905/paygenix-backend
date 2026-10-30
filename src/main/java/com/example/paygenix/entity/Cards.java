@@ -10,8 +10,10 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Date;
 
 @Entity
@@ -20,6 +22,8 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+// Closed cards stay in the table for the ledger history but are invisible to every query.
+@SQLRestriction("closed_at IS NULL")
 public class Cards {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -55,4 +59,6 @@ public class Cards {
 
     @CreationTimestamp
     private Date creationDate;
+
+    private Instant closedAt;
 }
