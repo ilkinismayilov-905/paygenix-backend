@@ -5,6 +5,7 @@ import com.example.paygenix.enums.Role;
 import com.example.paygenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
@@ -12,6 +13,7 @@ import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -43,22 +45,29 @@ public class GoogleOidcUserService extends OidcUserService {
     }
 
     private User create(OidcUser oidcUser) {
-        String email = oidcUser.getEmail();
-        if (email == null || !Boolean.TRUE.equals(oidcUser.getEmailVerified())) {
+        if (oidcUser.getEmail() == null || !Boolean.TRUE.equals(oidcUser.getEmailVerified())) {
             throw new OAuth2AuthenticationException(new OAuth2Error(EMAIL_NOT_VERIFIED));
         }
+        // onboarding stores emails lowercased; the account_exists check must match them
+        String email = oidcUser.getEmail().trim().toLowerCase(Locale.ROOT);
         if (userRepository.existsByEmail(email) || userRepository.existsByUsername(email)) {
             throw new OAuth2AuthenticationException(new OAuth2Error(ACCOUNT_EXISTS));
         }
-        User user = userRepository.save(User.builder()
-                .email(email)
-                .fullname(oidcUser.getFullName() != null ? oidcUser.getFullName() : email)
-                .username(email)
-                .provider(User.AuthProvider.GOOGLE)
-                .providerId(oidcUser.getSubject())
-                .roles(Set.of(Role.USER_ROLE))
-                .status(User.Status.ACTIVE)
-                .build());
+        User user;
+        try {
+            user = userRepository.save(User.builder()
+                    .email(email)
+                    .fullname(oidcUser.getFullName() != null ? oidcUser.getFullName() : email)
+                    .username(email)
+                    .provider(User.AuthProvider.GOOGLE)
+                    .providerId(oidcUser.getSubject())
+                    .roles(Set.of(Role.USER_ROLE))
+                    .status(User.Status.ACTIVE)
+                    .build());
+        } catch (DataIntegrityViolationException e) {
+            // a parallel first sign-in with the same sub or email won the insert
+            throw new OAuth2AuthenticationException(new OAuth2Error("oauth_failed"));
+        }
         log.info("Google account created, user {}", user.getId());
         return user;
     }

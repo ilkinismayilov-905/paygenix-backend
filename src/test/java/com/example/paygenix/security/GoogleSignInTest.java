@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
@@ -84,9 +85,15 @@ class GoogleSignInTest extends IntegrationTest {
     @Test
     void redirectCarriesAOneTimeCodeThatIsExchangedOnce() throws Exception {
         String sub = UUID.randomUUID().toString();
+        OidcUser oidcUser = google(sub, sub + "@gmail.test", true);
+        googleOidcUserService.findOrCreate(oidcUser); // done by loadUser during the real login
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpSession session = new MockHttpSession();
+        request.setSession(session);
         MockHttpServletResponse response = new MockHttpServletResponse();
-        successHandler.onAuthenticationSuccess(new MockHttpServletRequest(), response,
-                new TestingAuthenticationToken(google(sub, sub + "@gmail.test", true), null));
+        successHandler.onAuthenticationSuccess(request, response, new TestingAuthenticationToken(oidcUser, null));
+
+        assertThat(session.isInvalid()).isTrue();
 
         String redirect = response.getRedirectedUrl();
         assertThat(redirect).startsWith("http://localhost:3000/oauth2/callback?code=").doesNotContain("token");
@@ -111,6 +118,19 @@ class GoogleSignInTest extends IntegrationTest {
                 new OAuth2AuthenticationException(new OAuth2Error(GoogleOidcUserService.ACCOUNT_EXISTS)));
 
         assertThat(response.getRedirectedUrl()).isEqualTo("http://localhost:3000/oauth2/callback?error=account_exists");
+
+        MockHttpServletResponse other = new MockHttpServletResponse();
+        failureHandler.onAuthenticationFailure(new MockHttpServletRequest(), other,
+                new OAuth2AuthenticationException(new OAuth2Error("invalid_token", "details <script>", null)));
+        assertThat(other.getRedirectedUrl()).isEqualTo("http://localhost:3000/oauth2/callback?error=oauth_failed");
+    }
+
+    @Test
+    void mixedCaseEmailOfAPasswordAccountIsAlsoRefused() {
+        User local = createUser();
+        assertThatThrownBy(() -> googleOidcUserService.findOrCreate(
+                google(UUID.randomUUID().toString(), local.getEmail().toUpperCase(), true)))
+                .isInstanceOf(OAuth2AuthenticationException.class);
     }
 
     @Test
