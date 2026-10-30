@@ -3,6 +3,7 @@ package com.example.paygenix.security;
 import com.example.paygenix.entity.User;
 import com.example.paygenix.service.CustomUserDetailsService;
 import com.example.paygenix.service.JwtService;
+import com.example.paygenix.service.SessionService;
 import com.example.paygenix.service.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -21,6 +22,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -29,6 +31,7 @@ public class JwtFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
     private final UserService userService;
+    private final SessionService sessionService;
 
 //    @Override
 //    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -154,15 +157,19 @@ public class JwtFilter extends OncePerRequestFilter {
                 UserDetails userDetails =
                         userDetailsService.loadUserByUsername(username);
 
-                if (jwtService.validateToken(token, userDetails)) {
+                // a revoked or expired device session invalidates its access tokens at once
+                UUID sessionId = jwtService.extractSessionId(token);
+                if (jwtService.validateToken(token, userDetails)
+                        && userDetails instanceof User user
+                        && sessionId != null
+                        && sessionService.isActive(sessionId, user.getId())) {
+                    request.setAttribute(SessionService.SESSION_ID_ATTRIBUTE, sessionId);
 
-                    if (userDetails instanceof User user) {
-                        Date expirationDate = jwtService.extractExpiration(token);
-                        if (expirationDate != null) {
-                            long secondsLeft = (expirationDate.getTime() - System.currentTimeMillis()) / 1000;
-                            user.setExpiresIn(Math.max(secondsLeft, 0));
-                            log.debug("Token for user {} expires in {} seconds", username, secondsLeft);
-                        }
+                    Date expirationDate = jwtService.extractExpiration(token);
+                    if (expirationDate != null) {
+                        long secondsLeft = (expirationDate.getTime() - System.currentTimeMillis()) / 1000;
+                        user.setExpiresIn(Math.max(secondsLeft, 0));
+                        log.debug("Token for user {} expires in {} seconds", username, secondsLeft);
                     }
 
                     UsernamePasswordAuthenticationToken authentication =
