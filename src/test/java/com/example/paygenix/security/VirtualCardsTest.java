@@ -18,6 +18,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -104,6 +105,7 @@ class VirtualCardsTest extends IntegrationTest {
         setBalance(from, "100.00");
 
         mockMvc.perform(post("/api/transfer").header("Authorization", bearer(sender))
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fromCardNumber\":\"" + fromPan + "\",\"toCardNumber\":\"" + toPan + "\",\"amount\":10.00,\"pin\":\"" + PIN + "\"}"))
                 .andExpect(status().isOk());
@@ -117,6 +119,7 @@ class VirtualCardsTest extends IntegrationTest {
     @Test
     void missingCardNumberIsRejectedNotServerError() throws Exception {
         mockMvc.perform(post("/api/transfer").header("Authorization", bearer(createUser()))
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"amount\":10.00,\"pin\":\"" + PIN + "\"}"))
                 .andExpect(status().isBadRequest())

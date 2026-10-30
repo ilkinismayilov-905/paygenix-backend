@@ -4,6 +4,7 @@ import com.example.paygenix.dto.ApiResponseData;
 import com.example.paygenix.dto.request.TransferRequest;
 import com.example.paygenix.dto.response.TransferResponse;
 import com.example.paygenix.entity.User;
+import com.example.paygenix.service.IdempotencyService;
 import com.example.paygenix.service.TransferService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -31,6 +32,7 @@ import java.util.List;
 public class TransferController {
 
     private final TransferService transferService;
+    private final IdempotencyService idempotencyService;
 
     @Operation(
             summary = "Create a new transfer",
@@ -41,15 +43,21 @@ public class TransferController {
             @ApiResponse(responseCode = "400", description = "Validation failed, same card, or currency mismatch"),
             @ApiResponse(responseCode = "401", description = "Unauthorized access"),
             @ApiResponse(responseCode = "404", description = "Card not found or invalid PIN"),
-            @ApiResponse(responseCode = "409", description = "Insufficient balance for amount plus commission")
+            @ApiResponse(responseCode = "409", description = "Insufficient balance for amount plus commission, or card busy"),
+            @ApiResponse(responseCode = "422", description = "Idempotency-Key already used for a different request")
     })
     @PostMapping
     public ResponseEntity<ApiResponseData<TransferResponse>> createTransfer(
             @AuthenticationPrincipal User user,
+            @Parameter(description = "Client-generated unique key (e.g. UUID); a retry with the same key returns the first result")
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody TransferRequest transferRequest
     ) {
         log.info("Initiating a new transfer request");
-        TransferResponse transfer = transferService.transfer(user, transferRequest);
+        TransferResponse transfer = idempotencyService.execute(user, idempotencyKey,
+                "transfer|" + transferRequest.fromCardNumber() + "|" + transferRequest.toCardNumber()
+                        + "|" + transferRequest.amount().stripTrailingZeros().toPlainString(),
+                TransferResponse.class, () -> transferService.transfer(user, transferRequest));
         return ResponseEntity.ok(ApiResponseData.success(transfer));
     }
 
