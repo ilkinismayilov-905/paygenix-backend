@@ -28,7 +28,6 @@ import java.util.List;
 @Slf4j
 public class UserService {
     private final UserRepository userRepository;
-//    private final UserConverter userConverter;
     private final MediaRepository mediaRepository;
     private final UserMapper mapper;
 
