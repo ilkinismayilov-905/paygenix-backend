@@ -7,6 +7,7 @@ import com.example.paygenix.repository.OnboardingFlowRepository;
 import com.example.paygenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -127,7 +128,12 @@ public class OnboardingService {
                 .roles(Set.of(Role.USER_ROLE))
                 .build();
 
-        userRepo.save(user);
+        try {
+            userRepo.saveAndFlush(user);
+        } catch (DataIntegrityViolationException e) {
+            // a parallel sign-up took the email or username between the check and the insert
+            throw new IllegalArgumentException("Email or username is already taken");
+        }
 
         flow.setStep(OnboardingFlow.Step.COMPLETED);
     }

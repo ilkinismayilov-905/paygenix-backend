@@ -36,6 +36,31 @@ class FlowBindingTest extends IntegrationTest {
         assertThat(userRepository.existsByEmail(victims.getEmail())).isFalse();
     }
 
+    // the prefix check relies on the firewall rejecting path tricks before authentication
+    @Test
+    void pathTricksCannotReachAnotherFlow() throws Exception {
+        OnboardingFlow mine = onboardingFlow();
+        OnboardingFlow victims = onboardingFlow();
+        String token = jwtService.generateOnboardingToken(mine);
+
+        for (String path : new String[]{
+                "/api/onboarding/" + mine.getId() + "/../" + victims.getId() + "/pin",
+                "/api/onboarding/" + mine.getId() + ";x=/" + victims.getId() + "/pin",
+                "/api/onboarding/" + mine.getId() + "%2F..%2F" + victims.getId() + "/pin"}) {
+            int status;
+            try {
+                status = mockMvc.perform(put(path).header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"pin\":\"" + PIN + "\",\"password\":\"" + PASSWORD + "\"}"))
+                        .andReturn().getResponse().getStatus();
+            } catch (Exception rejectedByFirewall) {
+                status = 400;
+            }
+            assertThat(status).as(path).isNotEqualTo(200);
+        }
+        assertThat(flowRepository.findById(victims.getId()).orElseThrow().getStep()).isEqualTo(OnboardingFlow.Step.USERNAME_SET);
+    }
+
     @Test
     void onboardingTokenStillDrivesItsOwnFlow() throws Exception {
         OnboardingFlow flow = onboardingFlow();
@@ -80,6 +105,7 @@ class FlowBindingTest extends IntegrationTest {
         OnboardingChangePin flow = verifiedChangePinFlow(owner);
         jdbc.update("UPDATE onboarding_change_pin SET created_at = now() - interval '16 minutes' WHERE id = ?", flow.getId());
 
+        // shortcut: FLOW_EXPIRED is still a bare RuntimeException (500); assert the exact status after T-047
         assertThat(changePin(flow, owner).andReturn().getResponse().getStatus()).isGreaterThanOrEqualTo(400);
         assertThat(passwordEncoder.matches(PIN, userRepository.findById(owner.getId()).orElseThrow().getPinHash())).isTrue();
     }
