@@ -140,7 +140,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(auth);
 
-                log.info("Onboarding token authenticated for flow: {}", flowId);
+                log.debug("Onboarding token authenticated for flow: {}", flowId);
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -192,7 +192,7 @@ public class JwtFilter extends OncePerRequestFilter {
             }
 
         } catch (Exception e) {
-            log.error("JWT authentication error: {}", e.getMessage());
+            log.debug("JWT authentication failed: {}", e.getMessage());
             SecurityContextHolder.clearContext();
         }
 

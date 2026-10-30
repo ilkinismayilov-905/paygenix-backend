@@ -61,7 +61,6 @@ public class TransactionService {
         List<Transactions> list = transactionRepository.findByCreationDateBetween(from, to)
                         .orElseThrow(() -> new NotFoundException("Transactions not found"));
         log.info("Transactions found between creation dates: {} and {}", startDate, endDate);
-        System.out.println(list);
         return mapper.toResponseList(list);
 
     }

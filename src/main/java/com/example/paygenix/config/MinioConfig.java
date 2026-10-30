@@ -1,7 +1,6 @@
 package com.example.paygenix.config;
 
 import io.minio.MinioClient;
-import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,9 +10,6 @@ public class MinioConfig {
 
     @Value("${minio.url}")
     private String url;
-
-    @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
-    private String redirectUri;
 
     @Value("${minio.access-key}")
     private String accessKey;
@@ -27,11 +23,6 @@ public class MinioConfig {
                 .endpoint(url)
                 .credentials(accessKey, secretKey)
                 .build();
-    }
-    @PostConstruct
-    public void test() {
-        System.out.println("MinIO URL = " + url);
-        System.out.println("Redirect URL = " + redirectUri);
     }
 }
 
