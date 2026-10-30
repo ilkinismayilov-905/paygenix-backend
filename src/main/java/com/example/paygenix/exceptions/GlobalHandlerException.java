@@ -1,7 +1,9 @@
 package com.example.paygenix.exceptions;
 
 import com.example.paygenix.dto.response.ErrorResponse;
+import jakarta.persistence.LockTimeoutException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -35,6 +37,13 @@ public class GlobalHandlerException {
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException ex) {
         return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), "NOT_FOUND");
+    }
+
+    // Row lock not acquired within lock_timeout: raw from EntityManager calls, translated from repositories.
+    @ExceptionHandler({LockTimeoutException.class, PessimisticLockingFailureException.class})
+    public ResponseEntity<ErrorResponse> handleLockTimeout(Exception ex) {
+        log.warn("Lock wait timed out: {}", ex.getMessage());
+        return buildError(HttpStatus.CONFLICT, "Resource is busy, retry shortly", "RESOURCE_BUSY");
     }
 
     // 3. Balans çatışmazlığı (InsufficientBalanceException)
