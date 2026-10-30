@@ -21,5 +21,14 @@ public class EmailService {
 
         mailSender.send(message);
     }
-}
 
+    // Sent instead of a code when someone starts sign-up with a registered email, so both cases cost one mail.
+    public void sendAccountExists(String to) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject("Paygenix – you already have an account");
+        message.setText("Someone tried to sign up with this email. If it was you, sign in instead; "
+                + "if you forgot your password, reset it. If it was not you, you can ignore this message.");
+        mailSender.send(message);
+    }
+}

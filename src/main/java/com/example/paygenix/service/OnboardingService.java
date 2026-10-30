@@ -10,8 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpStatus;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,7 +46,7 @@ public class OnboardingService {
     public String submitEmail(String email) {
         enforceSendCooldown(email);
 
-        // SEC-23: a registered email gets the same answer, but its code is never sent, so the flow cannot finish
+        // SEC-23: a registered email gets the same answer and also one mail, but not the code, so the flow cannot finish
         boolean registered = userRepo.existsByEmail(email);
         String otp = OtpGenerator.newOtp();
 
@@ -62,7 +62,9 @@ public class OnboardingService {
         flowRepo.save(flow);
         initAttempts(flow.getId());
 
-        if (!registered) {
+        if (registered) {
+            emailService.sendAccountExists(email);
+        } else {
             emailService.sendOtp(email, otp);
         }
         return flow.getId();

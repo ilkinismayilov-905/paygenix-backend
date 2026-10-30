@@ -1,11 +1,10 @@
 package com.example.paygenix.service;
 
-import com.example.paygenix.exceptions.NotFoundException;
-import org.springframework.security.access.AccessDeniedException;
 import com.example.paygenix.dto.response.StoryFeedResponse;
 import com.example.paygenix.dto.response.StoryGroupResponse;
 import com.example.paygenix.dto.response.StoryResponse;
 import com.example.paygenix.dto.response.StoryUploadResponse;
+import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.entity.Story;
 import com.example.paygenix.entity.StoryView;
 import com.example.paygenix.entity.User;
@@ -17,6 +16,7 @@ import com.example.paygenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;

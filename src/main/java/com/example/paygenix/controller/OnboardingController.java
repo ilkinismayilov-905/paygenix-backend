@@ -41,7 +41,11 @@ public class OnboardingController {
     @Operation(summary = "Verify OTP", description = "Verifies the One-Time Password sent to the user's email.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "OTP verified successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid or expired OTP")
+            @ApiResponse(responseCode = "400", description = "Wrong code (INVALID_OTP) or expired code (OTP_EXPIRED)"),
+            @ApiResponse(responseCode = "404", description = "No such flow (FLOW_NOT_FOUND)"),
+            @ApiResponse(responseCode = "409", description = "Code already verified (INVALID_STEP)"),
+            @ApiResponse(responseCode = "410", description = "Flow expired (FLOW_EXPIRED)"),
+            @ApiResponse(responseCode = "429", description = "Too many wrong codes (TOO_MANY_ATTEMPTS)")
     })
     @PostMapping("/{flowId}/otp")
     public ResponseEntity<ApiResponseData<String>> verifyOtp(
