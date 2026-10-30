@@ -27,7 +27,6 @@ class IntegrationTestHarnessTest extends IntegrationTest {
 
     @Test
     void protectedEndpointWithoutTokenIsRejected() throws Exception {
-        // currently a redirect to the login page (SEC-22); tighten to 401 when form login is removed
-        mockMvc.perform(get("/api/auth/me")).andExpect(status().is3xxRedirection());
+        mockMvc.perform(get("/api/auth/me")).andExpect(status().isUnauthorized());
     }
 }
