@@ -137,7 +137,6 @@ public class OnboardingService {
         flow.setStep(OnboardingFlow.Step.COMPLETED);
     }
 
-
     private OnboardingFlow getFlow(String id, OnboardingFlow.Step step) {
         OnboardingFlow flow = flowRepo.findById(id).orElseThrow();
 
