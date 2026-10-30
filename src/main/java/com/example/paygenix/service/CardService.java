@@ -89,7 +89,7 @@ public class CardService {
     @Transactional
     public void closeCard(User owner, Long id) {
         Cards card = ownedCard(owner, id);
-        lockForUpdate(card); // a concurrent credit must not land on a card being deleted
+        lockForUpdate(card); // a concurrent credit must not land on a card being closed
         if (card.getAmount().signum() != 0) {
             throw new CardHasBalanceException();
         }
