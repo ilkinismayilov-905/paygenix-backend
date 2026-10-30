@@ -7,9 +7,12 @@ import com.example.paygenix.service.AuthService;
 import com.example.paygenix.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Transactional
 class LoginTest extends IntegrationTest {
@@ -20,9 +23,21 @@ class LoginTest extends IntegrationTest {
     void loginReturnsTokens() {
         User user = createUser();
 
-        JwtTokenResponse response = authService.login(new LoginRequest(user.getEmail(), PIN));
+        JwtTokenResponse response = authService.login(new LoginRequest(user.getEmail(), PASSWORD));
 
         assertThat(response.token()).isNotBlank();
         assertThat(response.refreshToken()).isNotBlank();
+    }
+
+    // FLOW-7 / decision #11: the PIN confirms transactions only; it is not a login secret
+    @Test
+    void pinIsNotAPassword() throws Exception {
+        User user = createUser();
+        mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + user.getEmail() + "\",\"password\":\"" + PIN + "\"}"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + user.getEmail() + "\",\"password\":\"" + PASSWORD + "\"}"))
+                .andExpect(status().isOk());
     }
 }

@@ -110,7 +110,7 @@ public class OnboardingService {
     }
 
     @Transactional
-    public void setPin(String flowId, String pin) {
+    public void setPin(String flowId, String pin, String password) {
         OnboardingFlow flow = getFlow(flowId, OnboardingFlow.Step.USERNAME_SET);
 
         User user = User.builder()
@@ -118,6 +118,7 @@ public class OnboardingService {
                 .fullname(flow.getFullName())
                 .username(flow.getUsernameCandidate())
                 .pinHash(encoder.encode(pin))
+                .passwordHash(encoder.encode(password))
                 .status(User.Status.ACTIVE)
                 .roles(Set.of(Role.USER_ROLE))
                 .build();

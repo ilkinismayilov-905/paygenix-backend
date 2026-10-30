@@ -111,8 +111,7 @@ class PaymentOwnershipTest extends IntegrationTest {
         setBalance(card, "100.00");
         String flowId = initiate(payer, card, "10.00");
 
-        // 404 today (PinValidationService); expected to become 401/403 with PIN attempt limits (T-040)
-        confirm(payer, flowId, "000000").andExpect(status().isNotFound());
+        confirm(payer, flowId, "000000").andExpect(status().isForbidden());
         assertThat(balanceOf(card)).isEqualByComparingTo("100.00");
 
         confirm(payer, flowId, PIN).andExpect(status().isOk());
