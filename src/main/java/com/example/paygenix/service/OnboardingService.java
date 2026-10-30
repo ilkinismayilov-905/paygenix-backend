@@ -112,6 +112,10 @@ public class OnboardingService {
     @Transactional
     public void setPin(String flowId, String pin, String password) {
         OnboardingFlow flow = getFlow(flowId, OnboardingFlow.Step.USERNAME_SET);
+        // both were free when the flow checked them, but another sign-up may have taken them since
+        if (userRepo.existsByEmail(flow.getEmail()) || userRepo.existsByUsername(flow.getUsernameCandidate())) {
+            throw new IllegalArgumentException("Email or username is already taken");
+        }
 
         User user = User.builder()
                 .email(flow.getEmail())

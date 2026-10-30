@@ -3,6 +3,7 @@ package com.example.paygenix.service;
 import com.example.paygenix.entity.OnboardingChangePin;
 import com.example.paygenix.entity.OnboardingFlow;
 import com.example.paygenix.entity.User;
+import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.repository.OnboardingChangePinRepository;
 import com.example.paygenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class OnboardingChangePinService {
 
     private static final Duration OTP_TTL = Duration.ofSeconds(300);          // 5 dəqiqə
+    private static final Duration FLOW_TTL = Duration.ofMinutes(15);
     private static final Duration SEND_COOLDOWN = Duration.ofSeconds(60);     // 60 saniyə
     private static final int MAX_VERIFY_ATTEMPTS = 5;
 
@@ -68,8 +70,8 @@ public class OnboardingChangePinService {
     }
 
     @Transactional
-    public void verifyOtp(String flowId, String otp) {
-        OnboardingChangePin flow = getFlow(flowId, OnboardingChangePin.Step.OTP_SENT);
+    public void verifyOtp(String flowId, String callerEmail, String otp) {
+        OnboardingChangePin flow = getFlow(flowId, callerEmail, OnboardingChangePin.Step.OTP_SENT);
 
         if (Instant.now().isAfter(flow.getOtpExpiresAt())) {
             clearAttempts(flowId);
@@ -95,8 +97,8 @@ public class OnboardingChangePinService {
     }
 
     @Transactional
-    public void changePin(String flowId, String newPin, String reEnterNewPin) {
-        OnboardingChangePin flow = getFlow(flowId, OnboardingChangePin.Step.OTP_VERIFIED);
+    public void changePin(String flowId, String callerEmail, String newPin, String reEnterNewPin) {
+        OnboardingChangePin flow = getFlow(flowId, callerEmail, OnboardingChangePin.Step.OTP_VERIFIED);
 
         User user = userRepo.findByEmail(flow.getEmail())
                 .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
@@ -126,12 +128,17 @@ public class OnboardingChangePinService {
         );
     }
 
-    private OnboardingChangePin getFlow(String id, OnboardingChangePin.Step step) {
+    // SEC-20: only the user who started the flow may continue it, and only for FLOW_TTL
+    private OnboardingChangePin getFlow(String id, String callerEmail, OnboardingChangePin.Step step) {
         OnboardingChangePin flow = changePinRepository.findById(id)
-                .orElseThrow();
+                .filter(f -> f.getEmail().equalsIgnoreCase(callerEmail))
+                .orElseThrow(() -> new NotFoundException("PIN change flow not found"));
 
         if (flow.getStep() != step)
             throw new RuntimeException("INVALID_STEP");
+
+        if (flow.getCreatedAt().plus(FLOW_TTL).isBefore(Instant.now()))
+            throw new RuntimeException("FLOW_EXPIRED");
 
         return flow;
     }

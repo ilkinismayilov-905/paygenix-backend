@@ -53,16 +53,17 @@ public class ChangePinController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "OTP verified successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid or expired OTP"),
-            @ApiResponse(responseCode = "404", description = "Flow ID not found")
+            @ApiResponse(responseCode = "404", description = "No such flow for this user")
     })
     @PostMapping("/{flowId}/otp")
     public ResponseEntity<SuccessResponse<Void>> verifyOtp(
             @Parameter(description = "Unique identifier for the PIN change process")
             @PathVariable String flowId,
-            @Valid @RequestBody OtpRequest request
+            @Valid @RequestBody OtpRequest request,
+            Authentication authentication
     ) {
         log.info("Verifying OTP for flow ID: {}", flowId);
-        service.verifyOtp(flowId, request.otp());
+        service.verifyOtp(flowId, authentication.getName(), request.otp());
         return ResponseEntity.ok(SuccessResponse.empty());
     }
 
@@ -73,16 +74,18 @@ public class ChangePinController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "PIN updated successfully"),
             @ApiResponse(responseCode = "400", description = "PINs do not match or invalid format"),
-            @ApiResponse(responseCode = "403", description = "Action forbidden - OTP might not be verified yet")
+            @ApiResponse(responseCode = "403", description = "Action forbidden - OTP might not be verified yet"),
+            @ApiResponse(responseCode = "404", description = "No such flow for this user")
     })
     @PostMapping("/{flowId}/pin")
     public ResponseEntity<SuccessResponse<Void>> changePin(
             @Parameter(description = "Unique identifier for the PIN change process")
             @PathVariable String flowId,
-            @Valid @RequestBody ChangePinRequest request
+            @Valid @RequestBody ChangePinRequest request,
+            Authentication authentication
     ) {
         log.info("Updating PIN for flow ID: {}", flowId);
-        service.changePin(flowId, request.newPin(), request.reEnterNewPin());
+        service.changePin(flowId, authentication.getName(), request.newPin(), request.reEnterNewPin());
         return ResponseEntity.ok(SuccessResponse.empty());
     }
 }
