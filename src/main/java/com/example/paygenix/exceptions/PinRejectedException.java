@@ -1,5 +1,7 @@
 package com.example.paygenix.exceptions;
 
+import org.springframework.http.HttpStatus;
+
 public class PinRejectedException extends BusinessException {
 
     private final String errorCode;
@@ -24,5 +26,10 @@ public class PinRejectedException extends BusinessException {
     @Override
     public String getErrorCode() {
         return errorCode;
+    }
+
+    @Override
+    public HttpStatus getStatus() {
+        return "PIN_LOCKED".equals(errorCode) ? HttpStatus.TOO_MANY_REQUESTS : HttpStatus.FORBIDDEN;
     }
 }

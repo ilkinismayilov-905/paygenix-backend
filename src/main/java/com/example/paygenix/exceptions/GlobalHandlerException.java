@@ -112,8 +112,7 @@ public class GlobalHandlerException {
     // 7. Biznes xətaları (BusinessException)
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException ex) {
-        HttpStatus status = resolveStatus(ex);
-        return buildError(status, ex.getMessage(), ex.getErrorCode());
+        return buildError(ex.getStatus(), ex.getMessage(), ex.getErrorCode());
     }
 
     // 8. Giriş edilməyib (UserNotLoginException)
@@ -132,32 +131,5 @@ public class GlobalHandlerException {
         ex.printStackTrace();
         log.error("Unhandled exception: ", ex);
         return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", "INTERNAL_SERVER_ERROR");
-    }
-
-    // Köməkçi status həll edici
-    private HttpStatus resolveStatus(BusinessException ex) {
-        if (ex instanceof InvalidReportCategoryException || ex instanceof InvalidReportMessageException) {
-            return HttpStatus.BAD_REQUEST;
-        }
-        if (ex instanceof TooManyReportsException || ex instanceof LoginLockedException) {
-            return HttpStatus.TOO_MANY_REQUESTS;
-        }
-        if (ex instanceof InvalidRefreshTokenException || ex instanceof InvalidOAuthCodeException) {
-            return HttpStatus.UNAUTHORIZED;
-        }
-        if (ex instanceof TransferRejectedException) {
-            return HttpStatus.BAD_REQUEST;
-        }
-        if (ex instanceof PinRejectedException pin) {
-            return "PIN_LOCKED".equals(pin.getErrorCode()) ? HttpStatus.TOO_MANY_REQUESTS : HttpStatus.FORBIDDEN;
-        }
-        if (ex instanceof IdempotencyKeyReusedException) {
-            return HttpStatus.UNPROCESSABLE_CONTENT;
-        }
-        if (ex instanceof CardHasBalanceException || ex instanceof PaymentAlreadyProcessedException
-                || ex instanceof PinAlreadySetException) {
-            return HttpStatus.CONFLICT;
-        }
-        return HttpStatus.INTERNAL_SERVER_ERROR;
     }
 }
