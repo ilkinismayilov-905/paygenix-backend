@@ -82,6 +82,18 @@ class LedgerInvariantTest extends IntegrationTest {
     }
 
     @Test
+    void smallPaymentWithZeroCashbackIsBookedWithoutCashback() throws Exception {
+        User payer = createUser();
+        String card = issueCard(payer, "AZN");
+        setBalance(card, "10.00");
+
+        pay(payer, card, "1.99"); // 0.5% rounds down to 0.00
+
+        assertThat(balanceOf(card)).isEqualByComparingTo("8.01");
+        assertBooksBalanced();
+    }
+
+    @Test
     void entriesCannotBeChangedOrDeleted() {
         assertThatThrownBy(() -> jdbc.update("UPDATE ledger_entries SET amount = amount * 2"))
                 .hasMessageContaining("append-only");
@@ -117,7 +129,7 @@ class LedgerInvariantTest extends IntegrationTest {
             assertThat((BigDecimal) row.get("total")).as("sum of %s entries", row.get("currency")).isZero();
         }
         assertThat(jdbc.queryForList("""
-                SELECT c.id FROM cards c JOIN ledger_accounts a ON a.card_id = c.id
+                SELECT c.id FROM cards c LEFT JOIN ledger_accounts a ON a.card_id = c.id
                 LEFT JOIN ledger_entries e ON e.account_id = a.id
                 GROUP BY c.id, c.amount HAVING c.amount <> COALESCE(SUM(e.amount), 0)""")).isEmpty();
     }

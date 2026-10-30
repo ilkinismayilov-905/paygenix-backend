@@ -44,10 +44,14 @@ public class LedgerService {
         return accountRepository.save(LedgerAccount.builder().cardId(card.getId()).currency(card.getCurrency()).build());
     }
 
+    /** Returns the posting id, or null when every leg is zero and nothing was booked. */
     @Transactional(propagation = Propagation.MANDATORY)
     public UUID post(String kind, String reference, Currency currency, List<Leg> allLegs) {
         // a fee or cashback that rounds to 0.00 is simply not booked
         List<Leg> legs = allLegs.stream().filter(leg -> leg.amount().signum() != 0).toList();
+        if (legs.isEmpty()) {
+            return null; // nothing moves, e.g. a 0.00 cashback
+        }
         if (legs.size() < 2) {
             throw new IllegalStateException("A posting needs at least two legs");
         }
@@ -84,9 +88,7 @@ public class LedgerService {
 
     @Transactional(readOnly = true)
     public BigDecimal balanceOf(Cards card) {
-        return accountRepository.findByCardId(card.getId())
-                .map(a -> entryRepository.balanceOf(a.getId()))
-                .orElse(BigDecimal.ZERO);
+        return entryRepository.balanceOf(account(Leg.card(card, BigDecimal.ONE), card.getCurrency()).getId());
     }
 
     private LedgerAccount account(Leg leg, Currency currency) {
