@@ -24,7 +24,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/transfer")
-@CrossOrigin
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Transfer Management", description = "APIs for executing and viewing money transfers")

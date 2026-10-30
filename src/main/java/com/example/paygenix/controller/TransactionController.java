@@ -21,7 +21,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/transaction")
-@CrossOrigin
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Transaction Management", description = "APIs for viewing and filtering financial transaction history")
