@@ -18,7 +18,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @Transactional
@@ -49,7 +48,7 @@ public class OnboardingService {
 
         enforceSendCooldown(email);
 
-        String otp = generateOtp();
+        String otp = OtpGenerator.newOtp();
 
         OnboardingFlow flow = OnboardingFlow.builder()
                 .id(UUID.randomUUID().toString())
@@ -138,9 +137,6 @@ public class OnboardingService {
         flow.setStep(OnboardingFlow.Step.COMPLETED);
     }
 
-    private String generateOtp() {
-        return String.valueOf(ThreadLocalRandom.current().nextInt(100000, 999999));
-    }
 
     private OnboardingFlow getFlow(String id, OnboardingFlow.Step step) {
         OnboardingFlow flow = flowRepo.findById(id).orElseThrow();

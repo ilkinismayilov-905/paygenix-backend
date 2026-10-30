@@ -2,9 +2,12 @@ package com.example.paygenix.controller;
 
 import com.example.paygenix.dto.ApiResponseData;
 import com.example.paygenix.dto.request.EditProfileRequest;
+import com.example.paygenix.dto.request.EmailRequest;
+import com.example.paygenix.dto.request.OtpRequest;
 import com.example.paygenix.dto.response.EditProfileResponse;
 import com.example.paygenix.entity.User;
 import com.example.paygenix.service.EditProfileService;
+import com.example.paygenix.service.EmailChangeService;
 import com.example.paygenix.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -37,6 +40,7 @@ public class EditProfileController {
 
     private final EditProfileService editProfileService;
     private final UserService userService;
+    private final EmailChangeService emailChangeService;
 
     @Operation(summary = "Update profile details", description = "Updates basic profile information for the authenticated user.")
     @ApiResponses(value = {
@@ -58,6 +62,31 @@ public class EditProfileController {
                 "Profile updated successfully",
                 response
         ));
+    }
+
+    @Operation(summary = "Start an email change", description = "Sends a 6-digit code to the new address. "
+            + "The email changes only after POST /api/profile/email/confirm with that code (within 10 minutes).")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Code sent to the new address"),
+            @ApiResponse(responseCode = "400", description = "Not an email address, or already in use")
+    })
+    @PostMapping("/email")
+    public ResponseEntity<ApiResponseData<Void>> startEmailChange(@AuthenticationPrincipal User user,
+                                                                  @Valid @RequestBody EmailRequest request) {
+        emailChangeService.start(user.getId(), request.email());
+        return ResponseEntity.ok(ApiResponseData.success(null));
+    }
+
+    @Operation(summary = "Confirm an email change", description = "Switches the account to the new email and signs out every device; log in again with the new email.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Email changed, all sessions revoked"),
+            @ApiResponse(responseCode = "400", description = "Wrong or expired code, too many tries, or the email was taken meanwhile")
+    })
+    @PostMapping("/email/confirm")
+    public ResponseEntity<ApiResponseData<Void>> confirmEmailChange(@AuthenticationPrincipal User user,
+                                                                    @Valid @RequestBody OtpRequest request) {
+        emailChangeService.confirm(user.getId(), request.otp());
+        return ResponseEntity.ok(ApiResponseData.success(null));
     }
 
     @Operation(summary = "Get all profiles", description = "Fetches a list of all profiles (Admin/Internal use).")
