@@ -1,6 +1,7 @@
 package com.example.paygenix.entity;
 
 import com.example.paygenix.enums.Currency;
+import com.example.paygenix.enums.LedgerKind;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -36,8 +37,9 @@ public class LedgerEntry {
     @Column(nullable = false)
     private Currency currency;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
-    private String kind;
+    private LedgerKind kind;
 
     @Column(nullable = false, length = 64)
     private String reference;

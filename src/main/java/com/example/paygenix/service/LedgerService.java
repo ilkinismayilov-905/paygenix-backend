@@ -4,6 +4,7 @@ import com.example.paygenix.entity.Cards;
 import com.example.paygenix.entity.LedgerAccount;
 import com.example.paygenix.entity.LedgerEntry;
 import com.example.paygenix.enums.Currency;
+import com.example.paygenix.enums.LedgerKind;
 import com.example.paygenix.enums.SystemAccount;
 import com.example.paygenix.repository.LedgerAccountRepository;
 import com.example.paygenix.repository.LedgerEntryRepository;
@@ -46,7 +47,7 @@ public class LedgerService {
 
     /** Returns the posting id, or null when every leg is zero and nothing was booked. */
     @Transactional(propagation = Propagation.MANDATORY)
-    public UUID post(String kind, String reference, Currency currency, List<Leg> allLegs) {
+    public UUID post(LedgerKind kind, String reference, Currency currency, List<Leg> allLegs) {
         // a fee or cashback that rounds to 0.00 is simply not booked
         List<Leg> legs = allLegs.stream().filter(leg -> leg.amount().signum() != 0).toList();
         if (legs.isEmpty()) {

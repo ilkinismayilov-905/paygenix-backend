@@ -41,6 +41,7 @@ class ConcurrentTransferTest extends IntegrationTest {
         assertThat(succeeded).isEqualTo(5);
         assertThat(balanceOf(from)).isEqualByComparingTo("0.00");
         assertThat(balanceOf(to)).isEqualByComparingTo("50.00");
+        assertBooksBalanced();
     }
 
     @Test
@@ -57,9 +58,10 @@ class ConcurrentTransferTest extends IntegrationTest {
                 : () -> transfer(b, cardB, cardA, "10.00"));
 
         assertThat(results).containsOnly(true);
-        // each of the 8 transfers moves 10.00 and burns 0.20 commission (no ledger account yet)
+        // each of the 8 transfers moves 10.00 and pays 0.20 commission to FEE_REVENUE
         BigDecimal total = balanceOf(cardA).add(balanceOf(cardB));
         assertThat(total).isEqualByComparingTo(new BigDecimal("2000.00").subtract(new BigDecimal("1.60")));
+        assertBooksBalanced();
     }
 
     private boolean transfer(User caller, String from, String to, String amount) {
