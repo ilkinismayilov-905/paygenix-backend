@@ -12,6 +12,7 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -167,6 +168,7 @@ class PaymentOwnershipTest extends IntegrationTest {
 
     private ResultActions initiateRequest(User payer, String card, String amount) throws Exception {
         return mockMvc.perform(post("/api/payment/initiate").header("Authorization", bearer(payer))
+                .header("Idempotency-Key", UUID.randomUUID().toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"phoneNumber\":\"" + PHONE + "\",\"fromCardNumber\":\"" + card
                         + "\",\"amount\":" + amount + "}"));
@@ -174,6 +176,7 @@ class PaymentOwnershipTest extends IntegrationTest {
 
     private ResultActions confirm(User caller, String flowId, String pin) throws Exception {
         return mockMvc.perform(post("/api/payment/confirm").header("Authorization", bearer(caller))
+                .header("Idempotency-Key", UUID.randomUUID().toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"flowId\":\"" + flowId + "\",\"pin\":\"" + pin + "\"}"));
     }
