@@ -67,6 +67,6 @@ public class VerifyAccountService {
         user.setVerificationStatus(User.VerificationStatus.VERIFIED);
         userRepository.save(user);
 
-        System.out.println("User verification has been successfully completed");
+        log.info("User {} verified", user.getId());
     }
 }
