@@ -24,6 +24,7 @@ class HttpHardeningTest extends IntegrationTest {
     void thereIsNoFormLogin() throws Exception {
         mockMvc.perform(post("/login").param("username", "a@example.test").param("password", "x"))
                 .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/login")).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -33,10 +34,10 @@ class HttpHardeningTest extends IntegrationTest {
 
     @Test
     void allowedOriginPassesPreflightWithoutCredentials() throws Exception {
-        mockMvc.perform(options("/api/auth/login")
+        mockMvc.perform(options("/api/transfer")
                         .header("Origin", "http://localhost:3000")
                         .header("Access-Control-Request-Method", "POST")
-                        .header("Access-Control-Request-Headers", "Content-Type"))
+                        .header("Access-Control-Request-Headers", "Authorization, Content-Type, Idempotency-Key"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:3000"))
                 .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"));
