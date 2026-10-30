@@ -92,7 +92,6 @@ public class UserService {
 
             return media;
         } catch (IOException e) {
-            // used to return an empty Media and hide the failed upload
             throw new UncheckedIOException("Media upload failed", e);
         }
     }
