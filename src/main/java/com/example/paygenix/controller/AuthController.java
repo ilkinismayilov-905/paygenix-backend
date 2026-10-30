@@ -46,7 +46,8 @@ public class AuthController {
     @Operation(summary = "Giriş (Login)", description = "İstifadəçi adı və şifrə ilə sistemə daxil olaraq JWT token əldə edir.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Giriş uğurludur"),
-            @ApiResponse(responseCode = "401", description = "Yanlış məlumatlar", content = @Content)
+            @ApiResponse(responseCode = "401", description = "Yanlış məlumatlar", content = @Content),
+            @ApiResponse(responseCode = "429", description = "More than 5 attempts for this email in 15 minutes (LOGIN_LOCKED)", content = @Content)
     })
     @PostMapping("/login")
     public ResponseEntity<ApiResponseData<JwtTokenResponse>> login(@Valid @RequestBody LoginRequest request) {

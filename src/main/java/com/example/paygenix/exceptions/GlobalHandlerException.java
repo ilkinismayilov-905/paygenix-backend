@@ -133,7 +133,7 @@ public class GlobalHandlerException {
         if (ex instanceof InvalidReportCategoryException || ex instanceof InvalidReportMessageException) {
             return HttpStatus.BAD_REQUEST;
         }
-        if (ex instanceof TooManyReportsException) {
+        if (ex instanceof TooManyReportsException || ex instanceof LoginLockedException) {
             return HttpStatus.TOO_MANY_REQUESTS;
         }
         if (ex instanceof TransferRejectedException) {

@@ -44,13 +44,17 @@ public class AuthService {
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final EmailService emailService;
+    private final LoginAttemptService loginAttemptService;
 
     private final UserMapper mapper;
 
     public JwtTokenResponse login(LoginRequest loginRequest) {
+        loginAttemptService.countAttempt(loginRequest.email());
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password())
         );
+
+        loginAttemptService.clear(loginRequest.email());
 
         User user = (User) authentication.getPrincipal();
         User user1 = userRepository.findById(user.getId())
