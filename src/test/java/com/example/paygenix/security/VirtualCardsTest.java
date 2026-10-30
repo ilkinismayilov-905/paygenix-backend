@@ -134,10 +134,4 @@ class VirtualCardsTest extends IntegrationTest {
                 .andReturn().getResponse().getContentAsString();
         return JsonPath.read(body, "$.data.cardNumber");
     }
-
-    private void setBalance(Cards card, String amount) {
-        Cards fresh = cardRepository.findById(card.getId()).orElseThrow();
-        fresh.setAmount(new BigDecimal(amount));
-        cardRepository.save(fresh);
-    }
 }

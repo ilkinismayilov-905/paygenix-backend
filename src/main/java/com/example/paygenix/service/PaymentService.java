@@ -8,6 +8,7 @@ import com.example.paygenix.entity.PaymentOnboarding;
 import com.example.paygenix.entity.PaymentTransaction;
 import com.example.paygenix.entity.User;
 import com.example.paygenix.enums.PaymentStatus;
+import com.example.paygenix.enums.SystemAccount;
 import com.example.paygenix.exceptions.InsufficientBalanceException;
 import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.exceptions.PaymentAlreadyProcessedException;
@@ -17,6 +18,7 @@ import com.example.paygenix.repository.CardRepository;
 import com.example.paygenix.repository.PaymentOnboardingRepository;
 import com.example.paygenix.repository.PaymentRepository;
 import com.example.paygenix.repository.PaymentTransactionRepository;
+import com.example.paygenix.service.LedgerService.Leg;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -41,6 +44,7 @@ public class PaymentService {
     private final PaymentTransactionService ptService;
     private final PaymentOnboardingRepository poRepository;
     private final PinValidationService pinValidationService;
+    private final LedgerService ledgerService;
 
     @Transactional
     public String transfer(PaymentRequest req, User payer) {
@@ -94,14 +98,16 @@ public class PaymentService {
                 .multiply(cashbackPercent)
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.DOWN);
 
-        BigDecimal newBalance = from.getAmount()
-                .subtract(onboarding.getAmount())
-                .add(cashbackAmount);
-
-        from.setAmount(newBalance);
+        transaction.setTransactionId(ptService.generatePaymentTransactionId());
+        ledgerService.post("PAYMENT", transaction.getTransactionId(), from.getCurrency(), List.of(
+                Leg.card(from, onboarding.getAmount().negate()),
+                Leg.system(SystemAccount.PAYMENT_PAYOUT, onboarding.getAmount())));
+        // shortcut: cashback is still the entity default 0.5%, not config (T-061)
+        ledgerService.post("CASHBACK", transaction.getTransactionId(), from.getCurrency(), List.of(
+                Leg.system(SystemAccount.CASHBACK_EXPENSE, cashbackAmount.negate()),
+                Leg.card(from, cashbackAmount)));
         cardRepository.save(from);
 
-        transaction.setTransactionId(ptService.generatePaymentTransactionId());
         transaction.setFrom_card_id(from.getLast4());
         transaction.setAmount(onboarding.getAmount());
         transaction.setCashbackPercent(cashbackPercent);
