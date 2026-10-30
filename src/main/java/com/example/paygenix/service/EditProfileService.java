@@ -62,9 +62,6 @@ public class EditProfileService {
                         .build()
                 );
 
-        System.out.println(user.getFullname());
-
-        if (editProfile.email() != null) profile.setEmail(editProfile.email());
         if (editProfile.fullName() != null) profile.setFullName(editProfile.fullName());
         if (editProfile.dateOfBirth() != null) profile.setDateOfBirth(editProfile.dateOfBirth());
         if (editProfile.gender() != null) {
@@ -75,7 +72,6 @@ public class EditProfileService {
         if (editProfile.phoneNumber() != null) profile.setPhoneNumber(editProfile.phoneNumber());
         profile.setUser(user);
 
-        user.setEmail(profile.getEmail());
         user.setFullname(profile.getFullName());
         log.info("User data changed");
 
