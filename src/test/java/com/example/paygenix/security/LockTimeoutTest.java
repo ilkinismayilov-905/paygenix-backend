@@ -22,7 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 // T-03B: a request waiting on a locked card row gives up after lock_timeout instead of hanging.
 class LockTimeoutTest extends IntegrationTest {
 
-    private static final long HOLD_MILLIS = 8_000;
+    private static final long MAX_WAIT_MILLIS = 6_000; // lock_timeout is 3s
 
     @Autowired EntityManager entityManager;
     @Autowired TransactionTemplate transactionTemplate;
@@ -36,11 +36,12 @@ class LockTimeoutTest extends IntegrationTest {
         Long fromId = cardOf(from).getId();
 
         CountDownLatch locked = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
         CompletableFuture<Void> holder = CompletableFuture.runAsync(() -> transactionTemplate.executeWithoutResult(tx -> {
             entityManager.find(Cards.class, fromId, LockModeType.PESSIMISTIC_WRITE);
             locked.countDown();
             try {
-                Thread.sleep(HOLD_MILLIS);
+                release.await(20, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
@@ -48,15 +49,19 @@ class LockTimeoutTest extends IntegrationTest {
         assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
 
         long started = System.nanoTime();
-        mockMvc.perform(post("/api/transfer").header("Authorization", bearer(sender))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"fromCardNumber\":\"" + from + "\",\"toCardNumber\":\"" + to
-                                + "\",\"amount\":10.00,\"pin\":\"" + PIN + "\"}"))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("RESOURCE_BUSY"));
+        try {
+            mockMvc.perform(post("/api/transfer").header("Authorization", bearer(sender))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"fromCardNumber\":\"" + from + "\",\"toCardNumber\":\"" + to
+                                    + "\",\"amount\":10.00,\"pin\":\"" + PIN + "\"}"))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.code").value("RESOURCE_BUSY"));
+        } finally {
+            release.countDown();
+        }
         long waitedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
 
-        assertThat(waitedMillis).isLessThan(HOLD_MILLIS - 2_000);
+        assertThat(waitedMillis).isLessThan(MAX_WAIT_MILLIS);
         holder.get(20, TimeUnit.SECONDS);
         assertThat(balanceOf(from)).isEqualByComparingTo("100.00");
     }
