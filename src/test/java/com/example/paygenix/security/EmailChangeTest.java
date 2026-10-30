@@ -19,6 +19,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -73,6 +74,44 @@ class EmailChangeTest extends IntegrationTest {
     void cannotClaimAnEmailThatIsInUse() throws Exception {
         User other = createUser();
         start(bearer(createUser()).substring(7), other.getEmail()).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void codesCannotBeRequestedBackToBack() throws Exception {
+        String token = bearer(createUser()).substring(7);
+        start(token, "a-" + UUID.randomUUID() + "@example.test").andExpect(status().isOk());
+        start(token, "b-" + UUID.randomUUID() + "@example.test").andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void secondAccountConfirmingTheSameEmailIsRefused() throws Exception {
+        String newEmail = "contested-" + UUID.randomUUID() + "@example.test";
+        String first = bearer(createUser()).substring(7);
+        String second = bearer(createUser()).substring(7);
+        start(first, newEmail).andExpect(status().isOk());
+        start(second, newEmail).andExpect(status().isOk());
+        ArgumentCaptor<String> codes = ArgumentCaptor.forClass(String.class);
+        verify(emailService, times(2)).sendOtp(eq(newEmail), codes.capture());
+
+        confirm(first, codes.getAllValues().get(0)).andExpect(status().isOk());
+        confirm(second, codes.getAllValues().get(1)).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void googleAccountKeepsUsernameAndEmailInStep() throws Exception {
+        User user = createUser();
+        user.setProvider(User.AuthProvider.GOOGLE);
+        user.setUsername(user.getEmail());
+        userRepository.save(user);
+        String token = bearer(user).substring(7);
+        String newEmail = "g-" + UUID.randomUUID() + "@example.test";
+
+        start(token, newEmail).andExpect(status().isOk());
+        confirm(token, sentCode(newEmail)).andExpect(status().isOk());
+
+        User changed = userRepository.findById(user.getId()).orElseThrow();
+        assertThat(changed.getEmail()).isEqualTo(newEmail);
+        assertThat(changed.getUsername()).isEqualTo(newEmail);
     }
 
     @Test

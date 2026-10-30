@@ -9,4 +9,5 @@ import java.util.Optional;
 @Repository
 public interface EditProfileRepository extends JpaRepository<EditProfile, Long> {
     Optional<EditProfile> findByEmail(String email);
+    Optional<EditProfile> findByUserId(Long userId);
 }
