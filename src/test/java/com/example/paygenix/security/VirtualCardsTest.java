@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -33,7 +32,6 @@ class VirtualCardsTest extends IntegrationTest {
 
     @Autowired CardRepository cardRepository;
     @Autowired TransferRepository transferRepository;
-    @Autowired JdbcTemplate jdbc;
 
     @Test
     void issuedNumberIsShownOnceAndNeverStoredOrLogged(CapturedOutput output) throws Exception {
@@ -92,6 +90,11 @@ class VirtualCardsTest extends IntegrationTest {
         mockMvc.perform(delete("/api/cards/" + card.getId()).header("Authorization", bearer(owner)))
                 .andExpect(status().isOk());
         assertThat(cardRepository.findById(card.getId())).isEmpty();
+        // closed, not deleted: the row and its ledger account stay linked for the history
+        assertThat(jdbc.queryForObject("SELECT closed_at IS NOT NULL FROM cards WHERE id = ?", Boolean.class, card.getId())).isTrue();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM ledger_accounts WHERE card_id = ?", Integer.class, card.getId())).isEqualTo(1);
+        mockMvc.perform(delete("/api/cards/" + card.getId()).header("Authorization", bearer(owner)))
+                .andExpect(status().isNotFound());
     }
 
     @Test

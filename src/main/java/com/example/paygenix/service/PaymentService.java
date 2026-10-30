@@ -8,6 +8,7 @@ import com.example.paygenix.entity.Payment;
 import com.example.paygenix.entity.PaymentOnboarding;
 import com.example.paygenix.entity.PaymentTransaction;
 import com.example.paygenix.entity.User;
+import com.example.paygenix.enums.LedgerKind;
 import com.example.paygenix.enums.PaymentStatus;
 import com.example.paygenix.enums.SystemAccount;
 import com.example.paygenix.exceptions.InsufficientBalanceException;
@@ -97,10 +98,10 @@ public class PaymentService {
         BigDecimal cashbackAmount = fees.cashbackOf(onboarding.getAmount());
 
         transaction.setTransactionId(ptService.generatePaymentTransactionId());
-        ledgerService.post("PAYMENT", transaction.getTransactionId(), from.getCurrency(), List.of(
+        ledgerService.post(LedgerKind.PAYMENT, transaction.getTransactionId(), from.getCurrency(), List.of(
                 Leg.card(from, onboarding.getAmount().negate()),
                 Leg.system(SystemAccount.PAYMENT_PAYOUT, onboarding.getAmount())));
-        ledgerService.post("CASHBACK", transaction.getTransactionId(), from.getCurrency(), List.of(
+        ledgerService.post(LedgerKind.CASHBACK, transaction.getTransactionId(), from.getCurrency(), List.of(
                 Leg.system(SystemAccount.CASHBACK_EXPENSE, cashbackAmount.negate()),
                 Leg.card(from, cashbackAmount)));
         cardRepository.save(from);
