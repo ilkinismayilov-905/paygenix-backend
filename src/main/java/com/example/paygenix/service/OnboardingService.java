@@ -3,12 +3,14 @@ package com.example.paygenix.service;
 import com.example.paygenix.entity.OnboardingFlow;
 import com.example.paygenix.entity.User;
 import com.example.paygenix.enums.Role;
+import com.example.paygenix.exceptions.ApiException;
 import com.example.paygenix.repository.OnboardingFlowRepository;
 import com.example.paygenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -42,12 +44,10 @@ public class OnboardingService {
 
     @Transactional
     public String submitEmail(String email) {
-        if (userRepo.existsByEmail(email)) {
-            throw new RuntimeException("User with email " + email + " already exists");
-        }
-
         enforceSendCooldown(email);
 
+        // SEC-23: a registered email gets the same answer, but its code is never sent, so the flow cannot finish
+        boolean registered = userRepo.existsByEmail(email);
         String otp = OtpGenerator.newOtp();
 
         OnboardingFlow flow = OnboardingFlow.builder()
@@ -62,7 +62,9 @@ public class OnboardingService {
         flowRepo.save(flow);
         initAttempts(flow.getId());
 
-        emailService.sendOtp(email, otp);
+        if (!registered) {
+            emailService.sendOtp(email, otp);
+        }
         return flow.getId();
     }
 
@@ -72,7 +74,7 @@ public class OnboardingService {
 
         if (Instant.now().isAfter(flow.getOtpExpiresAt())) {
             clearAttempts(flowId);
-            throw new RuntimeException("OTP_EXPIRED");
+            throw ApiException.otpExpired();
         }
 
         int attempts = incrementAttemptsOrThrow(flowId);
@@ -80,9 +82,9 @@ public class OnboardingService {
         if (!encoder.matches(otp, flow.getOtpHash())) {
             if (attempts >= MAX_VERIFY_ATTEMPTS) {
                 clearAttempts(flowId);
-                throw new RuntimeException("TOO_MANY_ATTEMPTS");
+                throw ApiException.tooManyAttempts();
             }
-            throw new RuntimeException("INVALID_OTP");
+            throw ApiException.invalidOtp();
         }
 
         clearAttempts(flowId);
@@ -101,7 +103,7 @@ public class OnboardingService {
     @Transactional
     public void setUsername(String flowId, String username) {
         if (userRepo.existsByUsername(username)) {
-            throw new RuntimeException("User with name " + username + " already exists");
+            throw new ApiException(HttpStatus.CONFLICT, "USERNAME_TAKEN", "Username is already taken");
         }
 
         OnboardingFlow flow = getFlow(flowId, OnboardingFlow.Step.FULLNAME_SET);
@@ -138,14 +140,14 @@ public class OnboardingService {
     }
 
     private OnboardingFlow getFlow(String id, OnboardingFlow.Step step) {
-        OnboardingFlow flow = flowRepo.findById(id).orElseThrow();
+        OnboardingFlow flow = flowRepo.findById(id).orElseThrow(ApiException::flowNotFound);
 
         if (flow.getStep() != step) {
-            throw new RuntimeException("INVALID_STEP");
+            throw ApiException.invalidStep();
         }
 
         if (flow.getExpiresAt() != null && Instant.now().isAfter(flow.getExpiresAt())) {
-            throw new RuntimeException("FLOW_EXPIRED");
+            throw ApiException.flowExpired();
         }
 
         return flow;
@@ -159,7 +161,7 @@ public class OnboardingService {
 
         Boolean ok = ops.setIfAbsent(key, "1", SEND_COOLDOWN);
         if (ok == null || !ok) {
-            throw new RuntimeException("OTP_SEND_TOO_FREQUENT");
+            throw ApiException.otpSendTooFrequent();
         }
     }
 
@@ -184,7 +186,7 @@ public class OnboardingService {
         }
 
         if (val > MAX_VERIFY_ATTEMPTS) {
-            throw new RuntimeException("TOO_MANY_ATTEMPTS");
+            throw ApiException.tooManyAttempts();
         }
 
         return val.intValue();
