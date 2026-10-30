@@ -2,7 +2,6 @@ package com.example.paygenix.controller;
 
 import com.example.paygenix.dto.ApiResponseData;
 import com.example.paygenix.dto.request.*;
-import com.example.paygenix.dto.response.OnboardingTokenResponse;
 import com.example.paygenix.service.OnboardingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -77,15 +76,15 @@ public class OnboardingController {
         return ResponseEntity.ok(ApiResponseData.success(null));
     }
 
-    @Operation(summary = "Set PIN and complete onboarding", description = "Finalizes the onboarding by setting a PIN and generating access tokens.")
+    @Operation(summary = "Set PIN and complete onboarding", description = "Finalizes the onboarding by setting a PIN. The user then signs in through /api/auth/login.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAuthority('onboarding')")
     @PutMapping("/{flowId}/pin")
-    public ResponseEntity<ApiResponseData<OnboardingTokenResponse>> setPin(
+    public ResponseEntity<ApiResponseData<Void>> setPin(
             @PathVariable String flowId,
             @Valid @RequestBody PinRequest request) {
         log.info("Setting PIN and finalizing onboarding for flow ID: {}", flowId);
-        OnboardingTokenResponse response = service.setPin(flowId, request.pin());
-        return ResponseEntity.ok(ApiResponseData.success(response));
+        service.setPin(flowId, request.pin());
+        return ResponseEntity.ok(ApiResponseData.success(null));
     }
 }

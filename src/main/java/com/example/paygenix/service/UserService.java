@@ -93,17 +93,4 @@ public class UserService {
         }
     }
 
-    public User findOrCreateOAuthUser(String email, String name) {
-        return userRepository.findByEmail(email)
-                .orElseGet(() -> {
-                    User u = new User();
-                    u.setEmail(email);
-                    u.setFullname(name);
-                    u.setProvider(User.AuthProvider.GOOGLE);
-                    return userRepository.save(u);
-                });
-    }
-
-
-
 }
