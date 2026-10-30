@@ -78,6 +78,8 @@ class LedgerInvariantTest extends IntegrationTest {
         transferService.transfer(sender, new TransferRequest(from, to, new BigDecimal("10.00"), PIN));
 
         assertThat(systemBalance("FEE_REVENUE", "EUR").subtract(revenueBefore)).isEqualByComparingTo("0.20");
+        assertThat(jdbc.queryForObject("SELECT commission_rate FROM transactions ORDER BY id DESC LIMIT 1", BigDecimal.class))
+                .isEqualByComparingTo("2.00");
         assertBooksBalanced();
     }
 
@@ -90,6 +92,8 @@ class LedgerInvariantTest extends IntegrationTest {
         pay(payer, card, "0.99"); // 0.5% = 0.00495, rounds half-even to 0.00
 
         assertThat(balanceOf(card)).isEqualByComparingTo("9.01");
+        assertThat(jdbc.queryForObject("SELECT cashback_percent FROM payment_transactions ORDER BY id DESC LIMIT 1", BigDecimal.class))
+                .isEqualByComparingTo("0.5");
         assertBooksBalanced();
     }
 
