@@ -49,6 +49,7 @@ public class JwtService {
     public static final String ONBOARDING = "onboarding";
     // Device session (UserSession id) the access or refresh token belongs to.
     public static final String SESSION_ID = "sid";
+    public static final String FLOW_ID = "flowId";
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());
@@ -82,7 +83,7 @@ public class JwtService {
                 .issuedAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(900))
                 .claim(TOKEN_USE, ONBOARDING)
-                .claim("flowId", flow.getId())
+                .claim(FLOW_ID, flow.getId())
                 .build();
 
 

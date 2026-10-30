@@ -69,16 +69,19 @@ class TokenTypeTest extends IntegrationTest {
     }
 
     private int setFullNameStatus(String authorization) throws Exception {
-        return mockMvc.perform(put("/api/onboarding/" + UUID.randomUUID() + "/full-name")
+        return mockMvc.perform(put("/api/onboarding/" + FLOW_ID + "/full-name")
                         .header("Authorization", authorization)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"Test User\"}"))
                 .andReturn().getResponse().getStatus();
     }
 
+    // every onboarding token in this test is issued for this flow, so it matches the path (SEC-19)
+    private static final String FLOW_ID = UUID.randomUUID().toString();
+
     private String onboardingToken() {
         OnboardingFlow flow = new OnboardingFlow();
-        flow.setId(UUID.randomUUID().toString());
+        flow.setId(FLOW_ID);
         return jwtService.generateOnboardingToken(flow);
     }
 
