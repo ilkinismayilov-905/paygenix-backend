@@ -124,6 +124,7 @@ public class SessionService {
         String refreshToken = jwtService.generateJwtRefreshToken(user, session.getId());
         session.setRefreshTokenHash(sha256(refreshToken));
         session.setLastUsedAt(now);
+        // shortcut: sliding expiry, a session refreshed regularly never ends; add an absolute cap if needed (T-078)
         session.setExpiresAt(now.plusSeconds(refreshExpiration));
         sessions.save(session);
 

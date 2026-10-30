@@ -158,6 +158,7 @@ public class JwtFilter extends OncePerRequestFilter {
                         userDetailsService.loadUserByUsername(username);
 
                 // a revoked or expired device session invalidates its access tokens at once
+                // shortcut: one indexed PK lookup per request; cache with evict-on-revoke if it shows up in profiles
                 UUID sessionId = jwtService.extractSessionId(token);
                 if (jwtService.validateToken(token, userDetails)
                         && userDetails instanceof User user

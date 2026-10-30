@@ -5,7 +5,6 @@ import com.example.paygenix.entity.User;
 import com.example.paygenix.exceptions.InvalidRefreshTokenException;
 import com.example.paygenix.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 
 import java.util.HashMap;
@@ -18,7 +17,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 // SEC-3: only access tokens may call business endpoints; onboarding tokens only the onboarding flow.
 class TokenTypeTest extends IntegrationTest {
-
 
     @Test
     void accessTokenOpensBusinessEndpoint() throws Exception {
