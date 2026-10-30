@@ -23,7 +23,7 @@ class LoginTest extends IntegrationTest {
     void loginReturnsTokens() {
         User user = createUser();
 
-        JwtTokenResponse response = authService.login(new LoginRequest(user.getEmail(), PASSWORD));
+        JwtTokenResponse response = authService.login(new LoginRequest(user.getEmail(), PASSWORD), "test");
 
         assertThat(response.token()).isNotBlank();
         assertThat(response.refreshToken()).isNotBlank();

@@ -41,7 +41,7 @@ class OnboardingCompletionTest extends IntegrationTest {
         // a finished flow cannot create a second user (500 today: INVALID_STEP is a bare RuntimeException, T-047)
         assertThat(setPin(flow).andReturn().getResponse().getStatus()).isGreaterThanOrEqualTo(400);
 
-        assertThat(authService.login(new LoginRequest(flow.getEmail(), PASSWORD)).token()).isNotBlank();
+        assertThat(authService.login(new LoginRequest(flow.getEmail(), PASSWORD), "test").token()).isNotBlank();
     }
 
     private ResultActions setPin(OnboardingFlow flow) throws Exception {

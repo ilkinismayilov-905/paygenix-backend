@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 @Service
@@ -46,14 +47,17 @@ public class JwtService {
     public static final String ACCESS = "access";
     public static final String REFRESH = "refresh";
     public static final String ONBOARDING = "onboarding";
+    // Device session (UserSession id) the access or refresh token belongs to.
+    public static final String SESSION_ID = "sid";
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
 
-    public String generateJwtToken(UserDetails userDetails, Long userId, String fullName) {
+    public String generateJwtToken(UserDetails userDetails, Long userId, String fullName, UUID sessionId) {
         Map<String, Object> claims = new HashMap<>();
+        claims.put(SESSION_ID, sessionId.toString());
         claims.put("userId", userId);
         claims.put("fullName", fullName);
         claims.put("authorities", userDetails.getAuthorities());
@@ -62,8 +66,13 @@ public class JwtService {
         return createToken(claims, userDetails.getUsername(), jwtExpiration);
     }
 
-    public String generateJwtRefreshToken(UserDetails userDetails) {
-        return createToken(new HashMap<>(Map.of(TOKEN_USE, REFRESH)), userDetails.getUsername(), refreshExpiration);
+    // jti makes every refresh token unique, even two issued in the same second
+    public String generateJwtRefreshToken(UserDetails userDetails, UUID sessionId) {
+        Map<String, Object> claims = new HashMap<>(Map.of(
+                TOKEN_USE, REFRESH,
+                SESSION_ID, sessionId.toString(),
+                Claims.ID, UUID.randomUUID().toString()));
+        return createToken(claims, userDetails.getUsername(), refreshExpiration);
     }
 
 
@@ -111,6 +120,11 @@ public class JwtService {
 
     public String extractTokenUse(String token) {
         return extractClaim(token, claims -> claims.get(TOKEN_USE, String.class));
+    }
+
+    public UUID extractSessionId(String token) {
+        String sid = extractClaim(token, claims -> claims.get(SESSION_ID, String.class));
+        return sid == null ? null : UUID.fromString(sid);
     }
 
     public String extractFullName(String token) {

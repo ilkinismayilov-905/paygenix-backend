@@ -136,6 +136,9 @@ public class GlobalHandlerException {
         if (ex instanceof TooManyReportsException || ex instanceof LoginLockedException) {
             return HttpStatus.TOO_MANY_REQUESTS;
         }
+        if (ex instanceof InvalidRefreshTokenException) {
+            return HttpStatus.UNAUTHORIZED;
+        }
         if (ex instanceof TransferRejectedException) {
             return HttpStatus.BAD_REQUEST;
         }
