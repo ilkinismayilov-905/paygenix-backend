@@ -11,6 +11,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -68,6 +69,11 @@ public class GlobalHandlerException {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleBadRequest(IllegalArgumentException ex) {
         return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), "BAD_REQUEST");
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ErrorResponse> handleMissingHeader(MissingRequestHeaderException ex) {
+        return buildError(HttpStatus.BAD_REQUEST, "Required header " + ex.getHeaderName() + " is missing", "MISSING_HEADER");
     }
 
     // 6. Təhlükəsizlik xətaları (BadCredentialsException)
@@ -132,6 +138,9 @@ public class GlobalHandlerException {
         }
         if (ex instanceof TransferRejectedException) {
             return HttpStatus.BAD_REQUEST;
+        }
+        if (ex instanceof IdempotencyKeyReusedException) {
+            return HttpStatus.UNPROCESSABLE_CONTENT;
         }
         if (ex instanceof CardHasBalanceException || ex instanceof PaymentAlreadyProcessedException) {
             return HttpStatus.CONFLICT;

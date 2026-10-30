@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -144,6 +146,7 @@ class TransferValidationTest extends IntegrationTest {
 
     private ResultActions transfer(User caller, String from, String to, String amount, String pin) throws Exception {
         return mockMvc.perform(post("/api/transfer").header("Authorization", bearer(caller))
+                .header("Idempotency-Key", UUID.randomUUID().toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"fromCardNumber\":\"" + from + "\",\"toCardNumber\":\"" + to
                         + "\",\"amount\":" + amount + ",\"pin\":\"" + pin + "\"}"));

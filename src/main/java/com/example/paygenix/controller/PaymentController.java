@@ -6,9 +6,11 @@ import com.example.paygenix.dto.request.PaymentRequest;
 import com.example.paygenix.dto.response.PaymentResponse;
 import com.example.paygenix.dto.response.PaymentTransactionResponse;
 import com.example.paygenix.entity.User;
+import com.example.paygenix.service.IdempotencyService;
 import com.example.paygenix.service.PaymentService;
 import com.example.paygenix.service.PaymentTransactionService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -33,6 +35,7 @@ import java.util.List;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final IdempotencyService idempotencyService;
     private final PaymentTransactionService ptService;
 
     @Operation(
@@ -43,17 +46,23 @@ public class PaymentController {
             @ApiResponse(responseCode = "200", description = "Payment flow initiated successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid payment request (non-positive amount, malformed card number)"),
             @ApiResponse(responseCode = "404", description = "Card not found or not owned by the caller"),
-            @ApiResponse(responseCode = "409", description = "Insufficient balance"),
+            @ApiResponse(responseCode = "409", description = "Insufficient balance or card busy"),
+            @ApiResponse(responseCode = "422", description = "Idempotency-Key already used for a different request"),
             @ApiResponse(responseCode = "401", description = "Unauthorized access")
     })
     @PostMapping("/initiate")
     public ResponseEntity<ApiResponseData<String>> initiatePayment(
             @Valid @RequestBody PaymentRequest request,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal User user,
+            @Parameter(description = "Client-generated unique key (e.g. UUID); a retry with the same key returns the first result")
+            @RequestHeader("Idempotency-Key") String idempotencyKey
     ) {
         log.info("Initiating payment for user: {}", user.getId());
 
-        String flowId = paymentService.transfer(request, user);
+        String flowId = idempotencyService.execute(user, idempotencyKey,
+                "payment-initiate|" + request.phoneNumber() + "|" + request.fromCardNumber()
+                        + "|" + request.amount().stripTrailingZeros().toPlainString(),
+                String.class, () -> paymentService.transfer(request, user));
         return ResponseEntity.ok(ApiResponseData.success(flowId));
     }
 
@@ -65,16 +74,21 @@ public class PaymentController {
             @ApiResponse(responseCode = "200", description = "Payment confirmed and processed successfully"),
             @ApiResponse(responseCode = "400", description = "Validation failed (flow ID missing, PIN not 6 digits)"),
             @ApiResponse(responseCode = "404", description = "Payment flow not found, not owned by the caller, or invalid PIN"),
-            @ApiResponse(responseCode = "409", description = "Payment already processed or insufficient balance")
+            @ApiResponse(responseCode = "409", description = "Payment already processed, insufficient balance, or busy"),
+            @ApiResponse(responseCode = "422", description = "Idempotency-Key already used for a different request")
     })
     @PostMapping("/confirm")
     public ResponseEntity<ApiResponseData<PaymentResponse>> confirmPayment(
             @Valid @RequestBody ConfirmPaymentRequest request,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal User user,
+            @Parameter(description = "Client-generated unique key (e.g. UUID); a retry with the same key returns the first result")
+            @RequestHeader("Idempotency-Key") String idempotencyKey
     ) {
         log.info("Confirming payment flow: {} for user: {}", request.flowId(), user.getId());
 
-        PaymentResponse response = paymentService.confirmPayment(request.flowId(), request.pin(), user);
+        PaymentResponse response = idempotencyService.execute(user, idempotencyKey,
+                "payment-confirm|" + request.flowId(),
+                PaymentResponse.class, () -> paymentService.confirmPayment(request.flowId(), request.pin(), user));
 
         return ResponseEntity.ok(ApiResponseData.success(response));
     }
