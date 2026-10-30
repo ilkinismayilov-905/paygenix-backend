@@ -3,9 +3,12 @@ package com.example.paygenix.support;
 import com.example.paygenix.entity.Cards;
 import com.example.paygenix.entity.User;
 import com.example.paygenix.enums.Role;
+import com.example.paygenix.enums.SystemAccount;
 import com.example.paygenix.repository.CardRepository;
 import com.example.paygenix.repository.UserRepository;
 import com.example.paygenix.service.JwtService;
+import com.example.paygenix.service.LedgerService;
+import com.example.paygenix.service.LedgerService.Leg;
 import com.example.paygenix.service.PanService;
 import com.jayway.jsonpath.JsonPath;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,8 +19,10 @@ import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -39,6 +44,8 @@ public abstract class IntegrationTest {
     @Autowired protected JwtService jwtService;
     @Autowired protected CardRepository cardRepository;
     @Autowired protected PanService panService;
+    @Autowired protected LedgerService ledgerService;
+    @Autowired protected TransactionTemplate transactionTemplate;
 
     protected User createUser(Role... roles) {
         String id = UUID.randomUUID().toString().substring(0, 8);
@@ -71,9 +78,18 @@ public abstract class IntegrationTest {
     }
 
     protected void setBalance(String pan, String amount) {
-        Cards card = cardOf(pan);
-        card.setAmount(new BigDecimal(amount));
-        cardRepository.save(card);
+        setBalance(cardOf(pan), amount);
+    }
+
+    /** Brings the card to the given balance with a simulated top-up booked against STRIPE_CLEARING. */
+    protected void setBalance(Cards card, String amount) {
+        transactionTemplate.executeWithoutResult(tx -> {
+            Cards managed = cardRepository.findById(card.getId()).orElseThrow();
+            BigDecimal delta = new BigDecimal(amount).subtract(managed.getAmount());
+            ledgerService.post("TEST_TOP_UP", "test", managed.getCurrency(), List.of(
+                    Leg.system(SystemAccount.STRIPE_CLEARING, delta.negate()),
+                    Leg.card(managed, delta)));
+        });
     }
 
     protected BigDecimal balanceOf(String pan) {

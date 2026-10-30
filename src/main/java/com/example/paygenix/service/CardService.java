@@ -39,6 +39,7 @@ public class CardService {
     private final CardConverter converter;
     private final PanService panService;
     private final EntityManager entityManager;
+    private final LedgerService ledgerService;
 
     @Transactional
     public IssuedCardResponse issueCard(User owner, CardRequest request) {
@@ -63,6 +64,7 @@ public class CardService {
                 .currency(request.currency())
                 .amount(BigDecimal.ZERO.setScale(2))
                 .build());
+        ledgerService.openCardAccount(card);
         log.info("Issued card {} for user {}", card.getId(), owner.getId());
 
         return new IssuedCardResponse(pan, converter.toResponse(card));
