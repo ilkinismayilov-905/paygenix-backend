@@ -29,6 +29,16 @@ class LoginTest extends IntegrationTest {
         assertThat(response.refreshToken()).isNotBlank();
     }
 
+    @Test
+    void userWithoutPasswordCannotLogIn() throws Exception {
+        User legacy = createUser();
+        legacy.setPasswordHash(null);
+        userRepository.save(legacy);
+        mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + legacy.getEmail() + "\",\"password\":\"" + PASSWORD + "\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
     // FLOW-7 / decision #11: the PIN confirms transactions only; it is not a login secret
     @Test
     void pinIsNotAPassword() throws Exception {

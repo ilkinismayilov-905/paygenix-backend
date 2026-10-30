@@ -35,6 +35,7 @@ public class OnboardingChangePinService {
     private final PasswordEncoder encoder;
     private final JwtService jwtService;
     private final EmailService emailService;
+    private final PinValidationService pinValidationService;
     private final OnboardingChangePinRepository changePinRepository;
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -115,6 +116,7 @@ public class OnboardingChangePinService {
 
         user.setPinHash(encoder.encode(newPin));
         userRepo.save(user);
+        pinValidationService.resetFailures(user.getId());
 
         flow.setStep(OnboardingChangePin.Step.COMPLETED);
         log.info("PIN CHANGED");

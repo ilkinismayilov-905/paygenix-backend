@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.jspecify.annotations.Nullable;
@@ -47,10 +48,12 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String fullname;
 
+    @ToString.Exclude
     @Column(nullable = false)
     private String pinHash;
 
     // null: no password login (pre-V9 test users, Google accounts)
+    @ToString.Exclude
     private String passwordHash;
 
     @ElementCollection(fetch = FetchType.EAGER)

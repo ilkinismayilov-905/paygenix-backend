@@ -44,10 +44,28 @@ class OnboardingCompletionTest extends IntegrationTest {
         assertThat(authService.login(new LoginRequest(flow.getEmail(), PASSWORD)).token()).isNotBlank();
     }
 
+    @Test
+    void weakPasswordOrShortPinIsRejected() throws Exception {
+        OnboardingFlow flow = new OnboardingFlow();
+        flow.setId(UUID.randomUUID().toString());
+        flow.setEmail("weak-" + flow.getId().substring(0, 8) + "@example.test");
+        flow.setStep(OnboardingFlow.Step.USERNAME_SET);
+        flowRepository.save(flow);
+
+        setPin(flow, PIN, "short7!").andExpect(status().isBadRequest());
+        setPin(flow, "12345", PASSWORD).andExpect(status().isBadRequest());
+        setPin(flow, PIN, "ə".repeat(40)).andExpect(status().isBadRequest()); // 40 chars, 80 bytes > bcrypt's 72
+        assertThat(flowRepository.findById(flow.getId()).orElseThrow().getStep()).isEqualTo(OnboardingFlow.Step.USERNAME_SET);
+    }
+
     private ResultActions setPin(OnboardingFlow flow) throws Exception {
+        return setPin(flow, PIN, PASSWORD);
+    }
+
+    private ResultActions setPin(OnboardingFlow flow, String pin, String password) throws Exception {
         return mockMvc.perform(put("/api/onboarding/" + flow.getId() + "/pin")
                 .header("Authorization", "Bearer " + jwtService.generateOnboardingToken(flow))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"pin\":\"" + PIN + "\",\"password\":\"" + PASSWORD + "\"}"));
+                .content("{\"pin\":\"" + pin + "\",\"password\":\"" + password + "\"}"));
     }
 }
