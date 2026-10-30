@@ -46,6 +46,7 @@ public class PaymentService {
     public String transfer(PaymentRequest req, User payer) {
         Cards from = cardService.findOwnedByNumber(payer, req.fromCardNumber());
 
+        // early rejection only; confirm re-checks the balance under the row lock
         if (from.getAmount().compareTo(req.amount()) < 0) {
             throw new InsufficientBalanceException("Insufficient balance");
         }
