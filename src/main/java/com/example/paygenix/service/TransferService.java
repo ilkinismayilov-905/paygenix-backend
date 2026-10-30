@@ -1,6 +1,5 @@
 package com.example.paygenix.service;
 
-//import com.example.paygenix.converter.TransferConverter;
 import com.example.paygenix.mapper.TransferMapper;
 import com.example.paygenix.dto.request.TransferRequest;
 import com.example.paygenix.dto.response.TransferResponse;
@@ -34,7 +33,6 @@ public class TransferService {
     private final CardService cardService;
     private final PinValidationService pinValidationService;
     private final TransactionRepository transactionRepository;
-//    private final TransferConverter converter;
     private final TransferMapper mapper;
 
     @Transactional
@@ -66,8 +64,8 @@ public class TransferService {
         from.setAmount(from.getAmount().subtract(totalAmount));
         to.setAmount(to.getAmount().add(req.amount()));
 
-        Cards savedFrom = cardRepository.save(from);
-        Cards savedTo = cardRepository.save(to);
+        cardRepository.save(from);
+        cardRepository.save(to);
         transaction.setAmount(req.amount());
         transaction.setFrom_card_id(from.getLast4());
         transaction.setTo_card_id(to.getLast4());
