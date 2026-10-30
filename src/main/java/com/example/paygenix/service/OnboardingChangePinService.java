@@ -3,12 +3,14 @@ package com.example.paygenix.service;
 import com.example.paygenix.entity.OnboardingChangePin;
 import com.example.paygenix.entity.OnboardingFlow;
 import com.example.paygenix.entity.User;
+import com.example.paygenix.exceptions.ApiException;
 import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.repository.OnboardingChangePinRepository;
 import com.example.paygenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -42,7 +44,7 @@ public class OnboardingChangePinService {
     public String submitEmail(String email) {
 
         if (!userRepo.existsByEmail(email)) {
-            throw new RuntimeException("USER_NOT_FOUND");
+            throw new NotFoundException("User not found");
         }
 
         enforceSendCoolDown(email);
@@ -71,7 +73,7 @@ public class OnboardingChangePinService {
 
         if (Instant.now().isAfter(flow.getOtpExpiresAt())) {
             clearAttempts(flowId);
-            throw new RuntimeException("OTP_EXPIRED");
+            throw ApiException.otpExpired();
         }
 
         int attempts = incrementAttemptsOrThrow(flowId);
@@ -79,9 +81,9 @@ public class OnboardingChangePinService {
         if (!encoder.matches(otp, flow.getOtpHash())) {
             if (attempts >= MAX_VERIFY_ATTEMPTS) {
                 clearAttempts(flowId);
-                throw new RuntimeException("TOO_MANY_ATTEMPTS");
+                throw ApiException.tooManyAttempts();
             }
-            throw new RuntimeException("INVALID_OTP");
+            throw ApiException.invalidOtp();
         }
 
         clearAttempts(flowId);
@@ -97,18 +99,18 @@ public class OnboardingChangePinService {
         OnboardingChangePin flow = getFlow(flowId, callerEmail, OnboardingChangePin.Step.OTP_VERIFIED);
 
         User user = userRepo.findByEmail(flow.getEmail())
-                .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         if (newPin == null || reEnterNewPin == null) {
-            throw new RuntimeException("NEW_PIN CANNOT BE NULL");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "Both PIN fields are required");
         }
 
         if (encoder.matches(newPin, user.getPinHash())) {
-            throw new RuntimeException("New pin can not be same with old pin");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "PIN_UNCHANGED", "The new PIN must differ from the current one");
         }
 
         if (!newPin.equals(reEnterNewPin)) {
-            throw new RuntimeException("NEW_PIN DOES NOT MATCH");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "PIN_MISMATCH", "The two PINs do not match");
         }
 
         user.setPinHash(encoder.encode(newPin));
@@ -125,10 +127,10 @@ public class OnboardingChangePinService {
                 .orElseThrow(() -> new NotFoundException("PIN change flow not found"));
 
         if (flow.getStep() != step)
-            throw new RuntimeException("INVALID_STEP");
+            throw ApiException.invalidStep();
 
         if (flow.getCreatedAt().plus(FLOW_TTL).isBefore(Instant.now()))
-            throw new RuntimeException("FLOW_EXPIRED");
+            throw ApiException.flowExpired();
 
         return flow;
     }
@@ -139,7 +141,7 @@ public class OnboardingChangePinService {
 
         Boolean ok = ops.setIfAbsent(key, "1", SEND_COOLDOWN);
         if (ok == null || !ok) {
-            throw new RuntimeException("OTP_SEND_TOO_FREQUENT");
+            throw ApiException.otpSendTooFrequent();
         }
 
     }
@@ -165,7 +167,7 @@ public class OnboardingChangePinService {
         }
 
         if (val > MAX_VERIFY_ATTEMPTS) {
-            throw new RuntimeException("TOO_MANY_ATTEMPTS");
+            throw ApiException.tooManyAttempts();
         }
 
         return val.intValue();

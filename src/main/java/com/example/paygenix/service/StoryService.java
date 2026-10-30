@@ -1,5 +1,7 @@
 package com.example.paygenix.service;
 
+import com.example.paygenix.exceptions.NotFoundException;
+import org.springframework.security.access.AccessDeniedException;
 import com.example.paygenix.dto.response.StoryFeedResponse;
 import com.example.paygenix.dto.response.StoryGroupResponse;
 import com.example.paygenix.dto.response.StoryResponse;
@@ -165,10 +167,10 @@ public class StoryService {
     @Transactional
     public void deleteStory(User currentUser, Long storyId) {
         Story story = storyRepo.findById(storyId)
-                .orElseThrow(() -> new NoSuchElementException("Story not found"));
+                .orElseThrow(() -> new NotFoundException("Story not found"));
 
         if (!story.getUser().getId().equals(currentUser.getId())) {
-            throw new SecurityException("Not owner");
+            throw new AccessDeniedException("Only the author can delete this story");
         }
 
         story.setDeleted(true);

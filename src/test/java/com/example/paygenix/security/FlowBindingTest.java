@@ -105,8 +105,7 @@ class FlowBindingTest extends IntegrationTest {
         OnboardingChangePin flow = verifiedChangePinFlow(owner);
         jdbc.update("UPDATE onboarding_change_pin SET created_at = now() - interval '16 minutes' WHERE id = ?", flow.getId());
 
-        // shortcut: FLOW_EXPIRED is still a bare RuntimeException (500); assert the exact status after T-047
-        assertThat(changePin(flow, owner).andReturn().getResponse().getStatus()).isGreaterThanOrEqualTo(400);
+        changePin(flow, owner).andExpect(status().isGone());
         assertThat(passwordEncoder.matches(PIN, userRepository.findById(owner.getId()).orElseThrow().getPinHash())).isTrue();
     }
 
