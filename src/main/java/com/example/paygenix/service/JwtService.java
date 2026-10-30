@@ -145,19 +145,19 @@ public class JwtService {
                     .parseSignedClaims(token)
                     .getPayload();
         } catch (ExpiredJwtException e) {
-            log.error("JWT token expired: {}", e.getMessage());
+            log.debug("JWT token expired: {}", e.getMessage());
             throw e;
         } catch (UnsupportedJwtException e) {
-            log.error("JWT token unsupported: {}", e.getMessage());
+            log.debug("JWT token unsupported: {}", e.getMessage());
             throw e;
         } catch (MalformedJwtException e) {
-            log.error("JWT token malformed: {}", e.getMessage());
+            log.debug("JWT token malformed: {}", e.getMessage());
             throw e;
         } catch (SecurityException e) {
-            log.error("JWT signature invalid: {}", e.getMessage());
+            log.debug("JWT signature invalid: {}", e.getMessage());
             throw e;
         } catch (IllegalArgumentException e) {
-            log.error("JWT token compact of handler are invalid: {}", e.getMessage());
+            log.debug("JWT token compact of handler are invalid: {}", e.getMessage());
             throw e;
         }
     }

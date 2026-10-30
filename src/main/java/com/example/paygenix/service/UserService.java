@@ -19,6 +19,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -91,8 +92,8 @@ public class UserService {
 
             return media;
         } catch (IOException e) {
-            e.printStackTrace();
-            return new Media();
+            // used to return an empty Media and hide the failed upload
+            throw new UncheckedIOException("Media upload failed", e);
         }
     }
 
