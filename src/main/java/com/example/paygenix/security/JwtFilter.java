@@ -125,8 +125,8 @@ public class JwtFilter extends OncePerRequestFilter {
 
             if (JwtService.ONBOARDING.equals(tokenUse) && onboardingPath) {
                 // SEC-19: an onboarding token may only drive the flow it was issued for
-                String subject = jwtService.extractClaim(token, claims -> claims.get(JwtService.FLOW_ID, String.class));
-                if (subject == null || !path.startsWith("/api/onboarding/" + subject + "/")) {
+                String flowId = jwtService.extractClaim(token, claims -> claims.get(JwtService.FLOW_ID, String.class));
+                if (flowId == null || !path.startsWith("/api/onboarding/" + flowId + "/")) {
                     filterChain.doFilter(request, response);
                     return;
                 }
@@ -135,12 +135,12 @@ public class JwtFilter extends OncePerRequestFilter {
                 SimpleGrantedAuthority authority = new SimpleGrantedAuthority("onboarding");
 
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                        subject, null, Collections.singletonList(authority));
+                        flowId, null, Collections.singletonList(authority));
 
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(auth);
 
-                log.info("Onboarding token authenticated for: {}", subject);
+                log.info("Onboarding token authenticated for flow: {}", flowId);
                 filterChain.doFilter(request, response);
                 return;
             }
