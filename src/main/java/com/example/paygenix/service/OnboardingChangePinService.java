@@ -31,14 +31,12 @@ public class OnboardingChangePinService {
     private static final String KEY_SEND_LOCK_PREFIX = "otp:send:";
     private static final String KEY_ATTEMPTS_PREFIX = "otp:attempts:";
 
-
     private final UserRepository userRepo;
     private final PasswordEncoder encoder;
     private final JwtService jwtService;
     private final EmailService emailService;
     private final OnboardingChangePinRepository changePinRepository;
     private final RedisTemplate<String, Object> redisTemplate;
-
 
     @Transactional
     public String submitEmail(String email) {
@@ -57,7 +55,6 @@ public class OnboardingChangePinService {
                 .otpHash(encoder.encode(otp))
                 .otpExpiresAt(Instant.now().plusSeconds(300))
                 .build();
-
 
         changePinRepository.save(flow);
 
@@ -121,7 +118,6 @@ public class OnboardingChangePinService {
         log.info("PIN CHANGED");
     }
 
-
     // SEC-20: only the user who started the flow may continue it, and only for FLOW_TTL
     private OnboardingChangePin getFlow(String id, String callerEmail, OnboardingChangePin.Step step) {
         OnboardingChangePin flow = changePinRepository.findById(id)
@@ -136,7 +132,6 @@ public class OnboardingChangePinService {
 
         return flow;
     }
-
 
     private void enforceSendCoolDown(String email) {
         String key = KEY_SEND_LOCK_PREFIX + normalizeEmail(email);
@@ -180,7 +175,6 @@ public class OnboardingChangePinService {
     private void clearAttempts(String flowId) {
         redisTemplate.delete(KEY_ATTEMPTS_PREFIX + flowId);
     }
-
 
     private String normalizeEmail(String email) {
         return email == null ? "" : email.trim().toLowerCase();
