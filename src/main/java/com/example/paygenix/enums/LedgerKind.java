@@ -5,6 +5,6 @@ public enum LedgerKind {
     TRANSFER,
     PAYMENT,
     CASHBACK,
-    TOP_UP,
+    TOP_UP, // card funding (Stripe, T-062); used by tests until then
     OPENING_BALANCE
 }
