@@ -52,6 +52,23 @@ class DeviceSessionTest extends IntegrationTest {
     }
 
     @Test
+    void expiredSessionCannotRefresh() throws Exception {
+        JwtTokenResponse login = sessionService.start(createUser(), "phone");
+        jdbc.update("UPDATE user_sessions SET expires_at = now() - interval '1 minute' WHERE id = ?",
+                jwtService.extractSessionId(login.token()));
+
+        refresh(login.refreshToken()).andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_REFRESH_TOKEN"));
+        assertThat(meStatus("Bearer " + login.token())).isIn(302, 401);
+    }
+
+    @Test
+    void malformedSessionIdIsABadRequest() throws Exception {
+        mockMvc.perform(delete("/api/auth/sessions/not-a-uuid").header("Authorization", bearer(createUser())))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void onlyTheHashOfTheRefreshTokenIsStored() throws Exception {
         JwtTokenResponse login = sessionService.start(createUser(), "phone");
         List<String> stored = jdbc.queryForList(

@@ -14,6 +14,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.OffsetDateTime;
@@ -90,6 +91,11 @@ public class GlobalHandlerException {
                 .sorted()
                 .collect(Collectors.joining("; "));
         return buildError(HttpStatus.BAD_REQUEST, message, "VALIDATION_FAILED");
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return buildError(HttpStatus.BAD_REQUEST, ex.getName() + ": invalid value", "VALIDATION_FAILED");
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
