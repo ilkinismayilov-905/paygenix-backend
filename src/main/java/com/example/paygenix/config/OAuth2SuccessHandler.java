@@ -1,7 +1,7 @@
 package com.example.paygenix.config;
 
 import com.example.paygenix.entity.User;
-import com.example.paygenix.service.GoogleOidcUserService;
+import com.example.paygenix.repository.UserRepository;
 import com.example.paygenix.service.OAuthCodeService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -20,7 +20,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    private final GoogleOidcUserService googleOidcUserService;
+    private final UserRepository userRepository;
     private final OAuthCodeService oAuthCodeService;
 
     @Value("${app.frontend-url}")
@@ -29,7 +29,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException {
-        User user = googleOidcUserService.findOrCreate((OidcUser) authentication.getPrincipal());
+        // GoogleOidcUserService.loadUser already created the account during authentication
+        User user = userRepository.findByProviderAndProviderId(User.AuthProvider.GOOGLE,
+                ((OidcUser) authentication.getPrincipal()).getSubject()).orElseThrow();
         // the OAuth2 login left a server session behind; the API itself is stateless
         if (request.getSession(false) != null) {
             request.getSession(false).invalidate();
