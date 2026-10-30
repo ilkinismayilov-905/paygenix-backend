@@ -8,6 +8,7 @@ import com.example.paygenix.dto.response.UserMeResponse;
 import com.example.paygenix.entity.User;
 import com.example.paygenix.exceptions.UserNotLoginException;
 import com.example.paygenix.service.AuthService;
+import com.example.paygenix.service.SessionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -17,6 +18,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -35,6 +37,7 @@ import java.util.List;
 public class AuthController {
 
     private final AuthService authService;
+    private final SessionService sessionService;
     private final ClientRegistrationRepository clientRegistrationRepository;
 
     @Operation(summary = "Sistem salamlaması", description = "Servisin aktiv olub-olmadığını yoxlamaq üçün sadə endpoint.")
@@ -50,9 +53,11 @@ public class AuthController {
             @ApiResponse(responseCode = "429", description = "More than 5 attempts for this email in 15 minutes (LOGIN_LOCKED)", content = @Content)
     })
     @PostMapping("/login")
-    public ResponseEntity<ApiResponseData<JwtTokenResponse>> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<ApiResponseData<JwtTokenResponse>> login(
+            @Valid @RequestBody LoginRequest request,
+            @RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent) {
         log.info("Login request received for user: {}", request.email());
-        JwtTokenResponse response = authService.login(request);
+        JwtTokenResponse response = authService.login(request, userAgent);
         return ResponseEntity.ok(ApiResponseData.build(HttpStatus.OK, "Login successful", response));
     }
 
@@ -75,11 +80,16 @@ public class AuthController {
         throw new UserNotLoginException("User session is invalid or not found");
     }
 
-    @Operation(summary = "Token yeniləmə (Refresh)", description = "Müddəti bitmiş Access Token-i yeniləmək üçün Refresh Token-dən istifadə edilir.")
+    @Operation(summary = "Token yeniləmə (Refresh)", description = "Rotates the refresh token: the old one stops working. "
+            + "Presenting an already rotated refresh token revokes the whole session.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "New access and refresh token"),
+            @ApiResponse(responseCode = "401", description = "Invalid, expired or revoked (INVALID_REFRESH_TOKEN), or reused (REFRESH_TOKEN_REUSED)", content = @Content)
+    })
     @PostMapping("/refresh-token")
     public ResponseEntity<ApiResponseData<JwtTokenResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest requestDTO) {
         log.info("Refresh token request received");
-        JwtTokenResponse responseDTO = authService.refreshToken(requestDTO.refreshToken());
+        JwtTokenResponse responseDTO = sessionService.refresh(requestDTO.refreshToken());
         return ResponseEntity.ok(ApiResponseData.build(HttpStatus.OK, "Token refreshed successfully", responseDTO));
     }
 

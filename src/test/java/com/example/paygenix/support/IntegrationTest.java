@@ -11,6 +11,7 @@ import com.example.paygenix.service.JwtService;
 import com.example.paygenix.service.LedgerService;
 import com.example.paygenix.service.LedgerService.Leg;
 import com.example.paygenix.service.PanService;
+import com.example.paygenix.service.SessionService;
 import com.jayway.jsonpath.JsonPath;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -47,6 +48,7 @@ public abstract class IntegrationTest {
     @Autowired protected UserRepository userRepository;
     @Autowired protected PasswordEncoder passwordEncoder;
     @Autowired protected JwtService jwtService;
+    @Autowired protected SessionService sessionService;
     @Autowired protected CardRepository cardRepository;
     @Autowired protected PanService panService;
     @Autowired protected LedgerService ledgerService;
@@ -67,7 +69,7 @@ public abstract class IntegrationTest {
     }
 
     protected String bearer(User user) {
-        return "Bearer " + jwtService.generateJwtToken(user, user.getId(), user.getUsername());
+        return "Bearer " + sessionService.start(user, "test").token();
     }
 
     /** Issues a card through the API and returns the full number (only ever visible in that response). */
