@@ -5,8 +5,9 @@ import com.example.paygenix.dto.response.EditProfileResponse;
 import com.example.paygenix.dto.response.LegalDocumentResponse;
 import org.springframework.boot.cache.autoconfigure.RedisCacheManagerBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
-import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.cache.RedisCacheConfiguration;
+import org.springframework.data.redis.cache.RedisCacheWriter;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJacksonJsonRedisSerializer;
@@ -44,11 +45,13 @@ public class RedisConfig {
     }
 
     // One concrete type per cache: JSON without embedded class names, so cached bytes cannot pick the type to build.
+    // Immediate writes: with Lettuce the default writer evicts asynchronously, so a read right after an update could still see old data.
     @Bean
-    public RedisCacheManagerBuilderCustomizer jsonCacheSerializers() {
+    public RedisCacheManagerBuilderCustomizer jsonCacheSerializers(RedisConnectionFactory connectionFactory) {
         ObjectMapper mapper = JsonMapper.builder().build();
         JavaType profileList = mapper.getTypeFactory().constructCollectionType(List.class, EditProfileResponse.class);
         return builder -> builder
+                .cacheWriter(RedisCacheWriter.create(connectionFactory, writer -> writer.immediateWrites()))
                 .withCacheConfiguration(CacheNames.EDIT_PROFILE_BY_ID,
                         json(new JacksonJsonRedisSerializer<>(mapper, EditProfileResponse.class)))
                 .withCacheConfiguration(CacheNames.EDIT_PROFILE_ALL,
