@@ -14,6 +14,10 @@ public class ApiException extends BusinessException {
         this.errorCode = errorCode;
     }
 
+    public static ApiException validation(String message) {
+        return new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", message);
+    }
+
     public static ApiException otpExpired() {
         return new ApiException(HttpStatus.BAD_REQUEST, "OTP_EXPIRED", "The code has expired; request a new one");
     }

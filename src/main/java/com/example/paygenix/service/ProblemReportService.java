@@ -4,6 +4,7 @@ import com.example.paygenix.dto.request.CreateProblemReportRequest;
 import com.example.paygenix.dto.response.ProblemReportResponse;
 import com.example.paygenix.entity.ProblemReport;
 import com.example.paygenix.entity.User;
+import com.example.paygenix.exceptions.ApiException;
 import com.example.paygenix.exceptions.InvalidReportCategoryException;
 import com.example.paygenix.exceptions.InvalidReportMessageException;
 import com.example.paygenix.exceptions.UserNotLoginException;
@@ -30,7 +31,7 @@ public class ProblemReportService {
     @Transactional
     public ProblemReport create(CreateProblemReportRequest req) {
 
-        if (req == null) throw new IllegalArgumentException("Request body is required");
+        if (req == null) throw ApiException.validation("Request body is required");
         if (req.category() == null) throw new InvalidReportCategoryException();
         if (req.message() == null || req.message().isBlank()) throw new InvalidReportMessageException();
 

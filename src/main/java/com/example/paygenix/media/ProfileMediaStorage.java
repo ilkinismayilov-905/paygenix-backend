@@ -1,5 +1,6 @@
 package com.example.paygenix.media;
 
+import com.example.paygenix.exceptions.ApiException;
 import io.minio.MinioClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -31,7 +32,7 @@ public class ProfileMediaStorage extends AbstractMediaStorage {
 
     private String getExtension(String filename) {
         if (filename == null || !filename.contains(".")) {
-            throw new IllegalArgumentException("Invalid file name");
+            throw ApiException.validation("Invalid file name");
         }
         return filename.substring(filename.lastIndexOf("."));
     }

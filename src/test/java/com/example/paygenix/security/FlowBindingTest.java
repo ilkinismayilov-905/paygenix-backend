@@ -16,6 +16,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 // SEC-19: an onboarding token drives only its own flow. SEC-20: a PIN-change flow belongs to its user and expires.
@@ -74,7 +75,8 @@ class FlowBindingTest extends IntegrationTest {
         flow.setEmail(existing.getEmail());
         flowRepository.save(flow);
 
-        setOnboardingPin(flow, jwtService.generateOnboardingToken(flow)).andExpect(status().isBadRequest());
+        setOnboardingPin(flow, jwtService.generateOnboardingToken(flow)).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ALREADY_TAKEN"));
         assertThat(flowRepository.findById(flow.getId()).orElseThrow().getStep()).isEqualTo(OnboardingFlow.Step.USERNAME_SET);
     }
 

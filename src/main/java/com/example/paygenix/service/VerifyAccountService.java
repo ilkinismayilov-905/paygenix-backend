@@ -4,6 +4,7 @@ import com.example.paygenix.dto.request.VerifyRequest;
 import com.example.paygenix.entity.EditProfile;
 import com.example.paygenix.entity.User;
 import com.example.paygenix.enums.VerificationField;
+import com.example.paygenix.exceptions.ApiException;
 import com.example.paygenix.exceptions.VerificationFailedException;
 import com.example.paygenix.repository.EditProfileRepository;
 import com.example.paygenix.repository.UserRepository;
@@ -26,7 +27,7 @@ public class VerifyAccountService {
 
     public void verify(VerifyRequest verifyRequest,String email) {
         if (verifyRequest == null) {
-            throw new IllegalArgumentException("Verify request cannot be null");
+            throw ApiException.validation("Verify request cannot be null");
         }
 
         User user = userRepository.findByEmail(email)
