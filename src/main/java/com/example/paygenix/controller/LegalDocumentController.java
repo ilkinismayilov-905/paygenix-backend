@@ -32,16 +32,7 @@ public class LegalDocumentController {
     @GetMapping("/terms")
     public ResponseEntity<ApiResponseData<LegalDocumentResponse>> getDocumentTerms() {
         log.info("Fetching active Terms of Service");
-        var doc = service.getActiveDocument("TERMS");
-
-        LegalDocumentResponse docResponse = new LegalDocumentResponse(
-                doc.getType(),
-                doc.getVersion(),
-                doc.getEffectiveDate(),
-                doc.getContent()
-        );
-
-        return ResponseEntity.ok(ApiResponseData.success(docResponse));
+        return ResponseEntity.ok(ApiResponseData.success(service.getActiveDocument("TERMS")));
     }
 
     @Operation(
@@ -55,15 +46,6 @@ public class LegalDocumentController {
     @GetMapping("/privacy")
     public ResponseEntity<ApiResponseData<LegalDocumentResponse>> getDocumentPrivacy() {
         log.info("Fetching active Privacy Policy");
-        var doc = service.getActiveDocument("PRIVACY");
-
-        LegalDocumentResponse docResponse = new LegalDocumentResponse(
-                doc.getType(),
-                doc.getVersion(),
-                doc.getEffectiveDate(),
-                doc.getContent()
-        );
-
-        return ResponseEntity.ok(ApiResponseData.success(docResponse));
+        return ResponseEntity.ok(ApiResponseData.success(service.getActiveDocument("PRIVACY")));
     }
 }
