@@ -1,4 +1,11 @@
 package com.example.paygenix.dto.request;
 
-public record FullNameRequest(String fullName) {
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+public record FullNameRequest(
+        @NotBlank(message = "Full name is required")
+        @Size(max = 100, message = "Full name must be at most 100 characters")
+        String fullName
+) {
 }
