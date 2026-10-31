@@ -78,12 +78,6 @@ public class GlobalHandlerException extends ResponseEntityExceptionHandler {
         return error(HttpStatus.BAD_REQUEST, details, "VERIFICATION_FAILED");
     }
 
-    // Our own services throw it with a client-safe message for bad input.
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ProblemDetail> handleBadRequest(IllegalArgumentException ex) {
-        return error(HttpStatus.BAD_REQUEST, ex.getMessage(), "BAD_REQUEST");
-    }
-
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ProblemDetail> handleBadCredentials(BadCredentialsException ex) {
         return error(HttpStatus.UNAUTHORIZED, "Email or password is incorrect", "UNAUTHORIZED");

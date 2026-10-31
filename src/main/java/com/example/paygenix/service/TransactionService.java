@@ -1,5 +1,6 @@
 package com.example.paygenix.service;
 
+import com.example.paygenix.exceptions.ApiException;
 import com.example.paygenix.mapper.TransactionMapper;
 import com.example.paygenix.dto.response.TransactionsResponse;
 import com.example.paygenix.entity.Transactions;
@@ -45,11 +46,11 @@ public class TransactionService {
         log.info("Getting transactions between creation dates: {} and {}", startDate, endDate);
 
         if (startDate == null || endDate == null) {
-            throw new IllegalArgumentException("Dates must not be null");
+            throw ApiException.validation("Dates must not be null");
         }
 
         if (endDate.isBefore(startDate)) {
-            throw new IllegalArgumentException("End date cannot be before start date");
+            throw ApiException.validation("End date cannot be before start date");
         }
 
         Instant from = startDate.atStartOfDay(ZoneOffset.UTC).toInstant();

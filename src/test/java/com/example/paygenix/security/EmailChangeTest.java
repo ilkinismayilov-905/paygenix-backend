@@ -23,6 +23,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 // SEC-14: an email changes only after the new address confirms a code. SEC-17: OTPs are 6 digits from a CSPRNG.
@@ -63,9 +64,11 @@ class EmailChangeTest extends IntegrationTest {
         String wrong = code.equals("000000") ? "000001" : "000000";
 
         for (int i = 0; i < 5; i++) {
-            confirm(token, wrong).andExpect(status().isBadRequest());
+            confirm(token, wrong).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_OTP"));
         }
-        confirm(token, code).andExpect(status().isBadRequest()); // the pending change is gone after 5 tries
+        confirm(token, code).andExpect(status().isTooManyRequests()) // the pending change is gone after 5 tries
+                .andExpect(jsonPath("$.code").value("TOO_MANY_ATTEMPTS"));
+        confirm(token, code).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("OTP_EXPIRED"));
 
         assertThat(userRepository.findById(user.getId()).orElseThrow().getEmail()).isEqualTo(user.getEmail());
     }
@@ -73,14 +76,16 @@ class EmailChangeTest extends IntegrationTest {
     @Test
     void cannotClaimAnEmailThatIsInUse() throws Exception {
         User other = createUser();
-        start(bearer(createUser()).substring(7), other.getEmail()).andExpect(status().isBadRequest());
+        start(bearer(createUser()).substring(7), other.getEmail()).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("EMAIL_IN_USE"));
     }
 
     @Test
     void codesCannotBeRequestedBackToBack() throws Exception {
         String token = bearer(createUser()).substring(7);
         start(token, "a-" + UUID.randomUUID() + "@example.test").andExpect(status().isOk());
-        start(token, "b-" + UUID.randomUUID() + "@example.test").andExpect(status().isBadRequest());
+        start(token, "b-" + UUID.randomUUID() + "@example.test").andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code").value("OTP_SEND_TOO_FREQUENT"));
     }
 
     @Test
@@ -94,7 +99,8 @@ class EmailChangeTest extends IntegrationTest {
         verify(emailService, times(2)).sendOtp(eq(newEmail), codes.capture());
 
         confirm(first, codes.getAllValues().get(0)).andExpect(status().isOk());
-        confirm(second, codes.getAllValues().get(1)).andExpect(status().isBadRequest());
+        confirm(second, codes.getAllValues().get(1)).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("EMAIL_IN_USE"));
     }
 
     @Test

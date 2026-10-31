@@ -1,9 +1,11 @@
 package com.example.paygenix.service;
 
 import com.example.paygenix.entity.User;
+import com.example.paygenix.exceptions.ApiException;
 import com.example.paygenix.exceptions.IdempotencyKeyReusedException;
 import com.example.paygenix.repository.IdempotencyKeyRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
@@ -32,7 +34,8 @@ public class IdempotencyService {
     @Transactional
     public <T> T execute(User user, String key, String fingerprint, Class<T> responseType, Supplier<T> action) {
         if (key == null || key.isBlank() || key.length() > MAX_KEY_LENGTH) {
-            throw new IllegalArgumentException("Idempotency-Key header must be 1-" + MAX_KEY_LENGTH + " characters");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_IDEMPOTENCY_KEY",
+                    "Idempotency-Key header must be 1-" + MAX_KEY_LENGTH + " characters");
         }
         String requestHash = panService.hmac("idempotency:" + fingerprint);
 

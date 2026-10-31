@@ -68,7 +68,10 @@ public class EditProfileController {
             + "The email changes only after POST /api/profile/email/confirm with that code (within 10 minutes).")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Code sent to the new address"),
-            @ApiResponse(responseCode = "400", description = "Not an email address, or already in use")
+            @ApiResponse(responseCode = "400", description = "Not an email address (VALIDATION_FAILED)"),
+            @ApiResponse(responseCode = "409", description = "Email already in use (EMAIL_IN_USE)"),
+            @ApiResponse(responseCode = "429", description = "Code requested within the last minute (OTP_SEND_TOO_FREQUENT) "
+                    + "or more than 5 changes today (EMAIL_CHANGE_LIMIT)")
     })
     @PostMapping("/email")
     public ResponseEntity<ApiResponseData<Void>> startEmailChange(@AuthenticationPrincipal User user,
@@ -80,7 +83,9 @@ public class EditProfileController {
     @Operation(summary = "Confirm an email change", description = "Switches the account to the new email and signs out every device; log in again with the new email.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Email changed, all sessions revoked"),
-            @ApiResponse(responseCode = "400", description = "Wrong or expired code, too many tries, or the email was taken meanwhile")
+            @ApiResponse(responseCode = "400", description = "Wrong code (INVALID_OTP) or no pending change (OTP_EXPIRED)"),
+            @ApiResponse(responseCode = "409", description = "The email was taken meanwhile (EMAIL_IN_USE)"),
+            @ApiResponse(responseCode = "429", description = "Too many wrong codes; start again (TOO_MANY_ATTEMPTS)")
     })
     @PostMapping("/email/confirm")
     public ResponseEntity<ApiResponseData<Void>> confirmEmailChange(@AuthenticationPrincipal User user,

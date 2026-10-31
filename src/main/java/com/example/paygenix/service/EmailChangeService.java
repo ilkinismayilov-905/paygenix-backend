@@ -2,6 +2,7 @@ package com.example.paygenix.service;
 
 import com.example.paygenix.cache.CacheNames;
 import com.example.paygenix.entity.User;
+import com.example.paygenix.exceptions.ApiException;
 import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.repository.EditProfileRepository;
 import com.example.paygenix.repository.UserRepository;
@@ -11,6 +12,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,17 +49,17 @@ public class EmailChangeService {
 
     public void start(Long userId, String newEmail) {
         if (userRepository.existsByEmail(newEmail) || userRepository.existsByUsername(newEmail)) {
-            throw new IllegalArgumentException("Email is already in use");
+            throw emailInUse();
         }
         if (!Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(COOLDOWN_PREFIX + userId, "1", SEND_COOLDOWN))) {
-            throw new IllegalArgumentException("Wait a minute before requesting another code");
+            throw ApiException.otpSendTooFrequent();
         }
         Long startsToday = redis.opsForValue().increment(DAILY_PREFIX + userId);
         if (startsToday != null && startsToday == 1) {
             redis.expire(DAILY_PREFIX + userId, Duration.ofDays(1));
         }
         if (startsToday == null || startsToday > MAX_STARTS_PER_DAY) {
-            throw new IllegalArgumentException("Too many email change requests today");
+            throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "EMAIL_CHANGE_LIMIT", "Too many email change requests today");
         }
         String otp = OtpGenerator.newOtp();
         String key = KEY_PREFIX + userId;
@@ -79,20 +81,20 @@ public class EmailChangeService {
         List<Object> pending = redis.opsForHash().multiGet(key, List.of("email", "otpHash"));
         if (pending.get(0) == null) {
             redis.delete(key); // the increment recreated an expired key without a TTL
-            throw new IllegalArgumentException("No pending email change, or it expired");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "OTP_EXPIRED", "No pending email change, or it expired");
         }
         if (attempts > MAX_ATTEMPTS) {
             redis.delete(key);
-            throw new IllegalArgumentException("Too many wrong codes; start the email change again");
+            throw ApiException.tooManyAttempts();
         }
         if (!encoder.matches(otp, (String) pending.get(1))) {
-            throw new IllegalArgumentException("Invalid code");
+            throw ApiException.invalidOtp();
         }
         redis.delete(key);
 
         String newEmail = (String) pending.get(0);
         if (userRepository.existsByEmail(newEmail) || userRepository.existsByUsername(newEmail)) {
-            throw new IllegalArgumentException("Email is already in use");
+            throw emailInUse();
         }
         User user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User not found"));
         editProfileRepository.findByUserId(userId).ifPresent(profile -> profile.setEmail(newEmail));
@@ -104,9 +106,13 @@ public class EmailChangeService {
             userRepository.saveAndFlush(user);
         } catch (DataIntegrityViolationException e) {
             // another account confirmed the same address between the check and the update
-            throw new IllegalArgumentException("Email is already in use");
+            throw emailInUse();
         }
         sessionService.revokeAll(userId);
         log.info("Email changed for user {}", userId);
+    }
+
+    private static ApiException emailInUse() {
+        return new ApiException(HttpStatus.CONFLICT, "EMAIL_IN_USE", "Email is already in use");
     }
 }
