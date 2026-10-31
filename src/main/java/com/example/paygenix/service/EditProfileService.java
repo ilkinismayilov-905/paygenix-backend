@@ -6,6 +6,7 @@ import com.example.paygenix.dto.response.EditProfileResponse;
 import com.example.paygenix.entity.EditProfile;
 import com.example.paygenix.entity.User;
 import com.example.paygenix.enums.MediaType;
+import com.example.paygenix.exceptions.ApiException;
 import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.mapper.EditProfileMapper;
 import com.example.paygenix.media.ProfileMediaStorage;
@@ -15,6 +16,7 @@ import com.example.paygenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.http.HttpStatus;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
@@ -70,6 +72,11 @@ public class EditProfileService {
             profile.setGender(profile.getGender());
         }
         if (editProfile.phoneNumber() != null) profile.setPhoneNumber(editProfile.phoneNumber());
+        if (profile.getId() == null && (profile.getFullName() == null || profile.getPhoneNumber() == null
+                || profile.getDateOfBirth() == null || profile.getGender() == null)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED",
+                    "A new profile needs fullName, phoneNumber, dateOfBirth and gender");
+        }
         profile.setUser(user);
 
         user.setFullname(profile.getFullName());
