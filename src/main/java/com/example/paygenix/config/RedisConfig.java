@@ -1,13 +1,23 @@
 package com.example.paygenix.config;
 
+import com.example.paygenix.cache.CacheNames;
+import com.example.paygenix.dto.response.EditProfileResponse;
+import com.example.paygenix.dto.response.LegalDocumentResponse;
+import org.springframework.boot.cache.autoconfigure.RedisCacheManagerBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJacksonJsonRedisSerializer;
+import org.springframework.data.redis.serializer.JacksonJsonRedisSerializer;
+import org.springframework.data.redis.serializer.RedisSerializationContext.SerializationPair;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import tools.jackson.databind.JavaType;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
+
+import java.util.List;
 
 @Configuration
 public class RedisConfig {
@@ -31,5 +41,23 @@ public class RedisConfig {
 
         template.afterPropertiesSet();
         return template;
+    }
+
+    // One concrete type per cache: JSON without embedded class names, so cached bytes cannot pick the type to build.
+    @Bean
+    public RedisCacheManagerBuilderCustomizer jsonCacheSerializers() {
+        ObjectMapper mapper = JsonMapper.builder().build();
+        JavaType profileList = mapper.getTypeFactory().constructCollectionType(List.class, EditProfileResponse.class);
+        return builder -> builder
+                .withCacheConfiguration(CacheNames.EDIT_PROFILE_BY_ID,
+                        json(new JacksonJsonRedisSerializer<>(mapper, EditProfileResponse.class)))
+                .withCacheConfiguration(CacheNames.EDIT_PROFILE_ALL,
+                        json(new JacksonJsonRedisSerializer<List<EditProfileResponse>>(mapper, profileList)))
+                .withCacheConfiguration(CacheNames.LEGAL_DOCUMENT_BY_TYPE,
+                        json(new JacksonJsonRedisSerializer<>(mapper, LegalDocumentResponse.class)));
+    }
+
+    private static RedisCacheConfiguration json(JacksonJsonRedisSerializer<?> serializer) {
+        return RedisCacheConfiguration.defaultCacheConfig().serializeValuesWith(SerializationPair.fromSerializer(serializer));
     }
 }
