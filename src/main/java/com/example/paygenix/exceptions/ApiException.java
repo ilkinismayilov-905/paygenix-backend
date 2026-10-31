@@ -2,16 +2,24 @@ package com.example.paygenix.exceptions;
 
 import org.springframework.http.HttpStatus;
 
+import java.time.Duration;
+
 // A client error with its status and stable code, for cases that do not need their own exception class.
 public class ApiException extends BusinessException {
 
     private final HttpStatus status;
     private final String errorCode;
+    private final Duration retryAfter;
 
     public ApiException(HttpStatus status, String errorCode, String message) {
+        this(status, errorCode, message, null);
+    }
+
+    public ApiException(HttpStatus status, String errorCode, String message, Duration retryAfter) {
         super(message);
         this.status = status;
         this.errorCode = errorCode;
+        this.retryAfter = retryAfter;
     }
 
     public static ApiException validation(String message) {
@@ -30,8 +38,8 @@ public class ApiException extends BusinessException {
         return new ApiException(HttpStatus.TOO_MANY_REQUESTS, "TOO_MANY_ATTEMPTS", "Too many wrong codes; start again");
     }
 
-    public static ApiException otpSendTooFrequent() {
-        return new ApiException(HttpStatus.TOO_MANY_REQUESTS, "OTP_SEND_TOO_FREQUENT", "Wait a minute before requesting another code");
+    public static ApiException otpSendTooFrequent(Duration cooldown) {
+        return new ApiException(HttpStatus.TOO_MANY_REQUESTS, "OTP_SEND_TOO_FREQUENT", "Wait a minute before requesting another code", cooldown);
     }
 
     public static ApiException flowNotFound() {
@@ -54,5 +62,10 @@ public class ApiException extends BusinessException {
     @Override
     public HttpStatus getStatus() {
         return status;
+    }
+
+    @Override
+    public Duration getRetryAfter() {
+        return retryAfter;
     }
 }

@@ -50,7 +50,11 @@ public class GlobalHandlerException extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ProblemDetail> handleBusiness(BusinessException ex) {
-        return error(ex.getStatus(), ex.getMessage(), ex.getErrorCode());
+        ResponseEntity.BodyBuilder response = ResponseEntity.status(ex.getStatus());
+        if (ex.getRetryAfter() != null) {
+            response.header(HttpHeaders.RETRY_AFTER, String.valueOf(Math.max(1, ex.getRetryAfter().toSeconds())));
+        }
+        return response.body(problem(ex.getStatus(), ex.getMessage(), ex.getErrorCode()));
     }
 
     @ExceptionHandler(NotFoundException.class)

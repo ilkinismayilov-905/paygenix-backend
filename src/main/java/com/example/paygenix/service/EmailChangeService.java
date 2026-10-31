@@ -52,14 +52,16 @@ public class EmailChangeService {
             throw emailInUse();
         }
         if (!Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(COOLDOWN_PREFIX + userId, "1", SEND_COOLDOWN))) {
-            throw ApiException.otpSendTooFrequent();
+            throw ApiException.otpSendTooFrequent(SEND_COOLDOWN);
         }
         Long startsToday = redis.opsForValue().increment(DAILY_PREFIX + userId);
         if (startsToday != null && startsToday == 1) {
             redis.expire(DAILY_PREFIX + userId, Duration.ofDays(1));
         }
         if (startsToday == null || startsToday > MAX_STARTS_PER_DAY) {
-            throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "EMAIL_CHANGE_LIMIT", "Too many email change requests today");
+            Long ttl = redis.getExpire(DAILY_PREFIX + userId);
+            throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "EMAIL_CHANGE_LIMIT", "Too many email change requests today",
+                    ttl != null && ttl > 0 ? Duration.ofSeconds(ttl) : Duration.ofDays(1));
         }
         String otp = OtpGenerator.newOtp();
         String key = KEY_PREFIX + userId;

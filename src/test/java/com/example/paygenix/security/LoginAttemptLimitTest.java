@@ -15,6 +15,7 @@ import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -28,7 +29,8 @@ class LoginAttemptLimitTest extends IntegrationTest {
             login(user.getEmail(), "wrong-password").andExpect(status().isUnauthorized());
         }
         login(user.getEmail(), PASSWORD).andExpect(status().isTooManyRequests())
-                .andExpect(jsonPath("$.code").value("LOGIN_LOCKED"));
+                .andExpect(jsonPath("$.code").value("LOGIN_LOCKED"))
+                .andExpect(header().string("Retry-After", "900"));
         login(user.getEmail().toUpperCase(), PASSWORD).andExpect(status().isTooManyRequests());
     }
 

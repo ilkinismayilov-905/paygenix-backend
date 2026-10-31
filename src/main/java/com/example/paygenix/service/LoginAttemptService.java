@@ -38,7 +38,7 @@ public class LoginAttemptService {
     public void countAttempt(String email) {
         Long attempts = redis.execute(COUNT_ATTEMPT, List.of(key(email)), String.valueOf(WINDOW.toSeconds()));
         if (attempts == null || attempts > MAX_ATTEMPTS) {
-            throw new LoginLockedException();
+            throw new LoginLockedException(WINDOW);
         }
     }
 

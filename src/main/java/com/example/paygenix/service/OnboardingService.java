@@ -163,7 +163,7 @@ public class OnboardingService {
 
         Boolean ok = ops.setIfAbsent(key, "1", SEND_COOLDOWN);
         if (ok == null || !ok) {
-            throw ApiException.otpSendTooFrequent();
+            throw ApiException.otpSendTooFrequent(SEND_COOLDOWN);
         }
     }
 
