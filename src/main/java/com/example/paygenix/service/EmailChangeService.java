@@ -69,7 +69,6 @@ public class EmailChangeService {
 
     @Transactional
     @Caching(evict = {
-            @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_BY_EMAIL, allEntries = true),
             @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_BY_ID, allEntries = true),
             @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_ALL, allEntries = true)
     })

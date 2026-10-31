@@ -16,7 +16,6 @@ import com.example.paygenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.http.HttpStatus;
@@ -46,14 +45,10 @@ public class EditProfileService {
     }
 
     @Transactional()
-    @Caching(put = {
-            @CachePut(cacheNames = CacheNames.EDIT_PROFILE_BY_EMAIL, key = "#result.email"),
-            @CachePut(cacheNames = CacheNames.EDIT_PROFILE_BY_ID, key = "#result.id")
-    },
-            evict = {
-                    @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_ALL, allEntries = true),
-                    @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_BY_ID, allEntries = true)
-            })
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_ALL, allEntries = true),
+            @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_BY_ID, allEntries = true)
+    })
     public EditProfileResponse editProfile(EditProfileRequest editProfile, String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found by email: " + email));
@@ -90,16 +85,10 @@ public class EditProfileService {
     }
 
     @Transactional()
-    @Caching(
-            put = {
-                    @CachePut(cacheNames = CacheNames.EDIT_PROFILE_BY_EMAIL, key = "#result.email"),
-                    @CachePut(cacheNames = CacheNames.EDIT_PROFILE_BY_ID, key = "#result.id")
-            },
-            evict = {
-                    @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_ALL, allEntries = true),
-                    @CacheEvict(cacheNames = CacheNames.USER_BY_ID, key = "#userId")
-            }
-    )
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_ALL, allEntries = true),
+            @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_BY_ID, allEntries = true)
+    })
     public EditProfileResponse editProfilePhoto(
             Long userId,
             MultipartFile file) {
