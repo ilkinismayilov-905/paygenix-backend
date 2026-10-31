@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -42,7 +43,8 @@ class PinAttemptLimitTest extends IntegrationTest {
                     .andExpect(jsonPath("$.code").value("INVALID_PIN"));
         }
         transfer(sender, from, to, "000000").andExpect(status().isTooManyRequests())
-                .andExpect(jsonPath("$.code").value("PIN_LOCKED"));
+                .andExpect(jsonPath("$.code").value("PIN_LOCKED"))
+                .andExpect(header().string("Retry-After", "900"));
         transfer(sender, from, to, PIN).andExpect(status().isTooManyRequests());
 
         assertThat(balanceOf(from)).isEqualByComparingTo("100.00");

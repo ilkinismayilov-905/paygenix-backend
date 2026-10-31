@@ -41,13 +41,13 @@ public class PinValidationService {
         String key = KEY_PREFIX + userId;
         String failures = redis.opsForValue().get(key);
         if (failures != null && Long.parseLong(failures) >= MAX_ATTEMPTS) {
-            throw PinRejectedException.locked();
+            throw PinRejectedException.locked(LOCK);
         }
 
         if (!pinEncoder.matches(rawPin, user.getPinHash())) {
             Long now = redis.opsForValue().increment(key);
             redis.expire(key, LOCK);
-            throw now != null && now >= MAX_ATTEMPTS ? PinRejectedException.locked() : PinRejectedException.invalid();
+            throw now != null && now >= MAX_ATTEMPTS ? PinRejectedException.locked(LOCK) : PinRejectedException.invalid();
         }
         if (failures != null) {
             redis.delete(key);
