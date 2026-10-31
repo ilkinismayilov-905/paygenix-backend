@@ -45,9 +45,12 @@ class DtoValidationTest extends IntegrationTest {
     void profileRejectsBlankNameAndFutureBirthDate() throws Exception {
         String auth = bearer(createUser());
 
-        send(post("/api/profile"), auth, "{\"fullName\":\"   \"}").andExpect(status().isBadRequest());
-        send(post("/api/profile"), auth, "{\"fullName\":\"" + "a".repeat(101) + "\"}").andExpect(status().isBadRequest());
-        send(post("/api/profile"), auth, "{\"dateOfBirth\":\"01-01-2999\"}").andExpect(status().isBadRequest());
+        send(post("/api/profile"), auth, "{\"fullName\":\"   \"}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        send(post("/api/profile"), auth, "{\"fullName\":\"" + "a".repeat(101) + "\"}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        send(post("/api/profile"), auth, "{\"dateOfBirth\":\"01-01-2999\"}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
     }
 
     // used to reach the database NOT NULL constraints and answer 500
@@ -64,11 +67,14 @@ class DtoValidationTest extends IntegrationTest {
         String auth = "Bearer " + jwtService.generateOnboardingToken(flow);
         String base = "/api/onboarding/" + flow.getId();
 
-        send(put(base + "/full-name"), auth, "{\"fullName\":\"\"}").andExpect(status().isBadRequest());
-        send(put(base + "/full-name"), auth, "{}").andExpect(status().isBadRequest());
+        send(put(base + "/full-name"), auth, "{\"fullName\":\"\"}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        send(put(base + "/full-name"), auth, "{}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
         for (String username : new String[]{"ab", "has space", "a".repeat(31), "<script>"}) {
             send(put(base + "/username"), auth, "{\"username\":\"" + username + "\"}")
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
         }
 
         assertThat(flowRepository.findById(flow.getId()).orElseThrow().getStep()).isEqualTo(OnboardingFlow.Step.OTP_VERIFIED);
@@ -78,7 +84,16 @@ class DtoValidationTest extends IntegrationTest {
     void loginRejectsOversizedPassword() throws Exception {
         mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"a@example.test\",\"password\":\"" + "x".repeat(73) + "\"}"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    void refreshRejectsOversizedToken() throws Exception {
+        mockMvc.perform(post("/api/auth/refresh-token").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"refreshToken\":\"" + "x".repeat(2049) + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
     }
 
     private ResultActions send(org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request,
