@@ -19,6 +19,8 @@ This roadmap orders the work by risk. Security and money correctness come before
 | 10. Product | Figma design, frontend (including simple admin UI) | v0.3.0 |
 | 11. Release | Deployment preparation and a fresh, hardened server | v1.0.0 |
 
+> **Before the repository is made public:** ask GitHub Support to run a sensitive data removal for the `refs/pull/*` refs. They still point to commits from before the history rewrite, and only GitHub can purge them and their cached views.
+
 ## Key decisions
 
 - **Virtual cards only.** The system generates Luhn-valid card numbers and stores only the last four digits. No CVV is stored.
