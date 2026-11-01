@@ -26,10 +26,11 @@ public class LoginAttemptService {
     static final int MAX_ATTEMPTS = 5;
     static final Duration WINDOW = Duration.ofMinutes(15);
     private static final String KEY_PREFIX = "login:attempts:";
-    // INCR and EXPIRE in one step: a key left without a TTL would lock the account forever
-    private static final RedisScript<Long> COUNT_ATTEMPT = RedisScript.of("""
+    // INCR and EXPIRE in one step: a key left without a TTL would lock the account forever.
+    // TTL == -1 (not n == 1) also repairs a key that lost its TTL earlier. Shared with EmailChangeService.
+    static final RedisScript<Long> COUNT_ATTEMPT = RedisScript.of("""
             local n = redis.call('INCR', KEYS[1])
-            if n == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
+            if redis.call('TTL', KEYS[1]) == -1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
             return n
             """, Long.class);
 

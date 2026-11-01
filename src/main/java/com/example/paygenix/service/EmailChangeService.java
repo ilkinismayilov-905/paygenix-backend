@@ -51,10 +51,8 @@ public class EmailChangeService {
         if (!Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(COOLDOWN_PREFIX + userId, "1", SEND_COOLDOWN))) {
             throw ApiException.otpSendTooFrequent(SEND_COOLDOWN);
         }
-        Long startsToday = redis.opsForValue().increment(DAILY_PREFIX + userId);
-        if (startsToday != null && startsToday == 1) {
-            redis.expire(DAILY_PREFIX + userId, Duration.ofDays(1));
-        }
+        Long startsToday = redis.execute(LoginAttemptService.COUNT_ATTEMPT, List.of(DAILY_PREFIX + userId),
+                String.valueOf(Duration.ofDays(1).toSeconds()));
         if (startsToday == null || startsToday > MAX_STARTS_PER_DAY) {
             Long ttl = redis.getExpire(DAILY_PREFIX + userId);
             throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "EMAIL_CHANGE_LIMIT", "Too many email change requests today",
