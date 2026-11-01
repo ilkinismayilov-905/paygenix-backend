@@ -172,7 +172,7 @@ public class JwtFilter extends OncePerRequestFilter {
                     if (expirationDate != null) {
                         long secondsLeft = (expirationDate.getTime() - System.currentTimeMillis()) / 1000;
                         user.setExpiresIn(Math.max(secondsLeft, 0));
-                        log.debug("Token for user {} expires in {} seconds", username, secondsLeft);
+                        log.debug("Token for user {} expires in {} seconds", user.getId(), secondsLeft);
                     }
 
                     UsernamePasswordAuthenticationToken authentication =
