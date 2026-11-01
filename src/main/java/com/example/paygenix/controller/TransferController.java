@@ -39,7 +39,7 @@ public class TransferController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Transfer completed successfully"),
-            @ApiResponse(responseCode = "400", description = "Validation failed, same card, or currency mismatch"),
+            @ApiResponse(responseCode = "400", description = "Validation failed, same card, currency mismatch, or Idempotency-Key header blank or over 255 characters (INVALID_IDEMPOTENCY_KEY)"),
             @ApiResponse(responseCode = "401", description = "Unauthorized access"),
             @ApiResponse(responseCode = "403", description = "Wrong PIN (INVALID_PIN)"),
             @ApiResponse(responseCode = "404", description = "Card not found"),
