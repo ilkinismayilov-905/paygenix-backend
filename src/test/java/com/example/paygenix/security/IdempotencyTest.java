@@ -152,8 +152,10 @@ class IdempotencyTest extends IntegrationTest {
         String to = issueCard(createUser(), "AZN");
         setBalance(from, "100.00");
 
-        transfer(sender, " ", from, to, "10.00").andExpect(status().isBadRequest());
-        transfer(sender, "k".repeat(256), from, to, "10.00").andExpect(status().isBadRequest());
+        transfer(sender, " ", from, to, "10.00").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_IDEMPOTENCY_KEY"));
+        transfer(sender, "k".repeat(256), from, to, "10.00").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_IDEMPOTENCY_KEY"));
 
         assertThat(balanceOf(from)).isEqualByComparingTo("100.00");
     }

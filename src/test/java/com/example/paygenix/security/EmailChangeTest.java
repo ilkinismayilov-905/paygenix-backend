@@ -8,16 +8,20 @@ import com.example.paygenix.service.OtpGenerator;
 import com.example.paygenix.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.lang.reflect.RecordComponent;
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -31,6 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class EmailChangeTest extends IntegrationTest {
 
     @MockitoBean EmailService emailService;
+    @Autowired StringRedisTemplate redis;
 
     // shortcut: asserted on the DTO because POST /api/profile still 500s on the Redis cache (T-016); go through HTTP once fixed
     @Test
@@ -88,6 +93,18 @@ class EmailChangeTest extends IntegrationTest {
         start(token, "b-" + UUID.randomUUID() + "@example.test").andExpect(status().isTooManyRequests())
                 .andExpect(jsonPath("$.code").value("OTP_SEND_TOO_FREQUENT"))
                 .andExpect(header().string("Retry-After", "60"));
+    }
+
+    @Test
+    void sixthChangeRequestInADayIsLimitedUntilTheCounterExpires() throws Exception {
+        User user = createUser();
+        // five starts already used today, counter expires in an hour
+        redis.opsForValue().set("email-change:daily:" + user.getId(), "5", Duration.ofHours(1));
+
+        start(bearer(user).substring(7), "limit-" + UUID.randomUUID() + "@example.test")
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code").value("EMAIL_CHANGE_LIMIT"))
+                .andExpect(header().string("Retry-After", matchesPattern("3[56]\\d\\d")));
     }
 
     @Test
