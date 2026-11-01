@@ -104,6 +104,18 @@ class EmailChangeTest extends IntegrationTest {
     }
 
     @Test
+    void dailyCounterWithoutTtlGetsOneBack() throws Exception {
+        User user = createUser();
+        String key = "email-change:daily:" + user.getId();
+        redis.opsForValue().set(key, "2"); // lost its EXPIRE: would block the user forever once it reaches the limit
+
+        start(bearer(user).substring(7), "ttl-" + UUID.randomUUID() + "@example.test").andExpect(status().isOk());
+
+        assertThat(redis.opsForValue().get(key)).isEqualTo("3");
+        assertThat(redis.getExpire(key)).isBetween(86_000L, 86_400L);
+    }
+
+    @Test
     void codesCannotBeRequestedBackToBack() throws Exception {
         String token = bearer(createUser()).substring(7);
         start(token, "a-" + UUID.randomUUID() + "@example.test").andExpect(status().isOk());
