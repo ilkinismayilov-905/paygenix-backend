@@ -31,10 +31,10 @@ public class VerifyAccountService {
         }
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found by email: " + email));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         EditProfile ep = epRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("profile not found by email: " + email));
+                .orElseThrow(() -> new RuntimeException("Profile not found"));
 
         List<VerificationField> mismatches = new ArrayList<>();
 
@@ -59,7 +59,7 @@ public class VerifyAccountService {
 
     public void uploadVerificationImage(MultipartFile file,String email){
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found by email: " + email));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         if(user.getVerificationStatus() != User.VerificationStatus.IDENTITY_VERIFIED) {
             throw new IllegalStateException("User cannot verified");

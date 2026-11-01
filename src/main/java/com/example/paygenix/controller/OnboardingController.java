@@ -33,7 +33,7 @@ public class OnboardingController {
     })
     @PostMapping("/email")
     public ResponseEntity<ApiResponseData<String>> submitEmail(@Valid @RequestBody EmailRequest request) {
-        log.info("Starting onboarding for email: {}", request.email());
+        log.info("Starting onboarding");
         String flowId = service.submitEmail(request.email());
         return ResponseEntity.ok(ApiResponseData.success(flowId));
     }

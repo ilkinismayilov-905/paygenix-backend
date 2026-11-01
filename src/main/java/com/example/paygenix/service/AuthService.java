@@ -33,7 +33,7 @@ public class AuthService {
         loginAttemptService.clear(loginRequest.email());
 
         User user = (User) authentication.getPrincipal();
-        log.info("User logged in successfully: {}", user.getUsername());
+        log.info("User {} logged in", user.getId());
         return sessionService.start(user, deviceName);
     }
 

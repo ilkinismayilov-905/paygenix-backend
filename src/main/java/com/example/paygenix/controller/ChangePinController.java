@@ -40,7 +40,7 @@ public class ChangePinController {
     @PostMapping
     public ResponseEntity<ApiResponseData<String>> initiatePinChange(Authentication authentication) {
         String email = authentication.getName();
-        log.info("Initiating PIN change flow for user: {}", email);
+        log.info("Initiating PIN change flow");
 
         String flowId = service.submitEmail(email);
         return ResponseEntity.ok(ApiResponseData.success(flowId));
