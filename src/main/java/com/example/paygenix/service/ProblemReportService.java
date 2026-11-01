@@ -67,8 +67,6 @@ public class ProblemReportService {
     }
 
     private ProblemReportResponse mapper(ProblemReport report) {
-        if  (report == null) throw new IllegalArgumentException("Report body is required");
-
         return new ProblemReportResponse(
                 report.getId(),
                 report.getUserId(),
