@@ -81,6 +81,22 @@ class FlowBindingTest extends IntegrationTest {
     }
 
     @Test
+    void flowAtAnotherStepCannotAskWhetherAUsernameIsTaken() throws Exception {
+        OnboardingFlow flow = onboardingFlow(); // already past the username step
+        User owner = createUser();
+        String taken = "taken_" + UUID.randomUUID().toString().substring(0, 8);
+        owner.setUsername(taken); // getUsername() is the email (UserDetails), so set a known one
+        userRepository.save(owner);
+
+        mockMvc.perform(put("/api/onboarding/" + flow.getId() + "/username")
+                        .header("Authorization", "Bearer " + jwtService.generateOnboardingToken(flow))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"" + taken + "\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("INVALID_STEP"));
+    }
+
+    @Test
     void ownerCanFinishTheirPinChange() throws Exception {
         User owner = createUser();
         OnboardingChangePin flow = verifiedChangePinFlow(owner);

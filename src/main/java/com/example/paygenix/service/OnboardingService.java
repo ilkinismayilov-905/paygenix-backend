@@ -104,11 +104,11 @@ public class OnboardingService {
 
     @Transactional
     public void setUsername(String flowId, String username) {
+        // flow first, so only a sign-up at this step can ask whether a username is taken
+        OnboardingFlow flow = getFlow(flowId, OnboardingFlow.Step.FULLNAME_SET);
         if (userRepo.existsByUsername(username)) {
             throw new ApiException(HttpStatus.CONFLICT, "USERNAME_TAKEN", "Username is already taken");
         }
-
-        OnboardingFlow flow = getFlow(flowId, OnboardingFlow.Step.FULLNAME_SET);
         flow.setUsernameCandidate(username);
         flow.setStep(OnboardingFlow.Step.USERNAME_SET);
     }
