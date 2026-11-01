@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -35,12 +37,18 @@ public class OnboardingService {
     private static final String KEY_SEND_LOCK_PREFIX = "onb:otp:send:";
     private static final String KEY_ATTEMPTS_PREFIX = "onb:otp:attempts:";
 
+    // T-092: usernames are public, these caps only slow down bulk probing
+    static final Duration USERNAME_CHECK_WINDOW = Duration.ofMinutes(15);
+    static final int MAX_USERNAME_CHECKS_PER_FLOW = 10;
+    static final int MAX_USERNAME_CHECKS_PER_IP = 30;
+
     private final OnboardingFlowRepository flowRepo;
     private final UserRepository userRepo;
     private final PasswordEncoder encoder;
     private final JwtService jwtService;
     private final EmailService emailService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final StringRedisTemplate stringRedis;
 
     @Transactional
     public String submitEmail(String email) {
@@ -103,14 +111,27 @@ public class OnboardingService {
     }
 
     @Transactional
-    public void setUsername(String flowId, String username) {
+    public void setUsername(String flowId, String username, String clientIp) {
         // flow first, so only a sign-up at this step can ask whether a username is taken
         OnboardingFlow flow = getFlow(flowId, OnboardingFlow.Step.FULLNAME_SET);
+        // shortcut: clientIp is request.getRemoteAddr(); behind a proxy every client shares it — fix with T-076
+        limitUsernameChecks("onb:username:ip:" + clientIp, MAX_USERNAME_CHECKS_PER_IP);
+        limitUsernameChecks("onb:username:flow:" + flowId, MAX_USERNAME_CHECKS_PER_FLOW);
         if (userRepo.existsByUsername(username)) {
             throw new ApiException(HttpStatus.CONFLICT, "USERNAME_TAKEN", "Username is already taken");
         }
         flow.setUsernameCandidate(username);
         flow.setStep(OnboardingFlow.Step.USERNAME_SET);
+    }
+
+    private void limitUsernameChecks(String key, int max) {
+        Long n = stringRedis.execute(LoginAttemptService.COUNT_ATTEMPT, List.of(key),
+                String.valueOf(USERNAME_CHECK_WINDOW.toSeconds()));
+        if (n == null || n > max) {
+            Long ttl = stringRedis.getExpire(key);
+            throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "USERNAME_CHECK_LIMIT", "Too many username checks, try again later",
+                    ttl != null && ttl > 0 ? Duration.ofSeconds(ttl) : USERNAME_CHECK_WINDOW);
+        }
     }
 
     @Transactional

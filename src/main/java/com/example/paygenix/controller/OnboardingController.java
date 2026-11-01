@@ -1,5 +1,6 @@
 package com.example.paygenix.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import com.example.paygenix.dto.ApiResponseData;
 import com.example.paygenix.dto.request.*;
 import com.example.paygenix.service.OnboardingService;
@@ -69,14 +70,20 @@ public class OnboardingController {
     }
 
     @Operation(summary = "Set username", description = "Assigns a unique username to the user during onboarding.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Username set"),
+            @ApiResponse(responseCode = "409", description = "Username taken (USERNAME_TAKEN) or flow not at this step (INVALID_STEP)"),
+            @ApiResponse(responseCode = "429", description = "More than 10 checks per flow or 30 per IP in 15 minutes (USERNAME_CHECK_LIMIT), with Retry-After")
+    })
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAuthority('onboarding')")
     @PutMapping("/{flowId}/username")
     public ResponseEntity<ApiResponseData<Void>> setUsername(
             @PathVariable String flowId,
-            @Valid @RequestBody UsernameRequest request) {
+            @Valid @RequestBody UsernameRequest request,
+            HttpServletRequest httpRequest) {
         log.info("Setting username for flow ID: {}", flowId);
-        service.setUsername(flowId, request.username());
+        service.setUsername(flowId, request.username(), httpRequest.getRemoteAddr());
         return ResponseEntity.ok(ApiResponseData.success(null));
     }
 
