@@ -25,14 +25,7 @@ class OnboardingCompletionTest extends IntegrationTest {
 
     @Test
     void setPinCreatesUserWhoCanLogIn() throws Exception {
-        String suffix = UUID.randomUUID().toString().substring(0, 8);
-        OnboardingFlow flow = new OnboardingFlow();
-        flow.setId(UUID.randomUUID().toString());
-        flow.setEmail("onboard-" + suffix + "@example.test");
-        flow.setFullName("Onboard User");
-        flow.setUsernameCandidate("onboard_" + suffix);
-        flow.setStep(OnboardingFlow.Step.USERNAME_SET);
-        flowRepository.save(flow);
+        OnboardingFlow flow = newFlow();
 
         setPin(flow).andExpect(status().isOk()).andExpect(jsonPath("$.data").doesNotExist());
         assertThat(flowRepository.findById(flow.getId()).orElseThrow().getStep())
@@ -44,10 +37,37 @@ class OnboardingCompletionTest extends IntegrationTest {
         assertThat(authService.login(new LoginRequest(flow.getEmail(), PASSWORD), "test").token()).isNotBlank();
     }
 
+    // 40 chars but 80 UTF-8 bytes: bcrypt rejects more than 72 bytes, so this must be a 400, not a 500
+    @Test
+    void passwordOverBcryptByteLimitIsRejected() throws Exception {
+        OnboardingFlow flow = newFlow();
+
+        setPin(flow, "ə".repeat(40))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        assertThat(flowRepository.findById(flow.getId()).orElseThrow().getStep())
+                .isEqualTo(OnboardingFlow.Step.USERNAME_SET);
+    }
+
+    private OnboardingFlow newFlow() {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        OnboardingFlow flow = new OnboardingFlow();
+        flow.setId(UUID.randomUUID().toString());
+        flow.setEmail("onboard-" + suffix + "@example.test");
+        flow.setFullName("Onboard User");
+        flow.setUsernameCandidate("onboard_" + suffix);
+        flow.setStep(OnboardingFlow.Step.USERNAME_SET);
+        return flowRepository.save(flow);
+    }
+
     private ResultActions setPin(OnboardingFlow flow) throws Exception {
+        return setPin(flow, PASSWORD);
+    }
+
+    private ResultActions setPin(OnboardingFlow flow, String password) throws Exception {
         return mockMvc.perform(put("/api/onboarding/" + flow.getId() + "/pin")
                 .header("Authorization", "Bearer " + jwtService.generateOnboardingToken(flow))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"pin\":\"" + PIN + "\",\"password\":\"" + PASSWORD + "\"}"));
+                .content("{\"pin\":\"" + PIN + "\",\"password\":\"" + password + "\"}"));
     }
 }
