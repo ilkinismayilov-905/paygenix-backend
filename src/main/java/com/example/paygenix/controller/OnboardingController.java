@@ -81,6 +81,13 @@ public class OnboardingController {
     }
 
     @Operation(summary = "Set PIN and complete onboarding", description = "Finalizes the onboarding with the login password and the 6-digit transaction PIN. The user then signs in through /api/auth/login with email and password.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User created; sign in through /api/auth/login"),
+            @ApiResponse(responseCode = "400", description = "PIN not 6 digits, or password not 8-72 characters / over 72 UTF-8 bytes (VALIDATION_FAILED)"),
+            @ApiResponse(responseCode = "404", description = "No such flow (FLOW_NOT_FOUND)"),
+            @ApiResponse(responseCode = "409", description = "Flow not at this step (INVALID_STEP), or email/username taken by another sign-up meanwhile (ALREADY_TAKEN)"),
+            @ApiResponse(responseCode = "410", description = "Flow expired (FLOW_EXPIRED)")
+    })
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAuthority('onboarding')")
     @PutMapping("/{flowId}/pin")
