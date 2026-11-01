@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -89,6 +90,18 @@ public class User implements UserDetails {
 
     @Transient
     private long expiresIn;
+
+    // Identity is the database id; getId() (not the field) so Hibernate proxies compare correctly.
+    // shortcut: unsaved users (id null) are never equal and hash alike, so do not keep them in sets before persist
+    @Override
+    public boolean equals(Object o) {
+        return this == o || (o instanceof User other && getId() != null && getId().equals(other.getId()));
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(getId());
+    }
 
     @PrePersist
     void prePersist() {
