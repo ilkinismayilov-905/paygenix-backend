@@ -47,3 +47,19 @@ jobs:
           scan-args: |-
             --recursive
             ./
+
+  secret-scan:
+    name: secret-scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # full history: a secret added in one commit and removed in the next is still leaked
+          fetch-depth: 0
+          persist-credentials: false
+      # CLI image pinned by digest (v8.30.1); the gitleaks GitHub Action needs a license for org repos
+      - run: >-
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/repo"
+          ghcr.io/gitleaks/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+          git --redact --no-banner --exit-code 1 /repo
