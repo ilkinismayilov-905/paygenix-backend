@@ -57,7 +57,7 @@ public class AuthController {
     public ResponseEntity<ApiResponseData<JwtTokenResponse>> login(
             @Valid @RequestBody LoginRequest request,
             @RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent) {
-        log.info("Login request received for user: {}", request.email());
+        log.info("Login request received");
         JwtTokenResponse response = authService.login(request, userAgent);
         return ResponseEntity.ok(ApiResponseData.build(HttpStatus.OK, "Login successful", response));
     }

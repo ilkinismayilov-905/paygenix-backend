@@ -54,7 +54,7 @@ public class EditProfileController {
             Authentication authentication) {
 
         String email = authentication.getName();
-        log.info("Updating profile for user: {}", email);
+        log.info("Updating profile");
 
         EditProfileResponse response = editProfileService.editProfile(request, email);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponseData.build(

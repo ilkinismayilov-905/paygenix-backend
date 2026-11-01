@@ -44,7 +44,7 @@ public class VerifyAccountController {
             Authentication authentication
     ) {
         String email = authentication.getName();
-        log.info("Processing account verification details for user: {}", email);
+        log.info("Processing account verification details");
 
         verifyAccountService.verify(request, email);
 
@@ -70,7 +70,7 @@ public class VerifyAccountController {
             Authentication authentication
     ) {
         String email = authentication.getName();
-        log.info("Uploading verification photo for user: {}", email);
+        log.info("Uploading verification photo");
 
         verifyAccountService.uploadVerificationImage(file, email);
 

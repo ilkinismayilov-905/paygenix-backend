@@ -58,7 +58,7 @@ public class UserService {
     }
 
     public User getByEmail(String email) {
-        log.info("Getting user by email: {}", email);
+        log.debug("Getting user by email");
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 

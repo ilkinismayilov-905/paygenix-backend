@@ -51,7 +51,7 @@ public class EditProfileService {
     })
     public EditProfileResponse editProfile(EditProfileRequest editProfile, String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found by email: " + email));
+                .orElseThrow(() -> new RuntimeException("User not found"));
         EditProfile profile = editProfileRepository.findByEmail(email)
                 .orElseGet(() -> EditProfile.builder()
                         .email(email)
@@ -95,7 +95,7 @@ public class EditProfileService {
         String objectName = profileMediaStorage.uploadProfileImage(file, userId);
         User user = userService.getById(userId);
         EditProfile ep = editProfileRepository.findByEmail(user.getUsername())
-                .orElseThrow(() -> new NotFoundException("Profile not found by email: " + user.getUsername()));
+                .orElseThrow(() -> new NotFoundException("Profile not found"));
 
         ep.setMediaType(MediaType.IMAGE);
         ep.setObjectName(objectName);
