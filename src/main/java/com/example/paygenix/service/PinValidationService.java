@@ -6,12 +6,14 @@ import com.example.paygenix.exceptions.PinRejectedException;
 import com.example.paygenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * Checks the transaction PIN with an attempt limit (FLOW-7): after 5 wrong PINs, PIN checks are locked
@@ -26,6 +28,13 @@ public class PinValidationService {
     static final int MAX_ATTEMPTS = 5;
     static final Duration LOCK = Duration.ofMinutes(15);
     private static final String KEY_PREFIX = "pin:failures:";
+    // one step, so a lost EXPIRE cannot leave a counter at the limit with no TTL (PIN locked forever);
+    // EXPIRE on every failure keeps the window sliding: 5 failures with less than 15 minutes between them
+    private static final RedisScript<Long> COUNT_FAILURE = RedisScript.of("""
+            local n = redis.call('INCR', KEYS[1])
+            redis.call('EXPIRE', KEYS[1], ARGV[1])
+            return n
+            """, Long.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder pinEncoder;
@@ -45,8 +54,7 @@ public class PinValidationService {
         }
 
         if (!pinEncoder.matches(rawPin, user.getPinHash())) {
-            Long now = redis.opsForValue().increment(key);
-            redis.expire(key, LOCK);
+            Long now = redis.execute(COUNT_FAILURE, List.of(key), String.valueOf(LOCK.toSeconds()));
             throw now != null && now >= MAX_ATTEMPTS ? PinRejectedException.locked(LOCK) : PinRejectedException.invalid();
         }
         if (failures != null) {
