@@ -52,8 +52,6 @@ public class RedisConfig {
         JavaType profileList = mapper.getTypeFactory().constructCollectionType(List.class, EditProfileResponse.class);
         return builder -> builder
                 .cacheWriter(RedisCacheWriter.create(connectionFactory, writer -> writer.immediateWrites()))
-                .withCacheConfiguration(CacheNames.EDIT_PROFILE_BY_ID,
-                        json(new JacksonJsonRedisSerializer<>(mapper, EditProfileResponse.class)))
                 .withCacheConfiguration(CacheNames.EDIT_PROFILE_ALL,
                         json(new JacksonJsonRedisSerializer<List<EditProfileResponse>>(mapper, profileList)))
                 .withCacheConfiguration(CacheNames.LEGAL_DOCUMENT_BY_TYPE,

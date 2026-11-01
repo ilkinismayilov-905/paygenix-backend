@@ -17,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,20 +34,8 @@ public class EditProfileService {
     private final ProfileMediaStorage profileMediaStorage;
     private final UserService userService;
 
-    @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.EDIT_PROFILE_BY_ID, key = "#id")
-    public EditProfileResponse findById(Long id) {
-        log.info("Finding Edit Profile by id {}", id);
-        EditProfile editProfile = editProfileRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("User not found by id: " + id));
-        return mapper.toEditProfileResponse(editProfile);
-    }
-
     @Transactional()
-    @Caching(evict = {
-            @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_ALL, allEntries = true),
-            @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_BY_ID, allEntries = true)
-    })
+    @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_ALL, allEntries = true)
     public EditProfileResponse editProfile(EditProfileRequest editProfile, String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -85,10 +72,7 @@ public class EditProfileService {
     }
 
     @Transactional()
-    @Caching(evict = {
-            @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_ALL, allEntries = true),
-            @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_BY_ID, allEntries = true)
-    })
+    @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_ALL, allEntries = true)
     public EditProfileResponse editProfilePhoto(
             Long userId,
             MultipartFile file) {
