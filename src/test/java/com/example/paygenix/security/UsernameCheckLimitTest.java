@@ -35,8 +35,8 @@ class UsernameCheckLimitTest extends IntegrationTest {
                 .andExpect(status().isTooManyRequests())
                 .andExpect(jsonPath("$.code").value("USERNAME_CHECK_LIMIT"))
                 .andExpect(header().exists("Retry-After"));
-        // another flow from another IP is not affected
-        check(flowAtUsernameStep(), taken, randomIp()).andExpect(jsonPath("$.code").value("USERNAME_TAKEN"));
+        // another flow from the same IP (11 hits, under 30) is not affected
+        check(flowAtUsernameStep(), taken, ip).andExpect(jsonPath("$.code").value("USERNAME_TAKEN"));
     }
 
     @Test
