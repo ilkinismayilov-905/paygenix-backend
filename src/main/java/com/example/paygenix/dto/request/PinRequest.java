@@ -1,5 +1,6 @@
 package com.example.paygenix.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -17,6 +18,7 @@ public record PinRequest(
         String password
 ) {
     // bcrypt refuses to hash more than 72 bytes; non-ASCII characters take 2-4 bytes each
+    @JsonIgnore // validation-only; keeps it out of JSON and the OpenAPI schema
     @AssertTrue(message = "Password must be at most 72 bytes")
     public boolean isPasswordWithinBcryptLimit() {
         return password == null || password.getBytes(StandardCharsets.UTF_8).length <= 72;
