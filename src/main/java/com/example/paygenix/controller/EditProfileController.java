@@ -69,7 +69,7 @@ public class EditProfileController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Code sent to the new address"),
             @ApiResponse(responseCode = "400", description = "Not an email address (VALIDATION_FAILED)"),
-            @ApiResponse(responseCode = "409", description = "Email already taken (EMAIL_TAKEN)"),
+            @ApiResponse(responseCode = "409", description = "Email already taken (EMAIL_TAKEN); still counts toward the cooldown and daily limit"),
             @ApiResponse(responseCode = "429", description = "Code requested within the last minute (OTP_SEND_TOO_FREQUENT) "
                     + "or more than 5 changes today (EMAIL_CHANGE_LIMIT); see Retry-After")
     })

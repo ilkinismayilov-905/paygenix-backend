@@ -96,6 +96,14 @@ class EmailChangeTest extends IntegrationTest {
     }
 
     @Test
+    void dailyLimitHidesWhetherAnEmailIsTaken() throws Exception {
+        User user = createUser();
+        redis.opsForValue().set("email-change:daily:" + user.getId(), "5", Duration.ofHours(1));
+        start(bearer(user).substring(7), createUser().getEmail()).andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code").value("EMAIL_CHANGE_LIMIT"));
+    }
+
+    @Test
     void codesCannotBeRequestedBackToBack() throws Exception {
         String token = bearer(createUser()).substring(7);
         start(token, "a-" + UUID.randomUUID() + "@example.test").andExpect(status().isOk());
