@@ -41,7 +41,7 @@ public class ProblemReportService {
                 req.message().trim(),
                 req.referenceId() == null ? null : req.referenceId().trim()
         );
-        log.info("Creating problem report: {}", report);
+        log.info("Creating {} problem report for user {}", req.category(), report.getUserId());
         return repository.save(report);
     }
 
