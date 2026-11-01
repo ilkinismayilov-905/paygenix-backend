@@ -9,7 +9,6 @@ import com.example.paygenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
@@ -71,10 +70,7 @@ public class EmailChangeService {
     }
 
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_BY_ID, allEntries = true),
-            @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_ALL, allEntries = true)
-    })
+    @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_ALL, allEntries = true)
     public void confirm(Long userId, String otp) {
         String key = KEY_PREFIX + userId;
         // counted before the check, so parallel guesses cannot exceed the limit
