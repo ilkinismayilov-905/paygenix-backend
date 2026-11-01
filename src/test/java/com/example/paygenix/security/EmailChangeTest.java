@@ -83,7 +83,16 @@ class EmailChangeTest extends IntegrationTest {
     void cannotClaimAnEmailThatIsInUse() throws Exception {
         User other = createUser();
         start(bearer(createUser()).substring(7), other.getEmail()).andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("EMAIL_IN_USE"));
+                .andExpect(jsonPath("$.code").value("EMAIL_TAKEN"));
+    }
+
+    @Test
+    void probingTakenEmailsIsRateLimited() throws Exception {
+        String token = bearer(createUser()).substring(7);
+        start(token, createUser().getEmail()).andExpect(status().isConflict());
+        // the second probe within a minute hits the cooldown before the taken check, so it reveals nothing
+        start(token, createUser().getEmail()).andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code").value("OTP_SEND_TOO_FREQUENT"));
     }
 
     @Test
@@ -119,7 +128,7 @@ class EmailChangeTest extends IntegrationTest {
 
         confirm(first, codes.getAllValues().get(0)).andExpect(status().isOk());
         confirm(second, codes.getAllValues().get(1)).andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("EMAIL_IN_USE"));
+                .andExpect(jsonPath("$.code").value("EMAIL_TAKEN"));
     }
 
     @Test
