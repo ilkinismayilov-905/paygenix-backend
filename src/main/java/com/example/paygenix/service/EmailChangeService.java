@@ -48,9 +48,6 @@ public class EmailChangeService {
     private final SessionService sessionService;
 
     public void start(Long userId, String newEmail) {
-        if (userRepository.existsByEmail(newEmail) || userRepository.existsByUsername(newEmail)) {
-            throw emailInUse();
-        }
         if (!Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(COOLDOWN_PREFIX + userId, "1", SEND_COOLDOWN))) {
             throw ApiException.otpSendTooFrequent(SEND_COOLDOWN);
         }
@@ -62,6 +59,10 @@ public class EmailChangeService {
             Long ttl = redis.getExpire(DAILY_PREFIX + userId);
             throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "EMAIL_CHANGE_LIMIT", "Too many email change requests today",
                     ttl != null && ttl > 0 ? Duration.ofSeconds(ttl) : Duration.ofDays(1));
+        }
+        // checked after the rate limits, so probing which addresses are registered costs the same as a real change
+        if (userRepository.existsByEmail(newEmail) || userRepository.existsByUsername(newEmail)) {
+            throw emailTaken();
         }
         String otp = OtpGenerator.newOtp();
         String key = KEY_PREFIX + userId;
@@ -96,7 +97,7 @@ public class EmailChangeService {
 
         String newEmail = (String) pending.get(0);
         if (userRepository.existsByEmail(newEmail) || userRepository.existsByUsername(newEmail)) {
-            throw emailInUse();
+            throw emailTaken();
         }
         User user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User not found"));
         editProfileRepository.findByUserId(userId).ifPresent(profile -> profile.setEmail(newEmail));
@@ -108,13 +109,13 @@ public class EmailChangeService {
             userRepository.saveAndFlush(user);
         } catch (DataIntegrityViolationException e) {
             // another account confirmed the same address between the check and the update
-            throw emailInUse();
+            throw emailTaken();
         }
         sessionService.revokeAll(userId);
         log.info("Email changed for user {}", userId);
     }
 
-    private static ApiException emailInUse() {
-        return new ApiException(HttpStatus.CONFLICT, "EMAIL_IN_USE", "Email is already in use");
+    private static ApiException emailTaken() {
+        return new ApiException(HttpStatus.CONFLICT, "EMAIL_TAKEN", "Email is already taken");
     }
 }
