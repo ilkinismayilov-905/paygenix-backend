@@ -94,7 +94,7 @@ public class StoryService {
                 svRepo.findViewedStoryIds(currentUser.getId(), storyIds)
         );
 
-        // User-a görə qruplaşdır
+        // group by user
         Map<User, List<Story>> byUser = stories.stream()
                 .collect(Collectors.groupingBy(
                         Story::getUser,
