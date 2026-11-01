@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.jspecify.annotations.Nullable;
@@ -23,6 +24,7 @@ import java.util.Set;
 
 @Entity
 @Data
+@ToString(onlyExplicitlyIncluded = true) // Spring Security logs the principal; keep email and password hash out
 @Table(
         name = "users",
         uniqueConstraints = {
@@ -35,6 +37,7 @@ import java.util.Set;
 @Builder
 public class User implements UserDetails {
     @Id
+    @ToString.Include
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
