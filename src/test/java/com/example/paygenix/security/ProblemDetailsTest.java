@@ -26,6 +26,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -97,6 +98,15 @@ class ProblemDetailsTest extends IntegrationTest {
 
         otp(flowId, "000000").andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_OTP"));
         otp(UUID.randomUUID().toString(), "000000").andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("FLOW_NOT_FOUND"));
+    }
+
+    @Test
+    void onboardingCodeResendWithinCooldownCarriesRetryAfter() throws Exception {
+        String email = "resend-" + UUID.randomUUID() + "@example.test";
+        submitEmail(email).andExpect(status().isOk());
+        submitEmail(email).andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code").value("OTP_SEND_TOO_FREQUENT"))
+                .andExpect(header().string("Retry-After", "60"));
     }
 
     @Test
