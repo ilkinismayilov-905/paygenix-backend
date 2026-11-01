@@ -7,6 +7,7 @@ import com.example.paygenix.service.TransferService;
 import com.example.paygenix.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -30,6 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class PinAttemptLimitTest extends IntegrationTest {
 
     @Autowired TransferService transferService;
+    @Autowired StringRedisTemplate redis;
 
     @Test
     void fifthWrongPinLocksAndTheRightPinIsRefusedWhileLocked() throws Exception {
@@ -48,6 +50,20 @@ class PinAttemptLimitTest extends IntegrationTest {
         transfer(sender, from, to, PIN).andExpect(status().isTooManyRequests());
 
         assertThat(balanceOf(from)).isEqualByComparingTo("100.00");
+    }
+
+    @Test
+    void wrongPinCounterAlwaysHasTheLockTtl() throws Exception {
+        User sender = createUser();
+        String from = issueCard(sender, "AZN");
+        String to = issueCard(createUser(), "AZN");
+        String key = "pin:failures:" + sender.getId();
+        redis.opsForValue().set(key, "3"); // lost its TTL earlier
+
+        transfer(sender, from, to, "000000").andExpect(status().isForbidden());
+
+        assertThat(redis.opsForValue().get(key)).isEqualTo("4");
+        assertThat(redis.getExpire(key)).isBetween(890L, 900L);
     }
 
     @Test
