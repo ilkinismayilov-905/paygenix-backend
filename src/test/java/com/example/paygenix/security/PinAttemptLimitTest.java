@@ -12,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -22,6 +23,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -64,6 +66,19 @@ class PinAttemptLimitTest extends IntegrationTest {
 
         assertThat(redis.opsForValue().get(key)).isEqualTo("4");
         assertThat(redis.getExpire(key)).isBetween(890L, 900L);
+    }
+
+    @Test
+    void laterLockedHitsReportTheTimeLeft() throws Exception {
+        User sender = createUser();
+        String from = issueCard(sender, "AZN");
+        String to = issueCard(createUser(), "AZN");
+        String key = "pin:failures:" + sender.getId();
+        redis.opsForValue().set(key, "5", Duration.ofSeconds(120)); // locked 13 minutes ago
+
+        transfer(sender, from, to, PIN).andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code").value("PIN_LOCKED"))
+                .andExpect(header().string("Retry-After", matchesPattern("1[01]\\d|120")));
     }
 
     @Test

@@ -50,7 +50,9 @@ public class PinValidationService {
         String key = KEY_PREFIX + userId;
         String failures = redis.opsForValue().get(key);
         if (failures != null && Long.parseLong(failures) >= MAX_ATTEMPTS) {
-            throw PinRejectedException.locked(LOCK);
+            // later hits are not counted, so the key's TTL is the real time left on the lock
+            Long ttl = redis.getExpire(key);
+            throw PinRejectedException.locked(ttl != null && ttl > 0 ? Duration.ofSeconds(ttl) : LOCK);
         }
 
         if (!pinEncoder.matches(rawPin, user.getPinHash())) {
