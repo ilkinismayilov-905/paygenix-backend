@@ -10,6 +10,7 @@ import com.example.paygenix.mapper.UserMapper;
 import com.example.paygenix.repository.UserRepository;
 import com.example.paygenix.repository.UserSessionRepository;
 import io.jsonwebtoken.JwtException;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,6 +53,13 @@ public class SessionService {
     @Value("${jwt.session-max-lifetime}")
     private Long sessionMaxLifetime;
 
+    @PostConstruct
+    void checkConfig() {
+        if (sessionMaxLifetime <= 0) {
+            throw new IllegalStateException("jwt.session-max-lifetime must be positive");
+        }
+    }
+
     // Ended rows are kept this long for incident review, then purged.
     static final Duration ENDED_SESSION_RETENTION = Duration.ofDays(30);
 
@@ -71,7 +79,7 @@ public class SessionService {
         session.setDeviceName(deviceName == null || deviceName.length() <= DEVICE_NAME_MAX
                 ? deviceName : deviceName.substring(0, DEVICE_NAME_MAX));
         session.setCreatedAt(Instant.now());
-        return issueTokens(session, user);
+        return issueTokens(session, user, session.getCreatedAt());
     }
 
     // noRollbackFor: revoking a session on reuse must be committed even though the request fails
@@ -104,7 +112,7 @@ public class SessionService {
         User user = userRepository.findById(session.getUserId())
                 .filter(u -> u.isEnabled() && u.isAccountNonLocked())
                 .orElseThrow(InvalidRefreshTokenException::invalid);
-        return issueTokens(session, user);
+        return issueTokens(session, user, now);
     }
 
     @Transactional(readOnly = true)
@@ -134,7 +142,7 @@ public class SessionService {
     }
 
     // Daily; idempotent, so running on several instances at once is harmless.
-    @Scheduled(cron = "0 30 3 * * *")
+    @Scheduled(cron = "0 30 3 * * *", zone = "UTC")
     @Transactional
     public int purgeEnded() {
         int purged = sessions.deleteEndedBefore(Instant.now().minus(ENDED_SESSION_RETENTION));
@@ -144,8 +152,8 @@ public class SessionService {
         return purged;
     }
 
-    private JwtTokenResponse issueTokens(UserSession session, User user) {
-        Instant now = Instant.now();
+    // now: the instant the caller checked the session against, so the new expires_at cannot already be past
+    private JwtTokenResponse issueTokens(UserSession session, User user, Instant now) {
         String token = jwtService.generateJwtToken(user, user.getId(), user.getUsername(), session.getId());
         String refreshToken = jwtService.generateJwtRefreshToken(user, session.getId());
         session.setRefreshTokenHash(sha256(refreshToken));
