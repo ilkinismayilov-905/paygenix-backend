@@ -103,6 +103,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 UUID sessionId = jwtService.extractSessionId(token);
                 if (jwtService.validateToken(token, userDetails)
                         && userDetails instanceof User user
+                        && user.isAccountNonLocked()
                         && sessionId != null
                         && sessionService.isActive(sessionId, user.getId())) {
                     request.setAttribute(SessionService.SESSION_ID_ATTRIBUTE, sessionId);

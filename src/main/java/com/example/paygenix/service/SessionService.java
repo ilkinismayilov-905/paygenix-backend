@@ -13,6 +13,7 @@ import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,6 +53,9 @@ public class SessionService {
 
     @Transactional
     public JwtTokenResponse start(User user, String deviceName) {
+        if (!user.isAccountNonLocked()) { // every sign-in path (password, Google) ends here
+            throw new LockedException("Account is locked");
+        }
         UserSession session = new UserSession();
         session.setId(UUID.randomUUID());
         session.setUserId(user.getId());
@@ -87,7 +91,7 @@ public class SessionService {
             throw InvalidRefreshTokenException.reused();
         }
         User user = userRepository.findById(session.getUserId())
-                .filter(User::isEnabled)
+                .filter(u -> u.isEnabled() && u.isAccountNonLocked())
                 .orElseThrow(InvalidRefreshTokenException::invalid);
         return issueTokens(session, user);
     }
