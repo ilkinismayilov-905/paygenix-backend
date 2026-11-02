@@ -12,9 +12,10 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
+    // case-insensitive (T-101); lower() matches the users_username_lower_key index
+    @Query("SELECT count(u) > 0 FROM User u WHERE lower(u.username) = lower(:username)")
     boolean existsByUsername(String username);
     Optional<User> findByEmail(String email);
-    Optional<User> findByUsername(String username);
     Optional<User> findByProviderAndProviderId(User.AuthProvider provider, String providerId);
 
     // Serializes one user's PIN checks so parallel requests cannot exceed the attempt limit.

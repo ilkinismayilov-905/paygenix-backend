@@ -6,21 +6,41 @@ import com.example.paygenix.repository.OnboardingFlowRepository;
 import com.example.paygenix.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.time.Instant;
+import java.util.Locale;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 // T-092: the username availability check is capped per flow (10) and per IP (30) in 15 minutes.
+// T-101: usernames are unique regardless of case.
 class UsernameCheckLimitTest extends IntegrationTest {
 
     @Autowired OnboardingFlowRepository flowRepository;
+
+    @Test
+    void usernameDifferingOnlyByCaseIsTaken() throws Exception {
+        String taken = takenUsername().toUpperCase(Locale.ROOT);
+        check(flowAtUsernameStep(), taken, randomIp()).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("USERNAME_TAKEN"));
+    }
+
+    @Test
+    void databaseRefusesTwoUsernamesDifferingOnlyByCase() {
+        String taken = takenUsername();
+        User twin = createUser();
+        twin.setUsername(taken.toUpperCase(Locale.ROOT));
+        assertThatThrownBy(() -> userRepository.saveAndFlush(twin))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
 
     @Test
     void eleventhCheckOnOneFlowIsRefused() throws Exception {
