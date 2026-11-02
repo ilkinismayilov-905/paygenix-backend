@@ -77,10 +77,10 @@ public class UserController {
     @PostMapping(value = "/media", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponseData<String>> uploadMedia(
             @Parameter(description = "The media file to be uploaded")
-            @RequestParam("file") MultipartFile file
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal User user
     ) {
-        log.info("Uploading media file: {}", file.getOriginalFilename());
-        String objectKey = mediaService.upload(file);
+        String objectKey = mediaService.upload(file, user.getId());
         return ResponseEntity.ok(ApiResponseData.success(objectKey));
     }
 

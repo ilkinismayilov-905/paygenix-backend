@@ -7,6 +7,8 @@ import java.time.Duration;
 // A client error with its status and stable code, for cases that do not need their own exception class.
 public class ApiException extends BusinessException {
 
+    private static final Duration MEDIA_RETRY_AFTER = Duration.ofSeconds(30);
+
     private final HttpStatus status;
     private final String errorCode;
     private final Duration retryAfter;
@@ -55,7 +57,11 @@ public class ApiException extends BusinessException {
     }
 
     public static ApiException mediaUploadFailed() {
-        return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "MEDIA_UPLOAD_FAILED", "Media storage is unavailable; try again later");
+        return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "MEDIA_UPLOAD_FAILED", "Media storage is unavailable; try again later", MEDIA_RETRY_AFTER);
+    }
+
+    public static ApiException mediaUnavailable() {
+        return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "MEDIA_UNAVAILABLE", "Media storage is unavailable; try again later", MEDIA_RETRY_AFTER);
     }
 
     @Override
