@@ -17,6 +17,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.lang.Nullable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.ServletRequestBindingException;
@@ -97,6 +98,11 @@ public class GlobalHandlerException extends ResponseEntityExceptionHandler {
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ProblemDetail> handleBadCredentials(BadCredentialsException ex) {
         return error(HttpStatus.UNAUTHORIZED, "Email or password is incorrect", "UNAUTHORIZED");
+    }
+
+    @ExceptionHandler(LockedException.class)
+    public ResponseEntity<ProblemDetail> handleLocked(LockedException ex) {
+        return error(HttpStatus.FORBIDDEN, "Account is locked", "ACCOUNT_LOCKED");
     }
 
     @ExceptionHandler(AccessDeniedException.class)

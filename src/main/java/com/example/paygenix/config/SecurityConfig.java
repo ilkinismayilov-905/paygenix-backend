@@ -132,6 +132,9 @@ public class SecurityConfig {
         DaoAuthenticationProvider provider =
                 new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder);
+        // T-077: the lock is checked after the password (SessionService.start), so it is not revealed without one.
+        // The other pre-checks (disabled, expired) are constant true for User.
+        provider.setPreAuthenticationChecks(user -> { });
         return provider;
     }
 }
