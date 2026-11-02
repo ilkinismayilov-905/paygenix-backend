@@ -90,7 +90,7 @@ class DeviceSessionTest extends IntegrationTest {
 
         refresh(login.refreshToken()).andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_REFRESH_TOKEN"));
-        // nor can its access token be used, and it is not listed
+        // nor can its access token be used
         assertThat(meStatus("Bearer " + login.token())).isIn(302, 401);
     }
 
