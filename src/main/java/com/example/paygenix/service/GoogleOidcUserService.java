@@ -29,6 +29,7 @@ public class GoogleOidcUserService extends OidcUserService {
 
     public static final String EMAIL_NOT_VERIFIED = "email_not_verified";
     public static final String ACCOUNT_EXISTS = "account_exists";
+    public static final String ACCOUNT_LOCKED = "account_locked";
 
     private final UserRepository userRepository;
 
@@ -40,8 +41,13 @@ public class GoogleOidcUserService extends OidcUserService {
     }
 
     public User findOrCreate(OidcUser oidcUser) {
-        return userRepository.findByProviderAndProviderId(User.AuthProvider.GOOGLE, oidcUser.getSubject())
+        User user = userRepository.findByProviderAndProviderId(User.AuthProvider.GOOGLE, oidcUser.getSubject())
                 .orElseGet(() -> create(oidcUser));
+        // refuse before a one-time code is issued, so the frontend gets ?error=account_locked (T-102)
+        if (!user.isAccountNonLocked()) {
+            throw new OAuth2AuthenticationException(new OAuth2Error(ACCOUNT_LOCKED));
+        }
+        return user;
     }
 
     private User create(OidcUser oidcUser) {
