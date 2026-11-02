@@ -15,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Duration;
@@ -26,8 +28,9 @@ import java.util.Map;
  * can claim an address they do not own. The pending change lives in Redis for 10 minutes with at most 5 OTP tries.
  * Codes can be requested once a minute and 5 times a day per user, so restarting cannot be used to keep guessing.
  * The email is the login name and the token subject, so a confirmed change signs out every device.
- * Starting needs the current PIN, so a stolen access token alone cannot move the account; the old address is told
- * about the change.
+ * Starting needs the current PIN, so a stolen access token alone cannot move an account that has a PIN; the old
+ * address is told about the change. Accounts without a PIN yet (new Google users) can set a first PIN with the token
+ * alone, so for them the PIN is no barrier (T-106).
  */
 @Service
 @RequiredArgsConstructor
@@ -115,12 +118,20 @@ public class EmailChangeService {
         }
         sessionService.revokeAll(userId);
         log.info("Email changed for user {}", userId);
-        try {
-            emailService.sendEmailChanged(oldEmail);
-        } catch (RuntimeException e) {
-            // the change is confirmed by the new address; a mail outage must not undo it
-            log.warn("Could not notify the old address of user {} about the email change", userId, e);
-        }
+        // after commit: no row locks or DB connection held during SMTP, and no notice for a change that rolled back
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                try {
+                    emailService.sendEmailChanged(oldEmail);
+                } catch (RuntimeException e) {
+                    // the change is confirmed by the new address; a mail outage must not undo it.
+                    // class name only: mail exception messages can carry the recipient address
+                    log.warn("Could not notify the old address of user {} about the email change: {}",
+                            userId, e.getClass().getSimpleName());
+                }
+            }
+        });
     }
 
     private static ApiException emailTaken() {

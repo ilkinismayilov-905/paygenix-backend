@@ -100,6 +100,23 @@ class EmailChangeTest extends IntegrationTest {
         confirm(token, sentCode(newEmail)).andExpect(status().isOk());
 
         assertThat(userRepository.findById(user.getId()).orElseThrow().getEmail()).isEqualTo(newEmail);
+        int me = mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + token))
+                .andReturn().getResponse().getStatus();
+        assertThat(me).isIn(302, 401);
+    }
+
+    @Test
+    void wrongPinsLockThePinLikePaymentsDo() throws Exception {
+        String token = bearer(createUser()).substring(7);
+        String newEmail = "new-" + UUID.randomUUID() + "@example.test";
+        for (int i = 0; i < 4; i++) {
+            start(token, newEmail, "000000").andExpect(status().isForbidden());
+        }
+        start(token, newEmail, "000000").andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code").value("PIN_LOCKED"))
+                .andExpect(header().exists("Retry-After"));
+        start(token, newEmail).andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code").value("PIN_LOCKED"));
     }
 
     @Test
