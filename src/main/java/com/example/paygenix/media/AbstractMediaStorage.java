@@ -1,9 +1,12 @@
 package com.example.paygenix.media;
 
+import com.example.paygenix.exceptions.ApiException;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.multipart.MultipartFile;
 
+@Slf4j
 public abstract class AbstractMediaStorage {
     protected final MinioClient minioClient;
 
@@ -29,7 +32,8 @@ public abstract class AbstractMediaStorage {
             return objectName;
 
         } catch (Exception e) {
-            throw new RuntimeException("Media upload failed", e);
+            log.error("Media upload to bucket {} failed", bucket, e);
+            throw ApiException.mediaUploadFailed();
         }
     }
 }
