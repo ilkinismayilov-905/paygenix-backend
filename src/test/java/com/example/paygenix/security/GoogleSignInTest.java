@@ -127,15 +127,17 @@ class GoogleSignInTest extends IntegrationTest {
     }
 
     @Test
-    void lockedGoogleUserGetsNoCodeAndIsSentBackWithAccountLocked() throws Exception {
+    void lockedGoogleUserIsRefusedWithAccountLocked() throws Exception {
         String sub = UUID.randomUUID().toString();
         OidcUser oidcUser = google(sub, sub + "@gmail.test", true);
         User user = googleOidcUserService.findOrCreate(oidcUser);
         user.setStatus(User.Status.LOCKED);
         userRepository.save(user);
 
+        // thrown inside loadUser, so OAuth2SuccessHandler (the only code issuer) never runs
         OAuth2AuthenticationException refused = catchThrowableOfType(OAuth2AuthenticationException.class,
                 () -> googleOidcUserService.findOrCreate(oidcUser));
+        assertThat(refused).isNotNull();
         assertThat(refused.getError().getErrorCode()).isEqualTo(GoogleOidcUserService.ACCOUNT_LOCKED);
 
         MockHttpServletResponse response = new MockHttpServletResponse();
