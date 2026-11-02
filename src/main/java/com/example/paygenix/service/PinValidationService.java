@@ -52,7 +52,11 @@ public class PinValidationService {
         if (failures != null && Long.parseLong(failures) >= MAX_ATTEMPTS) {
             // later hits are not counted, so the key's TTL is the real time left on the lock
             Long ttl = redis.getExpire(key);
-            throw PinRejectedException.locked(ttl != null && ttl > 0 ? Duration.ofSeconds(ttl) : LOCK);
+            if (ttl != null && ttl == -1) {
+                redis.expire(key, LOCK); // an old counter without TTL would lock the PIN forever
+            }
+            // -1 healed to LOCK; 0 (under 0.5 s left) and -2 (expired since the read) → retry in 1 s
+            throw PinRejectedException.locked(ttl == null || ttl == -1 ? LOCK : Duration.ofSeconds(Math.max(ttl, 1)));
         }
 
         if (!pinEncoder.matches(rawPin, user.getPinHash())) {
