@@ -97,7 +97,7 @@ public class AuthController {
 
     @Operation(summary = "Google sign-in: exchange code", description = "After Google sign-in the browser lands on "
             + "FRONTEND_URL/oauth2/callback?code=... The frontend trades the code here, once, within 60 seconds, for the same tokens as /login. "
-            + "On failure it lands on ?error=email_not_verified | account_exists | oauth_failed instead.")
+            + "On failure it lands on ?error=email_not_verified | account_exists | account_locked | oauth_failed instead.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Signed in; a new device session was started"),
             @ApiResponse(responseCode = "401", description = "Code invalid, expired or already used (INVALID_OAUTH_CODE)", content = @Content),
