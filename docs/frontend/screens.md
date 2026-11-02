@@ -10,22 +10,22 @@ All `/api/**` calls except the public ones need `Authorization: Bearer <access t
 | Sign in | `/sign-in` | `POST /api/auth/login` (403 ACCOUNT_LOCKED, 429 LOGIN_LOCKED + Retry-After), "Continue with Google" → backend `/oauth2/authorization/google` |
 | Google callback | `/oauth2/callback` | `?code=` → `POST /api/auth/oauth/exchange`; `?error=email_not_verified \| account_exists \| account_locked \| oauth_failed` → message |
 | Sign up: email | `/sign-up` | `POST /api/onboarding/email` → `flowId` |
-| Sign up: code | `/sign-up/code` | `POST /api/onboarding/{flowId}/otp` → onboarding token for the next steps (410 expired, 429 too many) |
-| Sign up: name, username, PIN | `/sign-up/profile` | `PUT /api/onboarding/{flowId}/full-name`, `/username` (409 taken, 429), `/pin` {pin: 6 digits, password: 8–72} completes sign-up, then sign in with email + password |
+| Sign up: code | `/sign-up/code` | `POST /api/onboarding/{flowId}/otp` → onboarding token for the next steps (400 INVALID_OTP / OTP_EXPIRED, 410 FLOW_EXPIRED, 429 TOO_MANY_ATTEMPTS) |
+| Sign up: name, username, PIN | `/sign-up/profile` | `PUT /api/onboarding/{flowId}/full-name`, `/username` (409 USERNAME_TAKEN, 429 USERNAME_CHECK_LIMIT + Retry-After), `/pin` {pin: 6 digits, password: 8–72} completes sign-up, then sign in with email + password |
 
 ## Signed in
 
 | Screen | Route | API |
 |---|---|---|
 | App shell (header, nav, sign-out) | — | `GET /api/auth/me`; sign-out: `GET /api/auth/sessions` → `DELETE /api/auth/sessions/{id}` of the `current` one |
-| Set first PIN (Google users) | `/pin/setup` | `POST /api/user/pin`; shown when a payment answers 403 PIN_NOT_SET |
-| Dashboard | `/` | `GET /api/cards/me` (cards + balances), `GET /api/stories/feed` |
-| Cards list | `/cards` | `GET /api/cards/me`, `POST /api/cards` (issue virtual card) |
+| Set first PIN (Google users) | `/pin/setup` | `POST /api/user/pin`; shown on any 403 PIN_NOT_SET (transfer, payment, email change) |
+| Dashboard | `/` | `GET /api/cards/me` (masked number, `displayAmount` + `currency`), `GET /api/stories/feed` |
+| Cards list | `/cards` | `GET /api/cards/me`, `POST /api/cards` (issue virtual card; the full number is shown only in this response) |
 | Card detail | `/cards/:id` | `GET /api/cards/{id}`, `DELETE /api/cards/{id}` (409 CARD_HAS_BALANCE) |
-| Transfer | `/transfer` | `POST /api/transfer` with `Idempotency-Key`; PIN errors 403 INVALID_PIN, 429 PIN_LOCKED + Retry-After; 422 insufficient balance |
-| Payment | `/pay` | `POST /api/payment/initiate` → `POST /api/payment/confirm` (both with `Idempotency-Key`) |
+| Transfer (blocked: T-112) | `/transfer` | `POST /api/transfer` with `Idempotency-Key`; 403 INVALID_PIN, 429 PIN_LOCKED + Retry-After, 409 INSUFFICIENT_BALANCE / RESOURCE_BUSY (retry with the same key), 422 IDEMPOTENCY_KEY_REUSED |
+| Payment (blocked: T-112) | `/pay` | `POST /api/payment/initiate` → `POST /api/payment/confirm` (both with `Idempotency-Key`); confirm: same PIN errors, 409 PAYMENT_ALREADY_PROCESSED / INSUFFICIENT_BALANCE, 422 IDEMPOTENCY_KEY_REUSED |
 | Stories viewer | overlay on dashboard | `GET /api/stories/feed`, `POST /api/stories/{id}/view`, `GET /api/stories/media-download` |
-| Profile | `/settings/profile` | `GET /api/auth/me`, `POST /api/profile`, `POST /api/profile/photo` |
+| Profile (blocked: T-113) | `/settings/profile` | `POST /api/profile`, `POST /api/profile/photo`, photo via `GET /api/user/media-download?objectName=`; nothing to prefill the form from yet |
 | Change email | `/settings/email` | `POST /api/profile/email` {email, pin} → `POST /api/profile/email/confirm` {otp, currentEmailOtp} |
 | Change PIN | `/settings/pin` | `POST /api/change-pin` → `/{flowId}/otp` → `/{flowId}/pin` |
 | Devices (sessions) | `/settings/sessions` | `GET /api/auth/sessions`, `DELETE /api/auth/sessions/{id}`, `DELETE /api/auth/sessions` (sign out everywhere) |
@@ -48,7 +48,9 @@ All `/api/**` calls except the public ones need `Authorization: Bearer <access t
 | Gap | Effect | Task |
 |---|---|---|
 | A user cannot list their own transfers, payments or transactions: `GET /api/transfer`, `/api/transaction`, `/api/payment/history` are admin-only | no activity list on dashboard or card detail | T-073 |
-| No way to fund a card | balances stay 0 outside seeded data | T-062 (owner) |
+| No way to fund a card | balances stay 0 outside seeded data | T-064 Stripe top-up (owner) |
 | `/api/legal/*` needs a signed-in user | sign-up cannot show Terms before the account exists | T-110 |
+| Transfer and payment take the full 16-digit `fromCardNumber`, but `GET /api/cards/me` gives only the masked number | the client cannot pick the source card | T-112 (`fromCardId`) |
+| No endpoint to read one's own profile (`GET /api/profile` is admin-only, `/api/auth/me` has only id, username, roles) | profile form cannot be prefilled | T-113 |
 | Refresh token only in the JSON body | page reload signs the user out | T-109 |
 | No KYC review / admin API | verify screen submits only; no admin UI | T-070, T-071 |
