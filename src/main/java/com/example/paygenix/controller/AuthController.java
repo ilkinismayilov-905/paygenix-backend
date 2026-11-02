@@ -51,6 +51,7 @@ public class AuthController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Giriş uğurludur"),
             @ApiResponse(responseCode = "401", description = "Yanlış məlumatlar", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Account is locked (ACCOUNT_LOCKED)", content = @Content),
             @ApiResponse(responseCode = "429", description = "More than 5 attempts for this email in 15 minutes (LOGIN_LOCKED)", content = @Content)
     })
     @PostMapping("/login")
@@ -99,7 +100,8 @@ public class AuthController {
             + "On failure it lands on ?error=email_not_verified | account_exists | oauth_failed instead.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Signed in; a new device session was started"),
-            @ApiResponse(responseCode = "401", description = "Code invalid, expired or already used (INVALID_OAUTH_CODE)", content = @Content)
+            @ApiResponse(responseCode = "401", description = "Code invalid, expired or already used (INVALID_OAUTH_CODE)", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Account is locked (ACCOUNT_LOCKED)", content = @Content)
     })
     @PostMapping("/oauth/exchange")
     public ResponseEntity<ApiResponseData<JwtTokenResponse>> exchangeOAuthCode(

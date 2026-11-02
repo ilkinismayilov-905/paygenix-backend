@@ -33,8 +33,9 @@ public class AuthService {
         loginAttemptService.clear(loginRequest.email());
 
         User user = (User) authentication.getPrincipal();
+        JwtTokenResponse tokens = sessionService.start(user, deviceName);
         log.info("User {} logged in", user.getId());
-        return sessionService.start(user, deviceName);
+        return tokens;
     }
 
     public JwtTokenResponse loginWithOAuthCode(String code, String deviceName) {
