@@ -13,6 +13,7 @@ import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
@@ -45,6 +47,13 @@ public class SessionService {
 
     @Value("${jwt.refresh-expiration}")
     private Long refreshExpiration;
+
+    // Absolute cap from sign-in: refreshing slides expires_at, but never past createdAt + this.
+    @Value("${jwt.session-max-lifetime}")
+    private Long sessionMaxLifetime;
+
+    // Ended rows are kept this long for incident review, then purged.
+    static final Duration ENDED_SESSION_RETENTION = Duration.ofDays(30);
 
     private final UserSessionRepository sessions;
     private final UserRepository userRepository;
@@ -81,8 +90,10 @@ public class SessionService {
             throw InvalidRefreshTokenException.invalid();
         }
 
+        Instant now = Instant.now();
+        // second check: the cap may have been lowered in config after expires_at was set
         UserSession session = sessions.findByIdForUpdate(sessionId)
-                .filter(s -> s.isActive(Instant.now()))
+                .filter(s -> s.isActive(now) && s.getCreatedAt().plusSeconds(sessionMaxLifetime).isAfter(now))
                 .orElseThrow(InvalidRefreshTokenException::invalid);
         if (!MessageDigest.isEqual(session.getRefreshTokenHash().getBytes(StandardCharsets.US_ASCII),
                 sha256(refreshToken).getBytes(StandardCharsets.US_ASCII))) {
@@ -122,14 +133,26 @@ public class SessionService {
         sessions.revokeAll(userId, Instant.now());
     }
 
+    // Daily; idempotent, so running on several instances at once is harmless.
+    @Scheduled(cron = "0 30 3 * * *")
+    @Transactional
+    public int purgeEnded() {
+        int purged = sessions.deleteEndedBefore(Instant.now().minus(ENDED_SESSION_RETENTION));
+        if (purged > 0) {
+            log.info("Purged {} ended sessions", purged);
+        }
+        return purged;
+    }
+
     private JwtTokenResponse issueTokens(UserSession session, User user) {
         Instant now = Instant.now();
         String token = jwtService.generateJwtToken(user, user.getId(), user.getUsername(), session.getId());
         String refreshToken = jwtService.generateJwtRefreshToken(user, session.getId());
         session.setRefreshTokenHash(sha256(refreshToken));
         session.setLastUsedAt(now);
-        // shortcut: sliding expiry, a session refreshed regularly never ends; add an absolute cap if needed (T-078)
-        session.setExpiresAt(now.plusSeconds(refreshExpiration));
+        Instant sliding = now.plusSeconds(refreshExpiration);
+        Instant cap = session.getCreatedAt().plusSeconds(sessionMaxLifetime);
+        session.setExpiresAt(sliding.isBefore(cap) ? sliding : cap);
         sessions.save(session);
 
         return JwtTokenResponse.builder()

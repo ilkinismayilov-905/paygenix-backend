@@ -5,6 +5,7 @@ import com.example.paygenix.entity.User;
 import com.example.paygenix.support.IntegrationTest;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -13,6 +14,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -23,6 +25,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 // Decision #13, SEC-18: per-device sessions, refresh rotation with reuse detection, revoke one / all.
 class DeviceSessionTest extends IntegrationTest {
+
+    @Value("${jwt.session-max-lifetime}")
+    private long maxLifetime;
 
     @Test
     void refreshRotatesTheToken() throws Exception {
@@ -60,6 +65,48 @@ class DeviceSessionTest extends IntegrationTest {
         refresh(login.refreshToken()).andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_REFRESH_TOKEN"));
         assertThat(meStatus("Bearer " + login.token())).isIn(302, 401);
+    }
+
+    @Test
+    void refreshNeverExtendsASessionPastItsMaxLifetime() throws Exception {
+        JwtTokenResponse login = sessionService.start(createUser(), "phone");
+        UUID id = jwtService.extractSessionId(login.token());
+        jdbc.update("UPDATE user_sessions SET created_at = now() - interval '29 days' WHERE id = ?", id);
+
+        refresh(login.refreshToken()).andExpect(status().isOk());
+
+        Boolean capped = jdbc.queryForObject(
+                "SELECT expires_at = created_at + make_interval(secs => ?) FROM user_sessions WHERE id = ?",
+                Boolean.class, maxLifetime, id);
+        assertThat(capped).isTrue();
+    }
+
+    @Test
+    void sessionOlderThanMaxLifetimeCannotRefresh() throws Exception {
+        JwtTokenResponse login = sessionService.start(createUser(), "phone");
+        // expires_at still in the future, e.g. the cap was lowered after the last refresh
+        jdbc.update("UPDATE user_sessions SET created_at = now() - make_interval(secs => ?) - interval '1 minute' WHERE id = ?",
+                maxLifetime, jwtService.extractSessionId(login.token()));
+
+        refresh(login.refreshToken()).andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_REFRESH_TOKEN"));
+    }
+
+    @Test
+    void purgeDeletesOnlySessionsEndedLongAgo() {
+        User user = createUser();
+        UUID oldRevoked = sessionId(sessionService.start(user, "a"));
+        UUID oldExpired = sessionId(sessionService.start(user, "b"));
+        UUID recentlyRevoked = sessionId(sessionService.start(user, "c"));
+        UUID active = sessionId(sessionService.start(user, "d"));
+        jdbc.update("UPDATE user_sessions SET revoked_at = now() - interval '31 days' WHERE id = ?", oldRevoked);
+        jdbc.update("UPDATE user_sessions SET expires_at = now() - interval '31 days' WHERE id = ?", oldExpired);
+        jdbc.update("UPDATE user_sessions SET revoked_at = now() - interval '1 day' WHERE id = ?", recentlyRevoked);
+
+        sessionService.purgeEnded();
+
+        List<UUID> left = jdbc.queryForList("SELECT id FROM user_sessions WHERE user_id = ?", UUID.class, user.getId());
+        assertThat(left).containsExactlyInAnyOrder(recentlyRevoked, active);
     }
 
     @Test
@@ -143,6 +190,10 @@ class DeviceSessionTest extends IntegrationTest {
 
         mockMvc.perform(get("/api/auth/sessions").header("Authorization", "Bearer " + access))
                 .andExpect(jsonPath("$.data[0].deviceName").value("Paygenix-iOS/1.0"));
+    }
+
+    private UUID sessionId(JwtTokenResponse tokens) {
+        return jwtService.extractSessionId(tokens.token());
     }
 
     private ResultActions refresh(String refreshToken) throws Exception {
