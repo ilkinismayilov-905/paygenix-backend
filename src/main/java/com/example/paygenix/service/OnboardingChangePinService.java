@@ -179,7 +179,7 @@ public class OnboardingChangePinService {
     }
 
     private String normalizeEmail(String email) {
-        return email == null ? "" : email.trim().toLowerCase();
+        return email == null ? "" : User.normalizeEmail(email);
     }
 
 }
