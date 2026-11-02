@@ -44,7 +44,7 @@ public class StoryService {
         return List.of(currentUserId);
     }
 
-    @Transactional
+    // Not @Transactional: the MinIO upload must not run inside a DB transaction; if the save fails the object is removed.
     public StoryUploadResponse uploadStory(
             User currentUser,
             MultipartFile file,
@@ -54,15 +54,21 @@ public class StoryService {
         String objectName = storyMediaStorage.uploadStoryMedia(file, currentUser.getId());
         Instant now = Instant.now();
 
-        Story saved = storyRepo.save(Story.builder()
-                .user(currentUser)
-                .objectName(objectName)
-                .mediaType(mediaType)
-                .visibility(visibility)
-                .createdAt(now)
-                .expiresAt(now.plusSeconds(expirySeconds))
-                .deleted(false)
-                .build());
+        Story saved;
+        try {
+            saved = storyRepo.save(Story.builder()
+                    .user(currentUser)
+                    .objectName(objectName)
+                    .mediaType(mediaType)
+                    .visibility(visibility)
+                    .createdAt(now)
+                    .expiresAt(now.plusSeconds(expirySeconds))
+                    .deleted(false)
+                    .build());
+        } catch (RuntimeException e) {
+            storyMediaStorage.deleteQuietly(objectName);
+            throw e;
+        }
 
         return new StoryUploadResponse(saved.getId(), saved.getObjectName());
     }
@@ -119,7 +125,7 @@ public class StoryService {
                     .map(s -> new StoryResponse(
                             s.getId(),
                             s.getMediaType(),
-                            mediaService.getDownloadUrl("centralBaku.jpeg"),
+                            mediaService.getDownloadUrl(s.getObjectName()),
                             s.getExpiresAt(),
                             viewedStoryIds.contains(s.getId())
                     ))
