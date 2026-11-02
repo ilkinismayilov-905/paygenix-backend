@@ -41,4 +41,14 @@ public class EmailService {
                 + "If you did not do this, contact Paygenix support right away.");
         mailSender.send(message);
     }
+
+    // Second code of an email change, sent to the address the account has now (T-106).
+    public void sendEmailChangeCode(String to, String otp) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject("Paygenix – confirm changing your sign-in email");
+        message.setText("Someone asked to change the sign-in email of your Paygenix account. Your code is: " + otp
+                + "\nIf this was not you, do not share this code with anyone and change your PIN.");
+        mailSender.send(message);
+    }
 }
