@@ -11,6 +11,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
+import org.springframework.mail.MailSendException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -22,7 +23,10 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -55,9 +59,47 @@ class EmailChangeTest extends IntegrationTest {
         confirm(session.token(), sentCode(newEmail)).andExpect(status().isOk());
 
         assertThat(userRepository.findById(user.getId()).orElseThrow().getEmail()).isEqualTo(newEmail);
+        verify(emailService).sendEmailChanged(user.getEmail());
         int me = mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + session.token()))
                 .andReturn().getResponse().getStatus();
         assertThat(me).isIn(302, 401);
+    }
+
+    @Test
+    void startNeedsTheCurrentPin() throws Exception {
+        User user = createUser();
+        String token = bearer(user).substring(7);
+        String newEmail = "new-" + UUID.randomUUID() + "@example.test";
+
+        start(token, newEmail, "000000").andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("INVALID_PIN"));
+        verify(emailService, never()).sendOtp(any(), any());
+        // a wrong PIN does not burn the one-per-minute code cooldown
+        start(token, newEmail).andExpect(status().isOk());
+    }
+
+    @Test
+    void accountWithoutPinCannotStart() throws Exception {
+        User user = createUser();
+        user.setPinHash(null);
+        userRepository.save(user);
+
+        start(bearer(user).substring(7), "new-" + UUID.randomUUID() + "@example.test")
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("PIN_NOT_SET"));
+    }
+
+    @Test
+    void mailOutageAfterConfirmKeepsTheNewEmail() throws Exception {
+        User user = createUser();
+        String token = bearer(user).substring(7);
+        String newEmail = "new-" + UUID.randomUUID() + "@example.test";
+        doThrow(new MailSendException("down")).when(emailService).sendEmailChanged(any());
+
+        start(token, newEmail).andExpect(status().isOk());
+        confirm(token, sentCode(newEmail)).andExpect(status().isOk());
+
+        assertThat(userRepository.findById(user.getId()).orElseThrow().getEmail()).isEqualTo(newEmail);
     }
 
     @Test
@@ -186,8 +228,13 @@ class EmailChangeTest extends IntegrationTest {
     }
 
     private ResultActions start(String token, String email) throws Exception {
+        return start(token, email, PIN);
+    }
+
+    private ResultActions start(String token, String email, String pin) throws Exception {
         return mockMvc.perform(post("/api/profile/email").header("Authorization", "Bearer " + token)
-                .contentType(MediaType.APPLICATION_JSON).content("{\"email\":\"" + email + "\"}"));
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"" + email + "\",\"pin\":\"" + pin + "\"}"));
     }
 
     private ResultActions confirm(String token, String otp) throws Exception {

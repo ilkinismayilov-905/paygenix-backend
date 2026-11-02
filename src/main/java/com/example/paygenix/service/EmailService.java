@@ -31,4 +31,14 @@ public class EmailService {
                 + "if you forgot your password, reset it. If it was not you, you can ignore this message.");
         mailSender.send(message);
     }
+
+    // Sent to the previous address after an email change, so a takeover does not go unnoticed.
+    public void sendEmailChanged(String to) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject("Paygenix – your sign-in email was changed");
+        message.setText("The sign-in email of your Paygenix account was changed and all devices were signed out. "
+                + "If you did not do this, contact Paygenix support right away.");
+        mailSender.send(message);
+    }
 }
