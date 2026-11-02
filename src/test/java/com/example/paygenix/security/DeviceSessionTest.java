@@ -90,6 +90,22 @@ class DeviceSessionTest extends IntegrationTest {
 
         refresh(login.refreshToken()).andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_REFRESH_TOKEN"));
+        // nor can its access token be used, and it is not listed
+        assertThat(meStatus("Bearer " + login.token())).isIn(302, 401);
+    }
+
+    @Test
+    void sessionsPastMaxLifetimeAreNotListed() throws Exception {
+        User user = createUser();
+        JwtTokenResponse phone = sessionService.start(user, "phone");
+        JwtTokenResponse old = sessionService.start(user, "old-laptop");
+        jdbc.update("UPDATE user_sessions SET created_at = now() - make_interval(secs => ?) - interval '1 minute' WHERE id = ?",
+                maxLifetime, sessionId(old));
+
+        mockMvc.perform(get("/api/auth/sessions").header("Authorization", "Bearer " + phone.token()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].deviceName").value("phone"));
     }
 
     @Test

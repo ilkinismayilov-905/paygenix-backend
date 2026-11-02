@@ -19,9 +19,12 @@ public interface UserSessionRepository extends JpaRepository<UserSession, UUID> 
     @Query("SELECT s FROM UserSession s WHERE s.id = :id")
     Optional<UserSession> findByIdForUpdate(UUID id);
 
-    boolean existsByIdAndUserIdAndRevokedAtIsNullAndExpiresAtAfter(UUID id, Long userId, Instant now);
+    // createdAfter = now - max lifetime, so lowering the cap ends old sessions at once, not at their expires_at
+    boolean existsByIdAndUserIdAndRevokedAtIsNullAndExpiresAtAfterAndCreatedAtAfter(
+            UUID id, Long userId, Instant now, Instant createdAfter);
 
-    List<UserSession> findByUserIdAndRevokedAtIsNullAndExpiresAtAfterOrderByLastUsedAtDesc(Long userId, Instant now);
+    List<UserSession> findByUserIdAndRevokedAtIsNullAndExpiresAtAfterAndCreatedAtAfterOrderByLastUsedAtDesc(
+            Long userId, Instant now, Instant createdAfter);
 
     Optional<UserSession> findByIdAndUserIdAndRevokedAtIsNull(UUID id, Long userId);
 
