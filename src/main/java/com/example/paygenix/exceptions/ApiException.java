@@ -54,6 +54,10 @@ public class ApiException extends BusinessException {
         return new ApiException(HttpStatus.GONE, "FLOW_EXPIRED", "The flow has expired; start again");
     }
 
+    public static ApiException mediaUploadFailed() {
+        return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "MEDIA_UPLOAD_FAILED", "Media storage is unavailable; try again later");
+    }
+
     @Override
     public String getErrorCode() {
         return errorCode;
