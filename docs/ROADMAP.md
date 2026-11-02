@@ -16,7 +16,7 @@ This roadmap orders the work by risk. Security and money correctness come before
 | 7. Money core | Double-entry ledger, configurable fees, idempotency keys, payment state machine, Stripe sandbox top-up, phone top-up adapter | — |
 | 8. Flows | KYC with manual admin review, admin API, promo stories, paginated history, `/api/v1` | — |
 | 9. Quality & docs | Clean architecture refactors, observability, complete OpenAPI, portfolio README | v0.2.0 |
-| 10. Product | Figma design, frontend (including simple admin UI) | v0.3.0 |
+| 10. Product | Frontend (including simple admin UI) | v0.3.0 |
 | 11. Release | Deployment preparation and a fresh, hardened server | v1.0.0 |
 
 > **Before the repository is made public:** ask GitHub Support to run a sensitive data removal for the `refs/pull/*` refs. They still point to commits from before the history rewrite, and only GitHub can purge them and their cached views.
