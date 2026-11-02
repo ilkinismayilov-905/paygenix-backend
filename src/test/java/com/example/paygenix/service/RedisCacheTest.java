@@ -50,6 +50,7 @@ class RedisCacheTest extends IntegrationTest {
                     .andExpect(jsonPath("$.data[*].fullName", hasItem("Cached Name")));
             assertThat(redis.hasKey("editProfileAll::all")).isTrue();
         }
+        assertExpiresWithin("editProfileAll::all", 600);
     }
 
     @Test
@@ -66,5 +67,11 @@ class RedisCacheTest extends IntegrationTest {
                     .andExpect(jsonPath("$.data.content").value("Terms text"));
             assertThat(redis.hasKey("legalDocumentByType::TERMS")).isTrue();
         }
+        assertExpiresWithin("legalDocumentByType::TERMS", 3600);
+    }
+
+    // T-085: cached entries must expire (-1 means no TTL)
+    private void assertExpiresWithin(String key, long maxSeconds) {
+        assertThat(redis.getExpire(key)).isPositive().isLessThanOrEqualTo(maxSeconds);
     }
 }
