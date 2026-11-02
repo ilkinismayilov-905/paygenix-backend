@@ -70,6 +70,8 @@ class MediaStorageTest {
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST));
         verify(minio, never()).putObject(any());
         assertThat(withBucket(new StoryMediaStorage(minio)).uploadStoryMedia(video, 1L)).endsWith(".mp4");
+        MockMultipartFile withParams = new MockMultipartFile("file", "a", "Image/PNG; charset=binary", new byte[]{1});
+        assertThat(withBucket(new ProfileMediaStorage(minio)).uploadProfileImage(withParams, 1L)).endsWith(".png");
     }
 
     // T-096: only image/video types the app serves are stored.

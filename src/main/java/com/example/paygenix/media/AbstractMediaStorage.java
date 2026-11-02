@@ -30,7 +30,8 @@ public abstract class AbstractMediaStorage {
     // The key is generated, never taken from the client, so one user cannot overwrite another user's object.
     protected String uploadForUser(MultipartFile file, String bucket, String prefix, Long userId, Map<String, String> allowedTypes) {
         String type = file.getContentType();
-        String extension = type == null ? null : allowedTypes.get(type.toLowerCase(Locale.ROOT));
+        // Parameters such as "; charset=binary" do not change the media type.
+        String extension = type == null ? null : allowedTypes.get(type.split(";")[0].trim().toLowerCase(Locale.ROOT));
         if (extension == null) {
             throw ApiException.validation("Unsupported media type");
         }
