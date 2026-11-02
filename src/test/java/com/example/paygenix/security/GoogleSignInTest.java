@@ -29,6 +29,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -123,6 +124,23 @@ class GoogleSignInTest extends IntegrationTest {
         failureHandler.onAuthenticationFailure(new MockHttpServletRequest(), other,
                 new OAuth2AuthenticationException(new OAuth2Error("invalid_token", "details <script>", null)));
         assertThat(other.getRedirectedUrl()).isEqualTo("http://localhost:3000/oauth2/callback?error=oauth_failed");
+    }
+
+    @Test
+    void lockedGoogleUserGetsNoCodeAndIsSentBackWithAccountLocked() throws Exception {
+        String sub = UUID.randomUUID().toString();
+        OidcUser oidcUser = google(sub, sub + "@gmail.test", true);
+        User user = googleOidcUserService.findOrCreate(oidcUser);
+        user.setStatus(User.Status.LOCKED);
+        userRepository.save(user);
+
+        OAuth2AuthenticationException refused = catchThrowableOfType(OAuth2AuthenticationException.class,
+                () -> googleOidcUserService.findOrCreate(oidcUser));
+        assertThat(refused.getError().getErrorCode()).isEqualTo(GoogleOidcUserService.ACCOUNT_LOCKED);
+
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        failureHandler.onAuthenticationFailure(new MockHttpServletRequest(), response, refused);
+        assertThat(response.getRedirectedUrl()).isEqualTo("http://localhost:3000/oauth2/callback?error=account_locked");
     }
 
     @Test

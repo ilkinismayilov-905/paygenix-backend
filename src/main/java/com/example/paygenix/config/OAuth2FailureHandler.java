@@ -18,7 +18,8 @@ import java.util.Set;
 public class OAuth2FailureHandler extends SimpleUrlAuthenticationFailureHandler {
 
     private static final Set<String> KNOWN_ERRORS =
-            Set.of(GoogleOidcUserService.EMAIL_NOT_VERIFIED, GoogleOidcUserService.ACCOUNT_EXISTS);
+            Set.of(GoogleOidcUserService.EMAIL_NOT_VERIFIED, GoogleOidcUserService.ACCOUNT_EXISTS,
+                    GoogleOidcUserService.ACCOUNT_LOCKED);
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
