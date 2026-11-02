@@ -27,7 +27,7 @@ public class StoryMediaStorage extends AbstractMediaStorage {
         try {
             minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(objectName).build());
         } catch (Exception e) {
-            log.warn("Removing orphan object {} from bucket {} failed", objectName, bucket, e);
+            log.warn("Removing object {} from bucket {} failed; it stays in storage", objectName, bucket, e);
         }
     }
 }
