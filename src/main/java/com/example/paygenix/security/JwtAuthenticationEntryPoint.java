@@ -4,6 +4,7 @@ import com.example.paygenix.exceptions.GlobalHandlerException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
@@ -32,6 +33,12 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint, Ac
     public void handle(HttpServletRequest request, HttpServletResponse response,
                        AccessDeniedException accessDeniedException) throws IOException {
         write(response, HttpStatus.FORBIDDEN, "Access denied", "FORBIDDEN");
+    }
+
+    // T-100: the filters run before the controller advice, so outages there are answered here in the same shape
+    public void serviceUnavailable(HttpServletResponse response) throws IOException {
+        response.setHeader(HttpHeaders.RETRY_AFTER, "30");
+        write(response, HttpStatus.SERVICE_UNAVAILABLE, "Service temporarily unavailable; try again later", "SERVICE_UNAVAILABLE");
     }
 
     private void write(HttpServletResponse response, HttpStatus status, String detail, String code) throws IOException {
