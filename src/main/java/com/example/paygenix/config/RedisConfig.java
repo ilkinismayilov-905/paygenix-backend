@@ -18,6 +18,7 @@ import tools.jackson.databind.JavaType;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Duration;
 import java.util.List;
 
 @Configuration
@@ -44,6 +45,11 @@ public class RedisConfig {
         return template;
     }
 
+    // Entries need an explicit TTL: per-cache configs start from defaultCacheConfig(), which never expires.
+    // Profile list is evicted on every write, so its TTL is only a safety net; legal documents change by SQL, with no eviction.
+    static final Duration EDIT_PROFILE_ALL_TTL = Duration.ofMinutes(10);
+    static final Duration LEGAL_DOCUMENT_TTL = Duration.ofHours(1);
+
     // One concrete type per cache: JSON without embedded class names, so cached bytes cannot pick the type to build.
     // Immediate writes: with Lettuce the default writer evicts asynchronously, so a read right after an update could still see old data.
     @Bean
@@ -53,12 +59,13 @@ public class RedisConfig {
         return builder -> builder
                 .cacheWriter(RedisCacheWriter.create(connectionFactory, writer -> writer.immediateWrites()))
                 .withCacheConfiguration(CacheNames.EDIT_PROFILE_ALL,
-                        json(new JacksonJsonRedisSerializer<List<EditProfileResponse>>(mapper, profileList)))
+                        json(new JacksonJsonRedisSerializer<List<EditProfileResponse>>(mapper, profileList), EDIT_PROFILE_ALL_TTL))
                 .withCacheConfiguration(CacheNames.LEGAL_DOCUMENT_BY_TYPE,
-                        json(new JacksonJsonRedisSerializer<>(mapper, LegalDocumentResponse.class)));
+                        json(new JacksonJsonRedisSerializer<>(mapper, LegalDocumentResponse.class), LEGAL_DOCUMENT_TTL));
     }
 
-    private static RedisCacheConfiguration json(JacksonJsonRedisSerializer<?> serializer) {
-        return RedisCacheConfiguration.defaultCacheConfig().serializeValuesWith(SerializationPair.fromSerializer(serializer));
+    private static RedisCacheConfiguration json(JacksonJsonRedisSerializer<?> serializer, Duration ttl) {
+        return RedisCacheConfiguration.defaultCacheConfig().entryTtl(ttl)
+                .serializeValuesWith(SerializationPair.fromSerializer(serializer));
     }
 }
