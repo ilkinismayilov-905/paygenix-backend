@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 
@@ -37,6 +38,11 @@ import java.util.Set;
 @NoArgsConstructor
 @Builder
 public class User implements UserDetails {
+
+    // T-080: emails are stored and looked up lower-case; Locale.ROOT so "I" never becomes a dotless "ı" (az/tr locales)
+    public static String normalizeEmail(String email) {
+        return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
+    }
     @Id
     @ToString.Include
     @GeneratedValue(strategy = GenerationType.IDENTITY)
