@@ -28,4 +28,8 @@ public interface UserSessionRepository extends JpaRepository<UserSession, UUID> 
     @Modifying
     @Query("UPDATE UserSession s SET s.revokedAt = :now WHERE s.userId = :userId AND s.revokedAt IS NULL")
     int revokeAll(Long userId, Instant now);
+
+    @Modifying
+    @Query("DELETE FROM UserSession s WHERE s.expiresAt < :cutoff OR s.revokedAt < :cutoff")
+    int deleteEndedBefore(Instant cutoff);
 }
