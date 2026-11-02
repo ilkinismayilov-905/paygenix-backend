@@ -70,8 +70,8 @@ class RedisCacheTest extends IntegrationTest {
         assertExpiresWithin("legalDocumentByType::TERMS", 3600);
     }
 
-    // T-085: cached entries must expire (-1 means no TTL)
+    // T-085: cached entries expire with the configured TTL (-1 would mean none)
     private void assertExpiresWithin(String key, long maxSeconds) {
-        assertThat(redis.getExpire(key)).isPositive().isLessThanOrEqualTo(maxSeconds);
+        assertThat(redis.getExpire(key)).isBetween(maxSeconds - 60, maxSeconds);
     }
 }

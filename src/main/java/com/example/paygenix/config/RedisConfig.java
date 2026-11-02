@@ -47,8 +47,8 @@ public class RedisConfig {
 
     // Entries need an explicit TTL: per-cache configs start from defaultCacheConfig(), which never expires.
     // Profile list is evicted on every write, so its TTL is only a safety net; legal documents change by SQL, with no eviction.
-    static final Duration EDIT_PROFILE_ALL_TTL = Duration.ofMinutes(10);
-    static final Duration LEGAL_DOCUMENT_TTL = Duration.ofHours(1);
+    private static final Duration EDIT_PROFILE_ALL_TTL = Duration.ofMinutes(10);
+    private static final Duration LEGAL_DOCUMENT_TTL = Duration.ofHours(1);
 
     // One concrete type per cache: JSON without embedded class names, so cached bytes cannot pick the type to build.
     // Immediate writes: with Lettuce the default writer evicts asynchronously, so a read right after an update could still see old data.
@@ -56,7 +56,9 @@ public class RedisConfig {
     public RedisCacheManagerBuilderCustomizer jsonCacheSerializers(RedisConnectionFactory connectionFactory) {
         ObjectMapper mapper = JsonMapper.builder().build();
         JavaType profileList = mapper.getTypeFactory().constructCollectionType(List.class, EditProfileResponse.class);
+        // Unknown cache names fail fast instead of being created with Boot defaults (no TTL, JDK serialization).
         return builder -> builder
+                .disableCreateOnMissingCache()
                 .cacheWriter(RedisCacheWriter.create(connectionFactory, writer -> writer.immediateWrites()))
                 .withCacheConfiguration(CacheNames.EDIT_PROFILE_ALL,
                         json(new JacksonJsonRedisSerializer<List<EditProfileResponse>>(mapper, profileList), EDIT_PROFILE_ALL_TTL))
