@@ -89,7 +89,7 @@ public class EmailChangeService {
         }
         redis.delete(key);
 
-        String newEmail = (String) pending.get(0);
+        String newEmail = User.normalizeEmail((String) pending.get(0)); // pending entries from before T-080 kept the typed case
         if (userRepository.existsByEmail(newEmail) || userRepository.existsByUsername(newEmail)) {
             throw emailTaken();
         }
