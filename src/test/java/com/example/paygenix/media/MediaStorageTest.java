@@ -2,10 +2,12 @@ package com.example.paygenix.media;
 
 import com.example.paygenix.exceptions.ApiException;
 import com.example.paygenix.service.MediaService;
+import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -39,10 +41,13 @@ class MediaStorageTest {
 
     // T-095: the client's file name never becomes the object key, so users cannot overwrite each other's objects.
     @Test
-    void objectKeyIsGeneratedPerUser() {
-        String key = withBucket(new StoryMediaStorage(minio)).uploadStoryMedia(file("../other/victim.jpg"), 7L);
+    void objectKeyIsGeneratedPerUser() throws Exception {
+        String key = withBucket(new StoryMediaStorage(minio)).uploadStoryMedia(file("../other/victim.JPG"), 7L);
 
         assertThat(key).matches("stories/7/[0-9a-f-]{36}\\.jpg");
+        ArgumentCaptor<PutObjectArgs> sent = ArgumentCaptor.forClass(PutObjectArgs.class);
+        verify(minio).putObject(sent.capture());
+        assertThat(sent.getValue().object()).isEqualTo(key);
         assertThat(withBucket(new MediaService(minio)).upload(file("photo.png"), 7L))
                 .matches("uploads/7/[0-9a-f-]{36}\\.png");
     }
@@ -50,7 +55,7 @@ class MediaStorageTest {
     // T-095: a bad file name is the client's fault (400), not a retryable storage outage.
     @ParameterizedTest
     @NullAndEmptySource
-    @ValueSource(strings = {"noextension", "trailingdot.", "a.b/c"})
+    @ValueSource(strings = {"noextension", "trailingdot.", "a.b/c", "a.j pg", "a.x?y", "a.toolongextension"})
     void invalidFileNameIsRejectedBeforeStorage(String name) throws Exception {
         assertThatThrownBy(() -> withBucket(new ProfileMediaStorage(minio)).uploadProfileImage(file(name), 1L))
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST));
@@ -66,10 +71,21 @@ class MediaStorageTest {
         assertUnavailable(() -> withBucket(new MediaService(minio)).upload(file("photo.jpg"), 1L));
     }
 
+    @Test
+    void presignFailureIsServiceUnavailable() throws Exception {
+        when(minio.getPresignedObjectUrl(any(GetPresignedObjectUrlArgs.class))).thenThrow(new IOException("connection refused"));
+
+        assertUnavailable(() -> withBucket(new MediaService(minio)).getDownloadUrl("uploads/1/x.jpg"), "MEDIA_UNAVAILABLE");
+    }
+
     private static void assertUnavailable(ThrowingCallable call) {
+        assertUnavailable(call, "MEDIA_UPLOAD_FAILED");
+    }
+
+    private static void assertUnavailable(ThrowingCallable call, String code) {
         assertThatThrownBy(call).isInstanceOfSatisfying(ApiException.class, e -> {
             assertThat(e.getStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
-            assertThat(e.getErrorCode()).isEqualTo("MEDIA_UPLOAD_FAILED");
+            assertThat(e.getErrorCode()).isEqualTo(code);
             assertThat(e.getRetryAfter()).isEqualTo(Duration.ofSeconds(30));
         });
     }
