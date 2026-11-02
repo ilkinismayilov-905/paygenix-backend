@@ -80,8 +80,9 @@ public class EmailChangeService {
         redis.opsForHash().putAll(key, Map.of("email", newEmail, "otpHash", encoder.encode(otp),
                 "currentOtpHash", encoder.encode(currentEmailOtp), "attempts", "0"));
         redis.expire(key, TTL);
-        emailService.sendOtp(newEmail, otp);
+        // the owner's warning first: a send failure on an address the caller picked must not suppress it
         emailService.sendEmailChangeCode(currentEmail, currentEmailOtp);
+        emailService.sendOtp(newEmail, otp);
     }
 
     @Transactional
@@ -99,9 +100,12 @@ public class EmailChangeService {
             redis.delete(key);
             throw ApiException.tooManyAttempts();
         }
-        // one error for either code, and | (not ||) checks both, so neither the answer nor its timing tells which was right;
-        // a pending change from before T-106 has no second code and must be started again
-        if (pending.get(2) == null || !encoder.matches(otp, (String) pending.get(1))
+        if (pending.get(2) == null) { // started before T-106, has no second code: start again
+            redis.delete(key);
+            throw new ApiException(HttpStatus.BAD_REQUEST, "OTP_EXPIRED", "No pending email change, or it expired");
+        }
+        // one error for either code, and | (not ||) checks both, so neither the answer nor its timing tells which was right
+        if (!encoder.matches(otp, (String) pending.get(1))
                 | !encoder.matches(currentEmailOtp, (String) pending.get(2))) {
             throw ApiException.invalidOtp();
         }

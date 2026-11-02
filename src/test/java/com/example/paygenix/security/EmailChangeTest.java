@@ -239,7 +239,7 @@ class EmailChangeTest extends IntegrationTest {
         redis.opsForHash().delete("email-change:" + user.getId(), "currentOtpHash");
 
         confirm(token, sentCode(newEmail), currentEmailCode(user.getEmail())).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_OTP"));
+                .andExpect(jsonPath("$.code").value("OTP_EXPIRED"));
     }
 
     @Test
