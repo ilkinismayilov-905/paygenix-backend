@@ -82,7 +82,9 @@ public class EditProfileController {
         return ResponseEntity.ok(ApiResponseData.success(null));
     }
 
-    @Operation(summary = "Confirm an email change", description = "Switches the account to the new email and signs out every device; log in again with the new email.")
+    @Operation(summary = "Confirm an email change", description = "Needs the code sent to the new address (otp) and the one sent "
+            + "to the current address (currentEmailOtp). Switches the account to the new email and signs out every device; "
+            + "log in again with the new email.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Email changed, all sessions revoked"),
             @ApiResponse(responseCode = "400", description = "A wrong code, either one (INVALID_OTP), or no pending change (OTP_EXPIRED)"),
