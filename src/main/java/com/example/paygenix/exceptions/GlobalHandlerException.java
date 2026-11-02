@@ -4,7 +4,9 @@ import jakarta.persistence.LockTimeoutException;
 import jakarta.persistence.PessimisticLockException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.TypeMismatchException;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.dao.QueryTimeoutException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -67,6 +69,15 @@ public class GlobalHandlerException extends ResponseEntityExceptionHandler {
     public ResponseEntity<ProblemDetail> handleLockTimeout(Exception ex) {
         log.warn("Lock wait timed out: {}", ex.getMessage());
         return error(HttpStatus.CONFLICT, "Resource is busy, retry shortly", "RESOURCE_BUSY");
+    }
+
+    // Redis or the database unreachable / timed out: a retryable outage, not a server bug. Callers stay fail-closed.
+    @ExceptionHandler({DataAccessResourceFailureException.class, QueryTimeoutException.class})
+    public ResponseEntity<ProblemDetail> handleBackendUnavailable(Exception ex) {
+        log.error("Backing store unavailable", ex);
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header(HttpHeaders.RETRY_AFTER, "30")
+                .body(problem(HttpStatus.SERVICE_UNAVAILABLE, "Service temporarily unavailable; try again later", "SERVICE_UNAVAILABLE"));
     }
 
     @ExceptionHandler(InsufficientBalanceException.class)
