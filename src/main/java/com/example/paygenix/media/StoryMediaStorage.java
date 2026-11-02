@@ -5,8 +5,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.UUID;
-
 @Service
 public class StoryMediaStorage extends AbstractMediaStorage {
 
@@ -18,19 +16,6 @@ public class StoryMediaStorage extends AbstractMediaStorage {
     }
 
     public String uploadStoryMedia(MultipartFile file, Long userId) {
-
-        String extension = getExtension(file.getOriginalFilename());
-
-        String objectName = "stories/%d/%s%s"
-                .formatted(userId, UUID.randomUUID(), extension);
-
-        uploadInternal(file, bucket, objectName);
-
-        return objectName;
-    }
-
-    private String getExtension(String filename) {
-        return filename.substring(filename.lastIndexOf("."));
+        return uploadForUser(file, bucket, "stories", userId);
     }
 }
-

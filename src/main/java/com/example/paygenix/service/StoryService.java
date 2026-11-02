@@ -5,6 +5,7 @@ import com.example.paygenix.dto.response.StoryGroupResponse;
 import com.example.paygenix.dto.response.StoryResponse;
 import com.example.paygenix.dto.response.StoryUploadResponse;
 import com.example.paygenix.exceptions.NotFoundException;
+import com.example.paygenix.media.StoryMediaStorage;
 import com.example.paygenix.entity.Story;
 import com.example.paygenix.entity.StoryView;
 import com.example.paygenix.entity.User;
@@ -33,6 +34,7 @@ public class StoryService {
     private final StoryRepository storyRepo;
     private final StoryViewRepository svRepo;
     private final MediaService mediaService;
+    private final StoryMediaStorage storyMediaStorage;
     private final UserRepository userRepo;
 
     @Value("${story.expiry-seconds}")
@@ -49,7 +51,7 @@ public class StoryService {
             MediaType mediaType,
             StoryVisibility visibility
     ) {
-        String objectName = mediaService.upload(file);
+        String objectName = storyMediaStorage.uploadStoryMedia(file, currentUser.getId());
         Instant now = Instant.now();
 
         Story saved = storyRepo.save(Story.builder()
