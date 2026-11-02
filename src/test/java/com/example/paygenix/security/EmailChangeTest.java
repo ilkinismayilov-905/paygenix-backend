@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -198,16 +199,47 @@ class EmailChangeTest extends IntegrationTest {
     @Test
     void secondAccountConfirmingTheSameEmailIsRefused() throws Exception {
         String newEmail = "contested-" + UUID.randomUUID() + "@example.test";
-        String first = bearer(createUser()).substring(7);
-        String second = bearer(createUser()).substring(7);
+        User firstUser = createUser();
+        User secondUser = createUser();
+        String first = bearer(firstUser).substring(7);
+        String second = bearer(secondUser).substring(7);
         start(first, newEmail).andExpect(status().isOk());
         start(second, newEmail).andExpect(status().isOk());
         ArgumentCaptor<String> codes = ArgumentCaptor.forClass(String.class);
         verify(emailService, times(2)).sendOtp(eq(newEmail), codes.capture());
 
-        confirm(first, codes.getAllValues().get(0)).andExpect(status().isOk());
-        confirm(second, codes.getAllValues().get(1)).andExpect(status().isConflict())
+        confirm(first, codes.getAllValues().get(0), currentEmailCode(firstUser.getEmail())).andExpect(status().isOk());
+        confirm(second, codes.getAllValues().get(1), currentEmailCode(secondUser.getEmail())).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("EMAIL_TAKEN"));
+    }
+
+    @Test
+    void confirmNeedsTheCodeSentToTheCurrentAddress() throws Exception {
+        User user = createUser();
+        String token = bearer(user).substring(7);
+        String newEmail = "new-" + UUID.randomUUID() + "@example.test";
+        start(token, newEmail).andExpect(status().isOk());
+        String current = currentEmailCode(user.getEmail());
+        String wrong = current.equals("000000") ? "000001" : "000000";
+
+        // the new address's code alone (a token holder controls that inbox) is not enough
+        confirm(token, sentCode(newEmail), wrong).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_OTP"));
+        assertThat(userRepository.findById(user.getId()).orElseThrow().getEmail()).isEqualTo(user.getEmail());
+
+        confirm(token, sentCode(newEmail), current).andExpect(status().isOk());
+    }
+
+    @Test
+    void pendingChangeFromBeforeTheSecondCodeMustBeStartedAgain() throws Exception {
+        User user = createUser();
+        String token = bearer(user).substring(7);
+        String newEmail = "new-" + UUID.randomUUID() + "@example.test";
+        start(token, newEmail).andExpect(status().isOk());
+        redis.opsForHash().delete("email-change:" + user.getId(), "currentOtpHash");
+
+        confirm(token, sentCode(newEmail), currentEmailCode(user.getEmail())).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_OTP"));
     }
 
     @Test
@@ -254,8 +286,22 @@ class EmailChangeTest extends IntegrationTest {
                 .content("{\"email\":\"" + email + "\",\"pin\":\"" + pin + "\"}"));
     }
 
+    // tests with one pending change: the current-address code is the last one sent
     private ResultActions confirm(String token, String otp) throws Exception {
+        ArgumentCaptor<String> code = ArgumentCaptor.forClass(String.class);
+        verify(emailService, atLeastOnce()).sendEmailChangeCode(any(), code.capture());
+        return confirm(token, otp, code.getValue());
+    }
+
+    private ResultActions confirm(String token, String otp, String currentEmailOtp) throws Exception {
         return mockMvc.perform(post("/api/profile/email/confirm").header("Authorization", "Bearer " + token)
-                .contentType(MediaType.APPLICATION_JSON).content("{\"otp\":\"" + otp + "\"}"));
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"otp\":\"" + otp + "\",\"currentEmailOtp\":\"" + currentEmailOtp + "\"}"));
+    }
+
+    private String currentEmailCode(String currentEmail) {
+        ArgumentCaptor<String> code = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendEmailChangeCode(eq(currentEmail), code.capture());
+        return code.getValue();
     }
 }

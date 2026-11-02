@@ -28,9 +28,9 @@ import java.util.Map;
  * can claim an address they do not own. The pending change lives in Redis for 10 minutes with at most 5 OTP tries.
  * Codes can be requested once a minute and 5 times a day per user, so restarting cannot be used to keep guessing.
  * The email is the login name and the token subject, so a confirmed change signs out every device.
- * Starting needs the current PIN, so a stolen access token alone cannot move an account that has a PIN; the old
- * address is told about the change. Accounts without a PIN yet (new Google users) can set a first PIN with the token
- * alone, so for them the PIN is no barrier (T-106).
+ * Starting needs the current PIN, and confirming needs a second code sent to the current address (T-106: a token
+ * holder can set a first PIN on a PIN-less account, but cannot read the owner's inbox). The old address is also told
+ * after the change.
  */
 @Service
 @RequiredArgsConstructor
@@ -71,21 +71,26 @@ public class EmailChangeService {
         if (userRepository.existsByEmail(newEmail) || userRepository.existsByUsername(newEmail)) {
             throw emailTaken();
         }
+        String currentEmail = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found")).getEmail();
         String otp = OtpGenerator.newOtp();
+        String currentEmailOtp = OtpGenerator.newOtp();
         String key = KEY_PREFIX + userId;
         redis.delete(key);
-        redis.opsForHash().putAll(key, Map.of("email", newEmail, "otpHash", encoder.encode(otp), "attempts", "0"));
+        redis.opsForHash().putAll(key, Map.of("email", newEmail, "otpHash", encoder.encode(otp),
+                "currentOtpHash", encoder.encode(currentEmailOtp), "attempts", "0"));
         redis.expire(key, TTL);
         emailService.sendOtp(newEmail, otp);
+        emailService.sendEmailChangeCode(currentEmail, currentEmailOtp);
     }
 
     @Transactional
     @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_ALL, allEntries = true)
-    public void confirm(Long userId, String otp) {
+    public void confirm(Long userId, String otp, String currentEmailOtp) {
         String key = KEY_PREFIX + userId;
         // counted before the check, so parallel guesses cannot exceed the limit
         long attempts = redis.opsForHash().increment(key, "attempts", 1);
-        List<Object> pending = redis.opsForHash().multiGet(key, List.of("email", "otpHash"));
+        List<Object> pending = redis.opsForHash().multiGet(key, List.of("email", "otpHash", "currentOtpHash"));
         if (pending.get(0) == null) {
             redis.delete(key); // the increment recreated an expired key without a TTL
             throw new ApiException(HttpStatus.BAD_REQUEST, "OTP_EXPIRED", "No pending email change, or it expired");
@@ -94,7 +99,10 @@ public class EmailChangeService {
             redis.delete(key);
             throw ApiException.tooManyAttempts();
         }
-        if (!encoder.matches(otp, (String) pending.get(1))) {
+        // one error for either code, and | (not ||) checks both, so neither the answer nor its timing tells which was right;
+        // a pending change from before T-106 has no second code and must be started again
+        if (pending.get(2) == null || !encoder.matches(otp, (String) pending.get(1))
+                | !encoder.matches(currentEmailOtp, (String) pending.get(2))) {
             throw ApiException.invalidOtp();
         }
         redis.delete(key);

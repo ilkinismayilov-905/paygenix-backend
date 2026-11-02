@@ -3,7 +3,7 @@ package com.example.paygenix.controller;
 import com.example.paygenix.dto.ApiResponseData;
 import com.example.paygenix.dto.request.EditProfileRequest;
 import com.example.paygenix.dto.request.EmailChangeRequest;
-import com.example.paygenix.dto.request.OtpRequest;
+import com.example.paygenix.dto.request.EmailChangeConfirmRequest;
 import com.example.paygenix.dto.response.EditProfileResponse;
 import com.example.paygenix.entity.User;
 import com.example.paygenix.service.EditProfileService;
@@ -64,11 +64,11 @@ public class EditProfileController {
         ));
     }
 
-    @Operation(summary = "Start an email change", description = "Needs the current PIN. Sends a 6-digit code to the new address. "
-            + "The email changes only after POST /api/profile/email/confirm with that code (within 10 minutes); "
+    @Operation(summary = "Start an email change", description = "Needs the current PIN. Sends a 6-digit code to the new address and another to the current one. "
+            + "The email changes only after POST /api/profile/email/confirm with both codes (within 10 minutes); "
             + "the old address is then notified.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Code sent to the new address"),
+            @ApiResponse(responseCode = "200", description = "Codes sent to the new and the current address"),
             @ApiResponse(responseCode = "400", description = "Not an email address or PIN not 6 digits (VALIDATION_FAILED)"),
             @ApiResponse(responseCode = "403", description = "Wrong PIN (INVALID_PIN) or no PIN set yet (PIN_NOT_SET)"),
             @ApiResponse(responseCode = "409", description = "Email already taken (EMAIL_TAKEN); still counts toward the cooldown and daily limit"),
@@ -85,14 +85,14 @@ public class EditProfileController {
     @Operation(summary = "Confirm an email change", description = "Switches the account to the new email and signs out every device; log in again with the new email.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Email changed, all sessions revoked"),
-            @ApiResponse(responseCode = "400", description = "Wrong code (INVALID_OTP) or no pending change (OTP_EXPIRED)"),
+            @ApiResponse(responseCode = "400", description = "A wrong code, either one (INVALID_OTP), or no pending change (OTP_EXPIRED)"),
             @ApiResponse(responseCode = "409", description = "The email was taken meanwhile (EMAIL_TAKEN)"),
             @ApiResponse(responseCode = "429", description = "Too many wrong codes; start again (TOO_MANY_ATTEMPTS)")
     })
     @PostMapping("/email/confirm")
     public ResponseEntity<ApiResponseData<Void>> confirmEmailChange(@AuthenticationPrincipal User user,
-                                                                    @Valid @RequestBody OtpRequest request) {
-        emailChangeService.confirm(user.getId(), request.otp());
+                                                                    @Valid @RequestBody EmailChangeConfirmRequest request) {
+        emailChangeService.confirm(user.getId(), request.otp(), request.currentEmailOtp());
         return ResponseEntity.ok(ApiResponseData.success(null));
     }
 
