@@ -181,6 +181,6 @@ public class StoryService {
 
     @Transactional(readOnly = true)
     public String getMediaDownloadUrl(User currentUser, String objectName) {
-        return mediaService.getDownloadUrl(objectName);
+        return mediaService.getOwnDownloadUrl(currentUser.getId(), objectName);
     }
 }

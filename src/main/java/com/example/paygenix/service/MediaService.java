@@ -1,6 +1,7 @@
 package com.example.paygenix.service;
 
 import com.example.paygenix.exceptions.ApiException;
+import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.media.AbstractMediaStorage;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
@@ -26,6 +27,15 @@ public class MediaService extends AbstractMediaStorage {
 
     public String upload(MultipartFile file, Long userId) {
         return uploadForUser(file, bucket, "uploads", userId);
+    }
+
+    // Stories are only shown to their author today (no follower model), so a user may presign only keys under their own id.
+    // 404, not 403, so other users' keys cannot be probed.
+    public String getOwnDownloadUrl(Long userId, String objectName) {
+        if (objectName == null || !objectName.matches("(stories|uploads)/" + userId + "/[0-9a-f-]{36}\\.[a-z0-9]{1,10}")) {
+            throw new NotFoundException("Media not found");
+        }
+        return getDownloadUrl(objectName);
     }
 
     public String getDownloadUrl(String objectName) {
