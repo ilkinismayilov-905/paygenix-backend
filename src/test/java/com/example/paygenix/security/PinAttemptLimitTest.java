@@ -82,6 +82,19 @@ class PinAttemptLimitTest extends IntegrationTest {
     }
 
     @Test
+    void lockedCounterWithoutTtlIsHealed() throws Exception {
+        User sender = createUser();
+        String from = issueCard(sender, "AZN");
+        String to = issueCard(createUser(), "AZN");
+        String key = "pin:failures:" + sender.getId();
+        redis.opsForValue().set(key, "5"); // lost its TTL before the atomic script
+
+        transfer(sender, from, to, PIN).andExpect(status().isTooManyRequests())
+                .andExpect(header().string("Retry-After", "900"));
+        assertThat(redis.getExpire(key)).isBetween(890L, 900L);
+    }
+
+    @Test
     void rightPinResetsTheCounter() throws Exception {
         User sender = createUser();
         String from = issueCard(sender, "AZN");

@@ -74,7 +74,7 @@ public class PaymentController {
             @ApiResponse(responseCode = "400", description = "Validation failed (flow ID missing, PIN not 6 digits), or Idempotency-Key header blank or over 255 characters (INVALID_IDEMPOTENCY_KEY)"),
             @ApiResponse(responseCode = "403", description = "Wrong PIN (INVALID_PIN)"),
             @ApiResponse(responseCode = "404", description = "Payment flow not found or not owned by the caller"),
-            @ApiResponse(responseCode = "429", description = "Too many wrong PINs; PIN checks locked for 15 minutes (PIN_LOCKED)"),
+            @ApiResponse(responseCode = "429", description = "Too many wrong PINs; PIN checks locked for 15 minutes (PIN_LOCKED); see Retry-After"),
             @ApiResponse(responseCode = "409", description = "Payment already processed, insufficient balance, or busy (retry with the same Idempotency-Key)"),
             @ApiResponse(responseCode = "422", description = "Idempotency-Key already used for a different request")
     })
