@@ -117,6 +117,11 @@ public class StoryController {
     }
 
     @Operation(summary = "Get media download URL", description = "Generates a temporary download link for story media (Cloud Storage).")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Presigned download URL"),
+            @ApiResponse(responseCode = "404", description = "Not one of the caller's own media keys (NOT_FOUND)"),
+            @ApiResponse(responseCode = "503", description = "Storage could not sign the URL; retry after Retry-After (MEDIA_UNAVAILABLE)")
+    })
     @GetMapping("/media-download")
     public ResponseEntity<ApiResponseData<String>> getMediaDownloadUrl(
             @Parameter(description = "Storage object name/key") @RequestParam String objectName,

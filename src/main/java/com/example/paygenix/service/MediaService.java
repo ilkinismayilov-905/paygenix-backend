@@ -26,7 +26,7 @@ public class MediaService extends AbstractMediaStorage {
     }
 
     public String upload(MultipartFile file, Long userId) {
-        return uploadForUser(file, bucket, "uploads", userId);
+        return uploadForUser(file, bucket, "uploads", userId, MEDIA_TYPES);
     }
 
     // Stories are only shown to their author today (no follower model), so a user may presign only keys under their own id.

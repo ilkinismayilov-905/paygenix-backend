@@ -172,7 +172,7 @@ public class StoryService {
     // =========================
     // DELETE (ONLY OWNER)
     // =========================
-    @Transactional
+    // Not @Transactional: the row is marked deleted first, then the object is removed outside any DB transaction.
     public void deleteStory(User currentUser, Long storyId) {
         Story story = storyRepo.findById(storyId)
                 .orElseThrow(() -> new NotFoundException("Story not found"));
@@ -183,6 +183,10 @@ public class StoryService {
 
         story.setDeleted(true);
         storyRepo.save(story);
+        // Keys before T-095 were raw file names that other stories may share, so only generated keys are removed.
+        if (story.getObjectName().startsWith("stories/" + currentUser.getId() + "/")) {
+            storyMediaStorage.deleteQuietly(story.getObjectName());
+        }
     }
 
     @Transactional(readOnly = true)

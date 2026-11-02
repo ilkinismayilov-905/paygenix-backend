@@ -49,18 +49,27 @@ class MediaStorageTest {
         ArgumentCaptor<PutObjectArgs> sent = ArgumentCaptor.forClass(PutObjectArgs.class);
         verify(minio).putObject(sent.capture());
         assertThat(sent.getValue().object()).isEqualTo(key);
-        assertThat(withBucket(new MediaService(minio)).upload(file("photo.png"), 7L))
-                .matches("uploads/7/[0-9a-f-]{36}\\.png");
+        assertThat(withBucket(new MediaService(minio)).upload(file("photo.png"), 7L)) // declared image/jpeg wins over the name
+                .matches("uploads/7/[0-9a-f-]{36}\\.jpg");
     }
 
-    // T-095: a bad file name is the client's fault (400), not a retryable storage outage.
+    // T-098: the extension comes from the whitelisted content type, never from the client's file name.
     @ParameterizedTest
     @NullAndEmptySource
-    @ValueSource(strings = {"noextension", "trailingdot.", "a.b/c", "a.j pg", "a.x?y", "a.toolongextension"})
-    void invalidFileNameIsRejectedBeforeStorage(String name) throws Exception {
-        assertThatThrownBy(() -> withBucket(new ProfileMediaStorage(minio)).uploadProfileImage(file(name), 1L))
+    @ValueSource(strings = {"noextension", "page.html", "a.b/c", "evil.svg"})
+    void extensionComesFromContentType(String name) throws Exception {
+        assertThat(withBucket(new ProfileMediaStorage(minio)).uploadProfileImage(file(name), 1L))
+                .matches("profiles/1/[0-9a-f-]{36}\\.jpg");
+    }
+
+    // T-098: a profile photo must be an image; videos are only accepted for stories and generic uploads.
+    @Test
+    void profilePhotoRejectsVideo() throws Exception {
+        MockMultipartFile video = new MockMultipartFile("file", "clip.mp4", "video/mp4", new byte[]{1});
+        assertThatThrownBy(() -> withBucket(new ProfileMediaStorage(minio)).uploadProfileImage(video, 1L))
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST));
         verify(minio, never()).putObject(any());
+        assertThat(withBucket(new StoryMediaStorage(minio)).uploadStoryMedia(video, 1L)).endsWith(".mp4");
     }
 
     // T-096: only image/video types the app serves are stored.
