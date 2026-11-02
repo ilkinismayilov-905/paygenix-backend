@@ -117,12 +117,16 @@ public class SessionService {
 
     @Transactional(readOnly = true)
     public boolean isActive(UUID sessionId, Long userId) {
-        return sessions.existsByIdAndUserIdAndRevokedAtIsNullAndExpiresAtAfter(sessionId, userId, Instant.now());
+        Instant now = Instant.now();
+        return sessions.existsByIdAndUserIdAndRevokedAtIsNullAndExpiresAtAfterAndCreatedAtAfter(
+                sessionId, userId, now, now.minusSeconds(sessionMaxLifetime));
     }
 
     @Transactional(readOnly = true)
     public List<SessionResponse> list(Long userId, UUID currentSessionId) {
-        return sessions.findByUserIdAndRevokedAtIsNullAndExpiresAtAfterOrderByLastUsedAtDesc(userId, Instant.now())
+        Instant now = Instant.now();
+        return sessions.findByUserIdAndRevokedAtIsNullAndExpiresAtAfterAndCreatedAtAfterOrderByLastUsedAtDesc(
+                        userId, now, now.minusSeconds(sessionMaxLifetime))
                 .stream()
                 .map(s -> new SessionResponse(s.getId(), s.getDeviceName(), s.getCreatedAt(), s.getLastUsedAt(),
                         s.getId().equals(currentSessionId)))
