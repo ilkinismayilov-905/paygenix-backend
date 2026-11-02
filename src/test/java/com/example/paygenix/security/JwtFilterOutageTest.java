@@ -5,9 +5,11 @@ import com.example.paygenix.service.JwtService;
 import com.example.paygenix.service.SessionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.QueryTimeoutException;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.CannotCreateTransactionException;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -32,7 +34,8 @@ class JwtFilterOutageTest {
 
         for (RuntimeException outage : new RuntimeException[]{
                 new CannotCreateTransactionException("Could not open JPA EntityManager"),
-                new DataAccessResourceFailureException("Connection refused")}) {
+                new DataAccessResourceFailureException("Connection refused"),
+                new QueryTimeoutException("Query timed out")}) {
             doThrow(outage).when(userDetailsService).loadUserByUsername(anyString());
             MockHttpServletResponse response = new MockHttpServletResponse();
             MockFilterChain chain = new MockFilterChain();
@@ -40,6 +43,7 @@ class JwtFilterOutageTest {
             filter.doFilter(request(), response, chain);
 
             assertThat(response.getStatus()).isEqualTo(503);
+            assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
             assertThat(response.getHeader("Retry-After")).isEqualTo("30");
             assertThat(response.getContentAsString()).contains("\"code\":\"SERVICE_UNAVAILABLE\"");
             assertThat(chain.getRequest()).as("request must not reach the controller").isNull();
