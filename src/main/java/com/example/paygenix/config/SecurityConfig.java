@@ -12,7 +12,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import org.springframework.security.authentication.AccountExpiredException;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
@@ -132,9 +134,11 @@ public class SecurityConfig {
         DaoAuthenticationProvider provider =
                 new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder);
-        // T-077: the lock is checked after the password (SessionService.start), so it is not revealed without one.
-        // The other pre-checks (disabled, expired) are constant true for User.
-        provider.setPreAuthenticationChecks(user -> { });
+        // T-077: the lock is checked after the password (SessionService.start), so it is not revealed without one
+        provider.setPreAuthenticationChecks(user -> {
+            if (!user.isEnabled()) throw new DisabledException("Account is disabled");
+            if (!user.isAccountNonExpired()) throw new AccountExpiredException("Account has expired");
+        });
         return provider;
     }
 }
