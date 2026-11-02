@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 @Slf4j
@@ -17,8 +18,16 @@ public abstract class AbstractMediaStorage {
         this.minioClient = minioClient;
     }
 
+    // shortcut: trusts the declared type (no content sniffing); add magic-byte detection before serving files to other users.
+    private static final Set<String> ALLOWED_CONTENT_TYPES =
+            Set.of("image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4", "video/quicktime", "video/webm");
+
     // The key is generated, never taken from the client, so one user cannot overwrite another user's object.
     protected String uploadForUser(MultipartFile file, String bucket, String prefix, Long userId) {
+        String type = file.getContentType();
+        if (type == null || !ALLOWED_CONTENT_TYPES.contains(type.toLowerCase(Locale.ROOT))) {
+            throw ApiException.validation("Unsupported media type");
+        }
         String objectName = "%s/%d/%s%s".formatted(prefix, userId, UUID.randomUUID(), extension(file.getOriginalFilename()));
         uploadInternal(file, bucket, objectName);
         return objectName;

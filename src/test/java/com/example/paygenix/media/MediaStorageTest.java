@@ -1,6 +1,7 @@
 package com.example.paygenix.media;
 
 import com.example.paygenix.exceptions.ApiException;
+import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.service.MediaService;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
@@ -60,6 +61,43 @@ class MediaStorageTest {
         assertThatThrownBy(() -> withBucket(new ProfileMediaStorage(minio)).uploadProfileImage(file(name), 1L))
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST));
         verify(minio, never()).putObject(any());
+    }
+
+    // T-096: only image/video types the app serves are stored.
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"text/html", "image/svg+xml", "application/octet-stream"})
+    void unsupportedContentTypeIsRejected(String type) throws Exception {
+        MockMultipartFile html = new MockMultipartFile("file", "page.jpg", type, new byte[]{1});
+        assertThatThrownBy(() -> withBucket(new MediaService(minio)).upload(html, 1L))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST));
+        verify(minio, never()).putObject(any());
+    }
+
+    // T-096: a user may presign only their own keys; anything else looks like a missing object.
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {
+            "stories/2/3f2b9c1e-7a4d-4e8a-9b1c-2d5e6f7a8b9c.jpg",
+            "uploads/12/3f2b9c1e-7a4d-4e8a-9b1c-2d5e6f7a8b9c.jpg",
+            "stories/1/../2/3f2b9c1e-7a4d-4e8a-9b1c-2d5e6f7a8b9c.jpg",
+            "profiles/1/3f2b9c1e-7a4d-4e8a-9b1c-2d5e6f7a8b9c.jpg",
+            "centralBaku.jpeg"})
+    void foreignKeyIsNotFound(String key) throws Exception {
+        assertThatThrownBy(() -> withBucket(new MediaService(minio)).getOwnDownloadUrl(1L, key))
+                .isInstanceOf(NotFoundException.class);
+        verify(minio, never()).getPresignedObjectUrl(any());
+    }
+
+    @Test
+    void ownKeyIsPresigned() throws Exception {
+        when(minio.getPresignedObjectUrl(any(GetPresignedObjectUrlArgs.class))).thenReturn("https://signed");
+
+        MediaService media = withBucket(new MediaService(minio));
+        ReflectionTestUtils.setField(media, "presignSeconds", 60);
+
+        assertThat(media.getOwnDownloadUrl(1L, "stories/1/3f2b9c1e-7a4d-4e8a-9b1c-2d5e6f7a8b9c.jpg"))
+                .isEqualTo("https://signed");
     }
 
     // T-083: a storage outage is reported as a retryable 503, not a generic 500.

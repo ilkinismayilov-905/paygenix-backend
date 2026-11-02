@@ -87,7 +87,7 @@ public class UserController {
 
     @Operation(
             summary = "Get media download URL",
-            description = "Generates a temporary or direct download URL for a previously uploaded media object."
+            description = "Generates a temporary download URL for one of the caller's own uploaded media objects."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Download URL generated successfully"),
@@ -97,10 +97,10 @@ public class UserController {
     @GetMapping("/media-download")
     public ResponseEntity<ApiResponseData<String>> downloadMedia(
             @Parameter(description = "The unique storage object name/key", example = "uploads/1/3f2b9c1e-7a4d-4e8a-9b1c-2d5e6f7a8b9c.jpg")
-            @RequestParam String objectName
+            @RequestParam String objectName,
+            @AuthenticationPrincipal User user
     ) {
-        log.info("Generating download URL for media object: {}", objectName);
-        String downloadUrl = mediaService.getDownloadUrl(objectName);
+        String downloadUrl = mediaService.getOwnDownloadUrl(user.getId(), objectName);
         return ResponseEntity.ok(ApiResponseData.success(downloadUrl));
     }
 }
