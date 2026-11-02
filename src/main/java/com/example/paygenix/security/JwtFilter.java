@@ -10,12 +10,15 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.QueryTimeoutException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -30,6 +33,7 @@ public class JwtFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
     private final SessionService sessionService;
+    private final JwtAuthenticationEntryPoint problemWriter;
 
     @Override
     protected void doFilterInternal(
@@ -126,6 +130,12 @@ public class JwtFilter extends OncePerRequestFilter {
                 }
             }
 
+        } catch (DataAccessResourceFailureException | QueryTimeoutException | CannotCreateTransactionException e) {
+            // T-100: a DB/Redis outage is not a bad token; a 401 here would make clients log the user out
+            log.warn("Backing store unavailable during authentication: {}", e.getMessage());
+            SecurityContextHolder.clearContext();
+            problemWriter.serviceUnavailable(response);
+            return;
         } catch (Exception e) {
             log.debug("JWT authentication failed: {}", e.getMessage());
             SecurityContextHolder.clearContext();
