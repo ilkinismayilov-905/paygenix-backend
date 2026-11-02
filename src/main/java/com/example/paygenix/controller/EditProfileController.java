@@ -2,7 +2,7 @@ package com.example.paygenix.controller;
 
 import com.example.paygenix.dto.ApiResponseData;
 import com.example.paygenix.dto.request.EditProfileRequest;
-import com.example.paygenix.dto.request.EmailRequest;
+import com.example.paygenix.dto.request.EmailChangeRequest;
 import com.example.paygenix.dto.request.OtpRequest;
 import com.example.paygenix.dto.response.EditProfileResponse;
 import com.example.paygenix.entity.User;
@@ -64,19 +64,21 @@ public class EditProfileController {
         ));
     }
 
-    @Operation(summary = "Start an email change", description = "Sends a 6-digit code to the new address. "
-            + "The email changes only after POST /api/profile/email/confirm with that code (within 10 minutes).")
+    @Operation(summary = "Start an email change", description = "Needs the current PIN. Sends a 6-digit code to the new address. "
+            + "The email changes only after POST /api/profile/email/confirm with that code (within 10 minutes); "
+            + "the old address is then notified.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Code sent to the new address"),
-            @ApiResponse(responseCode = "400", description = "Not an email address (VALIDATION_FAILED)"),
+            @ApiResponse(responseCode = "400", description = "Not an email address or PIN not 6 digits (VALIDATION_FAILED)"),
+            @ApiResponse(responseCode = "403", description = "Wrong PIN (INVALID_PIN) or no PIN set yet (PIN_NOT_SET)"),
             @ApiResponse(responseCode = "409", description = "Email already taken (EMAIL_TAKEN); still counts toward the cooldown and daily limit"),
             @ApiResponse(responseCode = "429", description = "Code requested within the last minute (OTP_SEND_TOO_FREQUENT) "
-                    + "or more than 5 changes today (EMAIL_CHANGE_LIMIT); see Retry-After")
+                    + "or more than 5 changes today (EMAIL_CHANGE_LIMIT) or too many wrong PINs (PIN_LOCKED); see Retry-After")
     })
     @PostMapping("/email")
     public ResponseEntity<ApiResponseData<Void>> startEmailChange(@AuthenticationPrincipal User user,
-                                                                  @Valid @RequestBody EmailRequest request) {
-        emailChangeService.start(user.getId(), request.email());
+                                                                  @Valid @RequestBody EmailChangeRequest request) {
+        emailChangeService.start(user.getId(), request.email(), request.pin());
         return ResponseEntity.ok(ApiResponseData.success(null));
     }
 

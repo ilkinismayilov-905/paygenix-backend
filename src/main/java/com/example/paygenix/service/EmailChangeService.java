@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Duration;
 import java.util.List;
@@ -25,6 +26,8 @@ import java.util.Map;
  * can claim an address they do not own. The pending change lives in Redis for 10 minutes with at most 5 OTP tries.
  * Codes can be requested once a minute and 5 times a day per user, so restarting cannot be used to keep guessing.
  * The email is the login name and the token subject, so a confirmed change signs out every device.
+ * Starting needs the current PIN, so a stolen access token alone cannot move the account; the old address is told
+ * about the change.
  */
 @Service
 @RequiredArgsConstructor
@@ -45,8 +48,12 @@ public class EmailChangeService {
     private final PasswordEncoder encoder;
     private final EmailService emailService;
     private final SessionService sessionService;
+    private final PinValidationService pinValidationService; // shares the PIN lockout with payments
+    private final TransactionTemplate transactionTemplate;
 
-    public void start(Long userId, String newEmail) {
+    public void start(Long userId, String newEmail, String pin) {
+        // own short transaction: validatePin locks the user row, which must not stay locked while mail is sent
+        transactionTemplate.executeWithoutResult(tx -> pinValidationService.validatePin(userId, pin));
         if (!Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(COOLDOWN_PREFIX + userId, "1", SEND_COOLDOWN))) {
             throw ApiException.otpSendTooFrequent(SEND_COOLDOWN);
         }
@@ -98,6 +105,7 @@ public class EmailChangeService {
         if (user.getProvider() == User.AuthProvider.GOOGLE && user.getUsername().equals(user.getEmail())) {
             user.setUsername(newEmail); // Google accounts use the email as username; keep them in step
         }
+        String oldEmail = user.getEmail();
         user.setEmail(newEmail);
         try {
             userRepository.saveAndFlush(user);
@@ -107,6 +115,12 @@ public class EmailChangeService {
         }
         sessionService.revokeAll(userId);
         log.info("Email changed for user {}", userId);
+        try {
+            emailService.sendEmailChanged(oldEmail);
+        } catch (RuntimeException e) {
+            // the change is confirmed by the new address; a mail outage must not undo it
+            log.warn("Could not notify the old address of user {} about the email change", userId, e);
+        }
     }
 
     private static ApiException emailTaken() {
