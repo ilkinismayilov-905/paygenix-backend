@@ -43,6 +43,7 @@ public class User implements UserDetails {
     public static String normalizeEmail(String email) {
         return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
     }
+
     @Id
     @ToString.Include
     @GeneratedValue(strategy = GenerationType.IDENTITY)
