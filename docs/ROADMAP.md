@@ -16,7 +16,7 @@ This roadmap orders the work by risk. Security and money correctness come before
 | 7. Money core | Double-entry ledger, configurable fees, idempotency keys, payment state machine, Stripe sandbox top-up, phone top-up adapter | — |
 | 8. Flows | KYC with manual admin review, admin API, promo stories, paginated history, `/api/v1` | — |
 | 9. Quality & docs | Clean architecture refactors, observability, complete OpenAPI, portfolio README | v0.2.0 |
-| 10. Product | Frontend (including simple admin UI) | v0.3.0 |
+| 10. Product | Frontend (including simple admin UI). Started early, before milestones 8–9 are finished | v0.3.0 |
 | 11. Release | Deployment preparation and a fresh, hardened server | v1.0.0 |
 
 > **Before the repository is made public:** ask GitHub Support to run a sensitive data removal for the `refs/pull/*` refs. They still point to commits from before the history rewrite, and only GitHub can purge them and their cached views.
@@ -32,6 +32,8 @@ This roadmap orders the work by risk. Security and money correctness come before
 - **Separate credentials.** A password is used for login. A 6-digit PIN confirms transactions and has an attempt limit.
 - **Breaking API changes are allowed.** All endpoints move under `/api/v1`.
 - **Schema managed by Flyway**, starting from a clean baseline.
+- **Frontend before the docs milestone.** Frontend work started on 2026-11-03, while milestone 8 (flows) and milestone 9 (docs) are still open. Backend gaps that a screen needs are closed before that screen is built (docs/frontend/screens.md).
+- **No separate design phase.** There is no Figma step. The design system is built in code first (light/dark color tokens, typography, spacing, core components), then the screens flow by flow, reviewed in the browser. Stack: docs/adr/0001-frontend-stack.md.
 
 ## Out of scope
 
