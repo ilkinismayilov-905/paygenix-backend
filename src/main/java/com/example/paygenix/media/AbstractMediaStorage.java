@@ -6,6 +6,7 @@ import io.minio.PutObjectArgs;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Locale;
 import java.util.UUID;
 
 @Slf4j
@@ -49,9 +50,9 @@ public abstract class AbstractMediaStorage {
     private static String extension(String filename) {
         int dot = filename == null ? -1 : filename.lastIndexOf('.');
         String extension = dot < 0 ? "" : filename.substring(dot);
-        if (extension.length() < 2 || extension.contains("/") || extension.contains("\\")) {
+        if (!extension.matches("\\.[A-Za-z0-9]{1,10}")) {
             throw ApiException.validation("Invalid file name");
         }
-        return extension;
+        return extension.toLowerCase(Locale.ROOT);
     }
 }

@@ -68,11 +68,12 @@ public class UserController {
 
     @Operation(
             summary = "Upload media file",
-            description = "Uploads a generic media file (e.g., document, image) to the cloud storage and returns the object key/URL."
+            description = "Uploads a generic media file (e.g., document, image) to the cloud storage and returns its generated object key (uploads/{userId}/{uuid}.{ext})."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Media uploaded successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid file format or empty file")
+            @ApiResponse(responseCode = "400", description = "Invalid file name"),
+            @ApiResponse(responseCode = "503", description = "Media storage unavailable (MEDIA_UPLOAD_FAILED); see Retry-After")
     })
     @PostMapping(value = "/media", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponseData<String>> uploadMedia(
@@ -90,11 +91,12 @@ public class UserController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Download URL generated successfully"),
-            @ApiResponse(responseCode = "404", description = "Media object not found")
+            @ApiResponse(responseCode = "404", description = "Media object not found"),
+            @ApiResponse(responseCode = "503", description = "Media storage unavailable (MEDIA_UNAVAILABLE); see Retry-After")
     })
     @GetMapping("/media-download")
     public ResponseEntity<ApiResponseData<String>> downloadMedia(
-            @Parameter(description = "The unique storage object name/key", example = "profile-images/user123.jpg")
+            @Parameter(description = "The unique storage object name/key", example = "uploads/1/3f2b9c1e-7a4d-4e8a-9b1c-2d5e6f7a8b9c.jpg")
             @RequestParam String objectName
     ) {
         log.info("Generating download URL for media object: {}", objectName);
