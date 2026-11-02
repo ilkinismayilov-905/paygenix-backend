@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Locale;
-import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -18,17 +18,23 @@ public abstract class AbstractMediaStorage {
         this.minioClient = minioClient;
     }
 
-    // shortcut: trusts the declared type (no content sniffing); add magic-byte detection before serving files to other users.
-    private static final Set<String> ALLOWED_CONTENT_TYPES =
-            Set.of("image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4", "video/quicktime", "video/webm");
+    // shortcut: trusts the declared type (no content sniffing); media is only served back to its owner today,
+    // add magic-byte detection before serving files to other users.
+    // The extension comes from the whitelisted type, never from the client's file name (x.html sent as image/jpeg is stored as .jpg).
+    protected static final Map<String, String> IMAGE_TYPES = Map.of(
+            "image/jpeg", ".jpg", "image/png", ".png", "image/webp", ".webp", "image/gif", ".gif");
+    protected static final Map<String, String> MEDIA_TYPES = Map.of(
+            "image/jpeg", ".jpg", "image/png", ".png", "image/webp", ".webp", "image/gif", ".gif",
+            "video/mp4", ".mp4", "video/quicktime", ".mov", "video/webm", ".webm");
 
     // The key is generated, never taken from the client, so one user cannot overwrite another user's object.
-    protected String uploadForUser(MultipartFile file, String bucket, String prefix, Long userId) {
+    protected String uploadForUser(MultipartFile file, String bucket, String prefix, Long userId, Map<String, String> allowedTypes) {
         String type = file.getContentType();
-        if (type == null || !ALLOWED_CONTENT_TYPES.contains(type.toLowerCase(Locale.ROOT))) {
+        String extension = type == null ? null : allowedTypes.get(type.toLowerCase(Locale.ROOT));
+        if (extension == null) {
             throw ApiException.validation("Unsupported media type");
         }
-        String objectName = "%s/%d/%s%s".formatted(prefix, userId, UUID.randomUUID(), extension(file.getOriginalFilename()));
+        String objectName = "%s/%d/%s%s".formatted(prefix, userId, UUID.randomUUID(), extension);
         uploadInternal(file, bucket, objectName);
         return objectName;
     }
@@ -54,14 +60,5 @@ public abstract class AbstractMediaStorage {
             log.error("Media upload to bucket {} failed", bucket, e);
             throw ApiException.mediaUploadFailed();
         }
-    }
-
-    private static String extension(String filename) {
-        int dot = filename == null ? -1 : filename.lastIndexOf('.');
-        String extension = dot < 0 ? "" : filename.substring(dot);
-        if (!extension.matches("\\.[A-Za-z0-9]{1,10}")) {
-            throw ApiException.validation("Invalid file name");
-        }
-        return extension.toLowerCase(Locale.ROOT);
     }
 }

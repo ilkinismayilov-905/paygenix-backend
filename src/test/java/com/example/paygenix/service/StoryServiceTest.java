@@ -15,12 +15,14 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -65,5 +67,23 @@ class StoryServiceTest {
         assertThatThrownBy(() -> service.uploadStory(user(), file, MediaType.IMAGE, StoryVisibility.PUBLIC))
                 .isInstanceOf(DataIntegrityViolationException.class);
         verify(storage).deleteQuietly("stories/7/a.jpg");
+    }
+
+    // T-098: deleting a story removes its object, so the owner can no longer presign it.
+    @Test
+    void deleteRemovesGeneratedObjectButNotLegacySharedKeys() {
+        User u = user();
+        Story fresh = Story.builder().id(1L).user(u).objectName("stories/7/a.jpg").build();
+        Story legacy = Story.builder().id(2L).user(u).objectName("centralBaku.jpeg").build();
+        when(storyRepo.findById(1L)).thenReturn(Optional.of(fresh));
+        when(storyRepo.findById(2L)).thenReturn(Optional.of(legacy));
+
+        service.deleteStory(u, 1L);
+        service.deleteStory(u, 2L);
+
+        assertThat(fresh.isDeleted()).isTrue();
+        assertThat(legacy.isDeleted()).isTrue();
+        verify(storage).deleteQuietly("stories/7/a.jpg");
+        verify(storage, never()).deleteQuietly("centralBaku.jpeg");
     }
 }

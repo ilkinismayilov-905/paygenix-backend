@@ -19,7 +19,7 @@ public class StoryMediaStorage extends AbstractMediaStorage {
     }
 
     public String uploadStoryMedia(MultipartFile file, Long userId) {
-        return uploadForUser(file, bucket, "stories", userId);
+        return uploadForUser(file, bucket, "stories", userId, MEDIA_TYPES);
     }
 
     // Best effort: called while another error is already being reported, so a failure here is only logged.

@@ -16,6 +16,6 @@ public class ProfileMediaStorage extends AbstractMediaStorage {
     }
 
     public String uploadProfileImage(MultipartFile file, Long userId) {
-        return uploadForUser(file, bucket, "profiles", userId);
+        return uploadForUser(file, bucket, "profiles", userId, IMAGE_TYPES);
     }
 }
