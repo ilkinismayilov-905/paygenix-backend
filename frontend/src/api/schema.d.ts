@@ -491,7 +491,7 @@ export interface paths {
         put?: never;
         /**
          * Token yeniləmə (Refresh)
-         * @description Rotates the refresh token: the old one stops working. Presenting an already rotated refresh token revokes the whole session.
+         * @description Reads the refresh token from the pg_refresh cookie and rotates it: the old one stops working. Presenting an already rotated refresh token revokes the whole session. The request must carry an allowed Origin header.
          */
         post: operations["refreshToken"];
         delete?: never;
@@ -1141,9 +1141,6 @@ export interface components {
             cardNumber?: string;
             card?: components["schemas"]["CardResponse"];
         };
-        RefreshTokenRequest: {
-            refreshToken: string;
-        };
         ApiResponseDataJwtTokenResponse: {
             /** Format: date-time */
             timestamp?: string;
@@ -1154,7 +1151,6 @@ export interface components {
         };
         JwtTokenResponse: {
             token?: string;
-            refreshToken?: string;
             tokenType?: string;
             /** Format: int64 */
             expiresIn?: number;
@@ -2660,14 +2656,9 @@ export interface operations {
                 pg_refresh?: string;
             };
         };
-        /** @description Optional: without a body the refresh token is read from the pg_refresh cookie, and the request must carry an allowed Origin header. */
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RefreshTokenRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
-            /** @description New access and refresh token */
+            /** @description New access token; the rotated refresh token is set as the cookie */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2676,7 +2667,7 @@ export interface operations {
                     "*/*": components["schemas"]["ApiResponseDataJwtTokenResponse"];
                 };
             };
-            /** @description Invalid, expired or revoked (INVALID_REFRESH_TOKEN), reused (REFRESH_TOKEN_REUSED), or a cookie refresh from an origin that is not allowed (REFRESH_ORIGIN_REJECTED) */
+            /** @description Missing, invalid, expired or revoked (INVALID_REFRESH_TOKEN), reused (REFRESH_TOKEN_REUSED), or from an origin that is not allowed (REFRESH_ORIGIN_REJECTED) */
             401: {
                 headers: {
                     [name: string]: unknown;

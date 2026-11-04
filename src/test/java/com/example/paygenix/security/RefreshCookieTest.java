@@ -2,7 +2,7 @@ package com.example.paygenix.security;
 
 import com.example.paygenix.dto.response.JwtTokenResponse;
 import com.example.paygenix.entity.User;
-import com.jayway.jsonpath.JsonPath;
+import com.example.paygenix.service.JwtService;
 import com.example.paygenix.service.OAuthCodeService;
 import com.example.paygenix.support.IntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,8 +32,9 @@ class RefreshCookieTest extends IntegrationTest {
                 .andExpect(status().isOk()).andReturn().getResponse();
 
         String cookie = res.getHeader("Set-Cookie");
-        assertThat(cookie).startsWith(RefreshCookie.NAME + "=" + JsonPath.read(res.getContentAsString(), "$.data.refreshToken") + ";")
-                .contains("Path=/api/auth", "HttpOnly", "Secure", "SameSite=Strict", "Max-Age=604800");
+        assertThat(jwtService.extractTokenUse(refreshCookieOf(res))).isEqualTo(JwtService.REFRESH);
+        assertThat(res.getContentAsString()).as("T-116: the refresh token is never in the body").doesNotContain("refreshToken");
+        assertThat(cookie).contains("Path=/api/auth", "HttpOnly", "Secure", "SameSite=Strict", "Max-Age=604800");
     }
 
     @Test
@@ -42,8 +43,8 @@ class RefreshCookieTest extends IntegrationTest {
 
         MockHttpServletResponse res = cookieRefresh(login.refreshToken(), ORIGIN)
                 .andExpect(status().isOk()).andReturn().getResponse();
-        String rotated = JsonPath.read(res.getContentAsString(), "$.data.refreshToken");
-        assertThat(res.getHeader("Set-Cookie")).startsWith(RefreshCookie.NAME + "=" + rotated + ";");
+        String rotated = refreshCookieOf(res);
+        assertThat(res.getContentAsString()).doesNotContain("refreshToken");
         assertThat(rotated).isNotEqualTo(login.refreshToken());
 
         String cleared = cookieRefresh(login.refreshToken(), ORIGIN).andExpect(status().isUnauthorized())
@@ -53,12 +54,13 @@ class RefreshCookieTest extends IntegrationTest {
     }
 
     @Test
-    void aBodyTokenWinsOverTheCookieAndNeedsNoOrigin() throws Exception {
+    void aBodyTokenIsNoLongerAccepted() throws Exception {
         JwtTokenResponse login = sessionService.start(createUser(), "app");
-        mockMvc.perform(post("/api/auth/refresh-token").cookie(new Cookie(RefreshCookie.NAME, "garbage"))
-                        .contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/api/auth/refresh-token").header("Origin", ORIGIN).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"refreshToken\":\"" + login.refreshToken() + "\"}"))
-                .andExpect(status().isOk());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_REFRESH_TOKEN"));
+        cookieRefresh(login.refreshToken(), ORIGIN).andExpect(status().isOk());
     }
 
     @Test
