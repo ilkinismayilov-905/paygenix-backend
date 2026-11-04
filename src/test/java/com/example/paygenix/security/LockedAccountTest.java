@@ -25,8 +25,7 @@ class LockedAccountTest extends IntegrationTest {
                 .andExpect(jsonPath("$.code").value("ACCOUNT_LOCKED"));
         mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + tokens.token()))
                 .andExpect(status().isUnauthorized());
-        mockMvc.perform(post("/api/auth/refresh-token").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"refreshToken\":\"" + tokens.refreshToken() + "\"}"))
+        cookieRefresh(tokens.refreshToken())
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_REFRESH_TOKEN"));
     }

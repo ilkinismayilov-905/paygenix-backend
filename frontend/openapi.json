@@ -1668,7 +1668,7 @@
       "post" : {
         "tags" : [ "Authentication" ],
         "summary" : "Token yeniləmə (Refresh)",
-        "description" : "Rotates the refresh token: the old one stops working. Presenting an already rotated refresh token revokes the whole session.",
+        "description" : "Reads the refresh token from the pg_refresh cookie and rotates it: the old one stops working. Presenting an already rotated refresh token revokes the whole session. The request must carry an allowed Origin header.",
         "operationId" : "refreshToken",
         "parameters" : [ {
           "name" : "pg_refresh",
@@ -1685,19 +1685,9 @@
             "type" : "string"
           }
         } ],
-        "requestBody" : {
-          "description" : "Optional: without a body the refresh token is read from the pg_refresh cookie, and the request must carry an allowed Origin header.",
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/RefreshTokenRequest"
-              }
-            }
-          }
-        },
         "responses" : {
           "200" : {
-            "description" : "New access and refresh token",
+            "description" : "New access token; the rotated refresh token is set as the cookie",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -1707,7 +1697,7 @@
             }
           },
           "401" : {
-            "description" : "Invalid, expired or revoked (INVALID_REFRESH_TOKEN), reused (REFRESH_TOKEN_REUSED), or a cookie refresh from an origin that is not allowed (REFRESH_ORIGIN_REJECTED)"
+            "description" : "Missing, invalid, expired or revoked (INVALID_REFRESH_TOKEN), reused (REFRESH_TOKEN_REUSED), or from an origin that is not allowed (REFRESH_ORIGIN_REJECTED)"
           }
         }
       }
@@ -3102,17 +3092,6 @@
           }
         }
       },
-      "RefreshTokenRequest" : {
-        "type" : "object",
-        "properties" : {
-          "refreshToken" : {
-            "type" : "string",
-            "maxLength" : 2048,
-            "minLength" : 0
-          }
-        },
-        "required" : [ "refreshToken" ]
-      },
       "ApiResponseDataJwtTokenResponse" : {
         "type" : "object",
         "properties" : {
@@ -3136,9 +3115,6 @@
         "type" : "object",
         "properties" : {
           "token" : {
-            "type" : "string"
-          },
-          "refreshToken" : {
             "type" : "string"
           },
           "tokenType" : {

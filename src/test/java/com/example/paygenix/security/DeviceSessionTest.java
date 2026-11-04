@@ -33,8 +33,7 @@ class DeviceSessionTest extends IntegrationTest {
     void refreshRotatesTheToken() throws Exception {
         JwtTokenResponse login = sessionService.start(createUser(), "phone");
 
-        String rotated = refresh(login.refreshToken()).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        String newRefresh = JsonPath.read(rotated, "$.data.refreshToken");
+        String newRefresh = refreshCookieOf(refresh(login.refreshToken()).andExpect(status().isOk()).andReturn().getResponse());
 
         // issued in the same second as the login token, still different (was a unique-key 500 before jti)
         assertThat(newRefresh).isNotEqualTo(login.refreshToken());
@@ -44,9 +43,9 @@ class DeviceSessionTest extends IntegrationTest {
     @Test
     void reusingARotatedTokenRevokesTheSession() throws Exception {
         JwtTokenResponse login = sessionService.start(createUser(), "phone");
-        String rotated = refresh(login.refreshToken()).andReturn().getResponse().getContentAsString();
-        String newRefresh = JsonPath.read(rotated, "$.data.refreshToken");
-        String newAccess = JsonPath.read(rotated, "$.data.token");
+        var res = refresh(login.refreshToken()).andReturn().getResponse();
+        String newRefresh = refreshCookieOf(res);
+        String newAccess = JsonPath.read(res.getContentAsString(), "$.data.token");
 
         refresh(login.refreshToken()).andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("REFRESH_TOKEN_REUSED"));
@@ -213,8 +212,7 @@ class DeviceSessionTest extends IntegrationTest {
     }
 
     private ResultActions refresh(String refreshToken) throws Exception {
-        return mockMvc.perform(post("/api/auth/refresh-token").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"refreshToken\":\"" + refreshToken + "\"}"));
+        return cookieRefresh(refreshToken);
     }
 
     private int meStatus(String authorization) throws Exception {

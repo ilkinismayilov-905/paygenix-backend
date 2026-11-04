@@ -88,14 +88,6 @@ class DtoValidationTest extends IntegrationTest {
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
     }
 
-    @Test
-    void refreshRejectsOversizedToken() throws Exception {
-        mockMvc.perform(post("/api/auth/refresh-token").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"refreshToken\":\"" + "x".repeat(2049) + "\"}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
-    }
-
     private ResultActions send(org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request,
                                String authorization, String body) throws Exception {
         return mockMvc.perform(request.header("Authorization", authorization)

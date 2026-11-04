@@ -3,7 +3,6 @@ package com.example.paygenix.controller;
 import com.example.paygenix.dto.ApiResponseData;
 import com.example.paygenix.dto.request.LoginRequest;
 import com.example.paygenix.dto.request.OAuthExchangeRequest;
-import com.example.paygenix.dto.request.RefreshTokenRequest;
 import com.example.paygenix.dto.response.JwtTokenResponse;
 import com.example.paygenix.dto.response.UserMeResponse;
 import com.example.paygenix.entity.User;
@@ -86,35 +85,30 @@ public class AuthController {
         throw new UserNotLoginException("User session is invalid or not found");
     }
 
-    @Operation(summary = "Token yeniləmə (Refresh)", description = "Rotates the refresh token: the old one stops working. "
-            + "Presenting an already rotated refresh token revokes the whole session.")
+    @Operation(summary = "Token yeniləmə (Refresh)", description = "Reads the refresh token from the " + RefreshCookie.NAME
+            + " cookie and rotates it: the old one stops working. Presenting an already rotated refresh token revokes the whole "
+            + "session. The request must carry an allowed Origin header.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "New access and refresh token"),
-            @ApiResponse(responseCode = "401", description = "Invalid, expired or revoked (INVALID_REFRESH_TOKEN), reused (REFRESH_TOKEN_REUSED), "
-                    + "or a cookie refresh from an origin that is not allowed (REFRESH_ORIGIN_REJECTED)", content = @Content)
+            @ApiResponse(responseCode = "200", description = "New access token; the rotated refresh token is set as the cookie"),
+            @ApiResponse(responseCode = "401", description = "Missing, invalid, expired or revoked (INVALID_REFRESH_TOKEN), reused (REFRESH_TOKEN_REUSED), "
+                    + "or from an origin that is not allowed (REFRESH_ORIGIN_REJECTED)", content = @Content)
     })
     @PostMapping("/refresh-token")
     public ResponseEntity<ApiResponseData<JwtTokenResponse>> refreshToken(
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Optional: without a body the refresh token is read from the "
-                    + RefreshCookie.NAME + " cookie, and the request must carry an allowed Origin header.")
-            @Valid @RequestBody(required = false) RefreshTokenRequest requestDTO,
             @CookieValue(name = RefreshCookie.NAME, required = false) String cookieToken,
             @RequestHeader(value = HttpHeaders.ORIGIN, required = false) String origin,
             HttpServletResponse servletResponse) {
         log.info("Refresh token request received");
-        if (requestDTO == null) {
-            // The browser attaches the cookie on its own, so this path needs the CSRF check.
-            refreshCookie.checkOrigin(origin);
-            if (cookieToken == null || cookieToken.isBlank()) throw InvalidRefreshTokenException.invalid();
-            try {
-                return withCookie(sessionService.refresh(cookieToken), "Token refreshed successfully");
-            } catch (InvalidRefreshTokenException dead) {
-                // The cookie can never work again; drop it so the browser stops sending it.
-                servletResponse.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.clear());
-                throw dead;
-            }
+        // The browser attaches the cookie on its own, so this needs the CSRF check.
+        refreshCookie.checkOrigin(origin);
+        if (cookieToken == null || cookieToken.isBlank()) throw InvalidRefreshTokenException.invalid();
+        try {
+            return withCookie(sessionService.refresh(cookieToken), "Token refreshed successfully");
+        } catch (InvalidRefreshTokenException dead) {
+            // The cookie can never work again; drop it so the browser stops sending it.
+            servletResponse.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.clear());
+            throw dead;
         }
-        return withCookie(sessionService.refresh(requestDTO.refreshToken()), "Token refreshed successfully");
     }
 
     @Operation(summary = "Sign out this browser", description = "Revokes the session of the " + RefreshCookie.NAME
@@ -151,7 +145,6 @@ public class AuthController {
     }
 
     private ResponseEntity<ApiResponseData<JwtTokenResponse>> withCookie(JwtTokenResponse tokens, String message) {
-        // shortcut: the refresh token is also still in the body until the frontend reads only the cookie (T-116).
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, refreshCookie.issue(tokens.refreshToken()))
                 .body(ApiResponseData.build(HttpStatus.OK, message, tokens));

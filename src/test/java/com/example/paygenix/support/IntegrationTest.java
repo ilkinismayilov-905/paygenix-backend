@@ -55,6 +55,21 @@ public abstract class IntegrationTest {
     @Autowired protected TransactionTemplate transactionTemplate;
     @Autowired protected JdbcTemplate jdbc;
 
+    protected static final String ALLOWED_ORIGIN = "http://localhost:3000";
+
+    /** A browser refresh: the token as the refresh cookie, from the frontend's origin. */
+    protected org.springframework.test.web.servlet.ResultActions cookieRefresh(String refreshToken) throws Exception {
+        return mockMvc.perform(post("/api/auth/refresh-token").header("Origin", ALLOWED_ORIGIN)
+                .cookie(new jakarta.servlet.http.Cookie(com.example.paygenix.security.RefreshCookie.NAME, refreshToken)));
+    }
+
+    /** The refresh token a response set as the cookie. */
+    protected static String refreshCookieOf(org.springframework.mock.web.MockHttpServletResponse res) {
+        String header = res.getHeader("Set-Cookie");
+        assertThat(header).startsWith(com.example.paygenix.security.RefreshCookie.NAME + "=");
+        return header.substring(header.indexOf('=') + 1, header.indexOf(';'));
+    }
+
     protected User createUser(Role... roles) {
         String id = UUID.randomUUID().toString().substring(0, 8);
         return userRepository.save(User.builder()
