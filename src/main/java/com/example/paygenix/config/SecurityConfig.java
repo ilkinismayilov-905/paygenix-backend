@@ -101,7 +101,8 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // SEC-21: exact origins from config; auth is a Bearer header, so no credentials (cookies) are allowed cross-origin
+    // SEC-21: exact origins from config; auth is a Bearer header, so no credentials (cookies) are allowed cross-origin.
+    // The refresh cookie (T-109) therefore only works same-origin: the Vite proxy in dev, nginx in production.
     @Bean
     CorsConfigurationSource corsConfigurationSource(@Value("${app.cors.allowed-origins}") List<String> allowedOrigins) {
         CorsConfiguration cors = new CorsConfiguration();
