@@ -34,6 +34,30 @@ jobs:
       # Integration tests start Postgres and Redis via Testcontainers (Docker is available on ubuntu-latest).
       - run: ./mvnw -B -ntp verify
 
+  frontend:
+    name: frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      # openapi.json is kept in sync with the backend by OpenApiSnapshotTest; this keeps the types in sync with it
+      - run: npm run api:generate && git diff --exit-code -- src/api/schema.d.ts
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
   dependency-scan:
     name: dependency-scan
     runs-on: ubuntu-latest

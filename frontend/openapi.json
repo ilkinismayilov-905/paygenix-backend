@@ -1,0 +1,3675 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "title" : "Paygenix",
+    "version" : "v1"
+  },
+  "servers" : [ {
+    "url" : "/",
+    "description" : "Default Server URL"
+  } ],
+  "security" : [ {
+    "bearerAuth" : [ ]
+  } ],
+  "tags" : [ {
+    "name" : "Legal Documents",
+    "description" : "APIs for retrieving active Terms of Service and Privacy Policy"
+  }, {
+    "name" : "Profile Management",
+    "description" : "APIs for updating user profiles and profile pictures"
+  }, {
+    "name" : "PIN Management",
+    "description" : "APIs for secure PIN change workflow including OTP verification"
+  }, {
+    "name" : "Payment Management",
+    "description" : "APIs for initiating, confirming, and viewing payment transactions"
+  }, {
+    "name" : "Sessions",
+    "description" : "Signed-in devices of the current user"
+  }, {
+    "name" : "Card Management",
+    "description" : "Virtual cards: issue, list and close"
+  }, {
+    "name" : "Account Verification",
+    "description" : "APIs for verifying user identity and uploading verification documents"
+  }, {
+    "name" : "Transfer Management",
+    "description" : "APIs for executing and viewing money transfers"
+  }, {
+    "name" : "User Management",
+    "description" : "APIs for user data retrieval and generic media file handling"
+  }, {
+    "name" : "Onboarding",
+    "description" : "APIs for user registration and onboarding workflow"
+  }, {
+    "name" : "Stories",
+    "description" : "APIs for uploading, viewing, and managing temporary stories"
+  }, {
+    "name" : "Problem Reporting",
+    "description" : "APIs for submitting and viewing user problem reports/tickets"
+  }, {
+    "name" : "Authentication",
+    "description" : "İstifadəçi girişi, token yenilənməsi və profil məlumatları üçün API-lar"
+  }, {
+    "name" : "Transaction Management",
+    "description" : "APIs for viewing and filtering financial transaction history"
+  } ],
+  "paths" : {
+    "/api/onboarding/{flowId}/username" : {
+      "put" : {
+        "tags" : [ "Onboarding" ],
+        "summary" : "Set username",
+        "description" : "Assigns a unique username to the user during onboarding.",
+        "operationId" : "setUsername",
+        "parameters" : [ {
+          "name" : "flowId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UsernameRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Username set",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Username taken (USERNAME_TAKEN) or flow not at this step (INVALID_STEP)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "More than 10 checks per flow or 30 per IP in 15 minutes (USERNAME_CHECK_LIMIT), with Retry-After",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/onboarding/{flowId}/pin" : {
+      "put" : {
+        "tags" : [ "Onboarding" ],
+        "summary" : "Set PIN and complete onboarding",
+        "description" : "Finalizes the onboarding with the login password and the 6-digit transaction PIN. The user then signs in through /api/auth/login with email and password.",
+        "operationId" : "setPin",
+        "parameters" : [ {
+          "name" : "flowId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PinRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "User created; sign in through /api/auth/login",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "PIN not 6 digits, or password not 8-72 characters / over 72 UTF-8 bytes (VALIDATION_FAILED)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such flow (FLOW_NOT_FOUND)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Flow not at this step (INVALID_STEP), or email/username taken by another sign-up meanwhile (ALREADY_TAKEN)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "410" : {
+            "description" : "Flow expired (FLOW_EXPIRED)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/onboarding/{flowId}/full-name" : {
+      "put" : {
+        "tags" : [ "Onboarding" ],
+        "summary" : "Set full name",
+        "description" : "Updates the user's full name in the onboarding flow.",
+        "operationId" : "setFullName",
+        "parameters" : [ {
+          "name" : "flowId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FullNameRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/verify" : {
+      "post" : {
+        "tags" : [ "Account Verification" ],
+        "summary" : "Submit verification details",
+        "description" : "Submits the required parameters and details to verify the user's account.",
+        "operationId" : "verifyAccount",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/VerifyRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Verification parameters processed successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid verification details provided",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized access",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/verify/photo" : {
+      "post" : {
+        "tags" : [ "Account Verification" ],
+        "summary" : "Upload verification photo",
+        "description" : "Uploads an identity document or selfie for the final step of account verification.",
+        "operationId" : "uploadVerificationImage",
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "format" : "binary",
+                    "description" : "Identity document or photo to upload"
+                  }
+                },
+                "required" : [ "file" ]
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Verification photo uploaded successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid file format or empty file",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/user/pin" : {
+      "post" : {
+        "tags" : [ "User Management" ],
+        "summary" : "Set the first transaction PIN",
+        "description" : "For Google accounts, which are created without a PIN. Payments and transfers answer 403 PIN_NOT_SET until it is set.",
+        "operationId" : "setFirstPin",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetPinRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "PIN set",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "PIN is not 6 digits",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "PIN already set (PIN_ALREADY_SET); use the change-PIN flow",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/user/media" : {
+      "post" : {
+        "tags" : [ "User Management" ],
+        "summary" : "Upload media file",
+        "description" : "Uploads a generic media file (e.g., document, image) to the cloud storage and returns its generated object key (uploads/{userId}/{uuid}.{ext}).",
+        "operationId" : "uploadMedia",
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "format" : "binary",
+                    "description" : "The media file to be uploaded"
+                  }
+                },
+                "required" : [ "file" ]
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Media uploaded successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid file name",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "Media storage unavailable (MEDIA_UPLOAD_FAILED); see Retry-After",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/transfer" : {
+      "get" : {
+        "tags" : [ "Transfer Management" ],
+        "summary" : "Get all transfers",
+        "description" : "Retrieves all transfers of all users (admin only).",
+        "operationId" : "getTransfers",
+        "responses" : {
+          "200" : {
+            "description" : "Transfer list retrieved successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataListTransferResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      },
+      "post" : {
+        "tags" : [ "Transfer Management" ],
+        "summary" : "Create a new transfer",
+        "description" : "Moves money from one of the caller's cards to any card in the same currency, confirmed with the caller's PIN. A 2% commission is added to the debit.",
+        "operationId" : "createTransfer",
+        "parameters" : [ {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "description" : "Client-generated unique key (e.g. UUID); a retry with the same key returns the first result",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TransferRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Transfer completed successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataTransferResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Validation failed, same card, currency mismatch, or Idempotency-Key header blank or over 255 characters (INVALID_IDEMPOTENCY_KEY)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataTransferResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized access",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataTransferResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Wrong PIN (INVALID_PIN)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataTransferResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Card not found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataTransferResponse"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too many wrong PINs; PIN checks locked for 15 minutes (PIN_LOCKED); see Retry-After",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataTransferResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Insufficient balance for amount plus commission, or card busy (retry with the same Idempotency-Key)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataTransferResponse"
+                }
+              }
+            }
+          },
+          "422" : {
+            "description" : "Idempotency-Key already used for a different request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataTransferResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/stories" : {
+      "post" : {
+        "tags" : [ "Stories" ],
+        "summary" : "Upload a story",
+        "description" : "Uploads an image or video story with specified visibility settings.",
+        "operationId" : "uploadStory",
+        "parameters" : [ {
+          "name" : "mediaType",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "IMAGE", "VIDEO" ]
+          }
+        }, {
+          "name" : "visibility",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "FOLLOWERS",
+            "enum" : [ "PUBLIC", "FOLLOWERS", "CLOSE_FRIENDS" ]
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  }
+                },
+                "required" : [ "file" ]
+              }
+            }
+          }
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Story uploaded successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataStoryUploadResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Unsupported file format or size",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataStoryUploadResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized access",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataStoryUploadResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/stories/{storyId}/view" : {
+      "post" : {
+        "tags" : [ "Stories" ],
+        "summary" : "Mark story as viewed",
+        "description" : "Records that the user has seen a specific story.",
+        "operationId" : "markStoryAsViewed",
+        "parameters" : [ {
+          "name" : "storyId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Story view recorded",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Story not found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/reports" : {
+      "get" : {
+        "tags" : [ "Problem Reporting" ],
+        "summary" : "Get all problem reports",
+        "description" : "Retrieves a list of all problem reports submitted by the user.",
+        "operationId" : "getAllReports",
+        "responses" : {
+          "200" : {
+            "description" : "Reports retrieved successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataListProblemReportResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized access",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataListProblemReportResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      },
+      "post" : {
+        "tags" : [ "Problem Reporting" ],
+        "summary" : "Create a problem report",
+        "description" : "Submits a new issue or feedback report to the support system.",
+        "operationId" : "createProblemReport",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateProblemReportRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Problem report created successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataCreateProblemReportResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid report data",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataCreateProblemReportResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized access",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataCreateProblemReportResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/profile" : {
+      "get" : {
+        "tags" : [ "Profile Management" ],
+        "summary" : "Get all profiles",
+        "description" : "Fetches a list of all profiles (Admin/Internal use).",
+        "operationId" : "getAllProfiles",
+        "responses" : {
+          "200" : {
+            "description" : "Profiles retrieved successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataListEditProfileResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      },
+      "post" : {
+        "tags" : [ "Profile Management" ],
+        "summary" : "Update profile details",
+        "description" : "Updates basic profile information for the authenticated user.",
+        "operationId" : "updateProfile",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EditProfileRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Profile updated successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataEditProfileResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid profile data provided",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataEditProfileResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized access",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataEditProfileResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/profile/photo" : {
+      "post" : {
+        "tags" : [ "Profile Management" ],
+        "summary" : "Upload profile photo",
+        "description" : "Uploads or updates the profile picture for the authenticated user.",
+        "operationId" : "uploadProfileImage",
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "format" : "binary",
+                    "description" : "The image file to upload (PNG, JPG, etc.)"
+                  }
+                },
+                "required" : [ "file" ]
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Profile photo uploaded successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataEditProfileResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid file format or size",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataEditProfileResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal server error during file upload",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataEditProfileResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/profile/email" : {
+      "post" : {
+        "tags" : [ "Profile Management" ],
+        "summary" : "Start an email change",
+        "description" : "Needs the current PIN. Sends a 6-digit code to the new address and another to the current one. The email changes only after POST /api/profile/email/confirm with both codes (within 10 minutes); the old address is then notified.",
+        "operationId" : "startEmailChange",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EmailChangeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Codes sent to the new and the current address",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Not an email address or PIN not 6 digits (VALIDATION_FAILED)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Wrong PIN (INVALID_PIN) or no PIN set yet (PIN_NOT_SET)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Email already taken (EMAIL_TAKEN); still counts toward the cooldown and daily limit",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Code requested within the last minute (OTP_SEND_TOO_FREQUENT) or more than 5 changes today (EMAIL_CHANGE_LIMIT) or too many wrong PINs (PIN_LOCKED); see Retry-After",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/profile/email/confirm" : {
+      "post" : {
+        "tags" : [ "Profile Management" ],
+        "summary" : "Confirm an email change",
+        "description" : "Needs the code sent to the new address (otp) and the one sent to the current address (currentEmailOtp). Switches the account to the new email and signs out every device; log in again with the new email.",
+        "operationId" : "confirmEmailChange",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EmailChangeConfirmRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Email changed, all sessions revoked",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "A wrong code, either one (INVALID_OTP), or no pending change (OTP_EXPIRED)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "The email was taken meanwhile (EMAIL_TAKEN)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too many wrong codes; start again (TOO_MANY_ATTEMPTS)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/payment/initiate" : {
+      "post" : {
+        "tags" : [ "Payment Management" ],
+        "summary" : "Initiate payment transfer",
+        "description" : "Starts a payment flow between cards. Returns a Flow ID required for confirmation.",
+        "operationId" : "initiatePayment",
+        "parameters" : [ {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "description" : "Client-generated unique key (e.g. UUID); a retry with the same key returns the first result",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PaymentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Payment flow initiated successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid payment request (non-positive amount, malformed card number), or Idempotency-Key header blank or over 255 characters (INVALID_IDEMPOTENCY_KEY)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Card not found or not owned by the caller",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Insufficient balance, or card busy (retry with the same Idempotency-Key)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          },
+          "422" : {
+            "description" : "Idempotency-Key already used for a different request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized access",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/payment/confirm" : {
+      "post" : {
+        "tags" : [ "Payment Management" ],
+        "summary" : "Confirm payment",
+        "description" : "Finalizes the payment using the Flow ID and user's secure PIN.",
+        "operationId" : "confirmPayment",
+        "parameters" : [ {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "description" : "Client-generated unique key (e.g. UUID); a retry with the same key returns the first result",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ConfirmPaymentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Payment confirmed and processed successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataPaymentResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Validation failed (flow ID missing, PIN not 6 digits), or Idempotency-Key header blank or over 255 characters (INVALID_IDEMPOTENCY_KEY)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataPaymentResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Wrong PIN (INVALID_PIN)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataPaymentResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Payment flow not found or not owned by the caller",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataPaymentResponse"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too many wrong PINs; PIN checks locked for 15 minutes (PIN_LOCKED); see Retry-After",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataPaymentResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Payment already processed, insufficient balance, or busy (retry with the same Idempotency-Key)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataPaymentResponse"
+                }
+              }
+            }
+          },
+          "422" : {
+            "description" : "Idempotency-Key already used for a different request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataPaymentResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/onboarding/{flowId}/otp" : {
+      "post" : {
+        "tags" : [ "Onboarding" ],
+        "summary" : "Verify OTP",
+        "description" : "Verifies the One-Time Password sent to the user's email.",
+        "operationId" : "verifyOtp",
+        "parameters" : [ {
+          "name" : "flowId",
+          "in" : "path",
+          "description" : "The unique flow ID",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OtpRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OTP verified successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Wrong code (INVALID_OTP) or expired code (OTP_EXPIRED)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such flow (FLOW_NOT_FOUND)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Code already verified (INVALID_STEP)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          },
+          "410" : {
+            "description" : "Flow expired (FLOW_EXPIRED)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too many wrong codes (TOO_MANY_ATTEMPTS)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/onboarding/email" : {
+      "post" : {
+        "tags" : [ "Onboarding" ],
+        "summary" : "Submit email",
+        "description" : "Starts the onboarding process by submitting an email and initiating a flow.",
+        "operationId" : "submitEmail",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EmailRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Email submitted, flow ID generated",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid email format",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/change-pin" : {
+      "post" : {
+        "tags" : [ "PIN Management" ],
+        "summary" : "Initiate PIN change",
+        "description" : "Starts the PIN change process by sending an OTP to the authenticated user's email. Returns a Flow ID.",
+        "operationId" : "initiatePinChange",
+        "responses" : {
+          "200" : {
+            "description" : "OTP sent and flow initiated successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized - User session not found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/change-pin/{flowId}/pin" : {
+      "post" : {
+        "tags" : [ "PIN Management" ],
+        "summary" : "Complete PIN change",
+        "description" : "Updates the user's PIN after successful OTP verification. Requires the new PIN and its confirmation.",
+        "operationId" : "changePin",
+        "parameters" : [ {
+          "name" : "flowId",
+          "in" : "path",
+          "description" : "Unique identifier for the PIN change process",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChangePinRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "PIN updated successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SuccessResponseVoid"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "PINs do not match or invalid format",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SuccessResponseVoid"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Code not verified yet (INVALID_STEP)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SuccessResponseVoid"
+                }
+              }
+            }
+          },
+          "410" : {
+            "description" : "Flow expired (FLOW_EXPIRED)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SuccessResponseVoid"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such flow for this user",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SuccessResponseVoid"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/change-pin/{flowId}/otp" : {
+      "post" : {
+        "tags" : [ "PIN Management" ],
+        "summary" : "Verify OTP",
+        "description" : "Verifies the One-Time Password (OTP) sent to the user's email for a specific flow.",
+        "operationId" : "verifyOtp_1",
+        "parameters" : [ {
+          "name" : "flowId",
+          "in" : "path",
+          "description" : "Unique identifier for the PIN change process",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OtpRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OTP verified successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SuccessResponseVoid"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Wrong code (INVALID_OTP) or expired code (OTP_EXPIRED)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SuccessResponseVoid"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such flow for this user (FLOW_NOT_FOUND)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SuccessResponseVoid"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Code already verified (INVALID_STEP)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SuccessResponseVoid"
+                }
+              }
+            }
+          },
+          "410" : {
+            "description" : "Flow expired (FLOW_EXPIRED)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SuccessResponseVoid"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too many wrong codes (TOO_MANY_ATTEMPTS)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SuccessResponseVoid"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/cards" : {
+      "get" : {
+        "tags" : [ "Card Management" ],
+        "summary" : "Get all cards",
+        "description" : "Returns every card in the system (admin only).",
+        "operationId" : "getAllCards",
+        "responses" : {
+          "200" : {
+            "description" : "List of cards retrieved successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataListCardResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      },
+      "post" : {
+        "tags" : [ "Card Management" ],
+        "summary" : "Issue a new virtual card",
+        "description" : "Issues a card in the chosen currency for the logged-in user. The full card number is in this response only; afterwards just the last four digits are shown.",
+        "operationId" : "issueCard",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CardRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Card issued",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataIssuedCardResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid request payload",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataIssuedCardResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized access",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataIssuedCardResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/auth/refresh-token" : {
+      "post" : {
+        "tags" : [ "Authentication" ],
+        "summary" : "Token yeniləmə (Refresh)",
+        "description" : "Rotates the refresh token: the old one stops working. Presenting an already rotated refresh token revokes the whole session.",
+        "operationId" : "refreshToken",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RefreshTokenRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "New access and refresh token",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataJwtTokenResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Invalid, expired or revoked (INVALID_REFRESH_TOKEN), or reused (REFRESH_TOKEN_REUSED)"
+          }
+        }
+      }
+    },
+    "/api/auth/oauth/exchange" : {
+      "post" : {
+        "tags" : [ "Authentication" ],
+        "summary" : "Google sign-in: exchange code",
+        "description" : "After Google sign-in the browser lands on FRONTEND_URL/oauth2/callback?code=... The frontend trades the code here, once, within 60 seconds, for the same tokens as /login. On failure it lands on ?error=email_not_verified | account_exists | account_locked | oauth_failed instead.",
+        "operationId" : "exchangeOAuthCode",
+        "parameters" : [ {
+          "name" : "User-Agent",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OAuthExchangeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Signed in; a new device session was started",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataJwtTokenResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Code invalid, expired or already used (INVALID_OAUTH_CODE)"
+          },
+          "403" : {
+            "description" : "Account is locked (ACCOUNT_LOCKED)"
+          }
+        }
+      }
+    },
+    "/api/auth/login" : {
+      "post" : {
+        "tags" : [ "Authentication" ],
+        "summary" : "Giriş (Login)",
+        "description" : "İstifadəçi adı və şifrə ilə sistemə daxil olaraq JWT token əldə edir.",
+        "operationId" : "login",
+        "parameters" : [ {
+          "name" : "User-Agent",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Giriş uğurludur",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataJwtTokenResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Yanlış məlumatlar"
+          },
+          "403" : {
+            "description" : "Account is locked (ACCOUNT_LOCKED)"
+          },
+          "429" : {
+            "description" : "More than 5 attempts for this email in 15 minutes (LOGIN_LOCKED)"
+          }
+        }
+      }
+    },
+    "/api/user" : {
+      "get" : {
+        "tags" : [ "User Management" ],
+        "summary" : "Get all users",
+        "description" : "Retrieves a comprehensive list of all registered users in the system.",
+        "operationId" : "getAllUsers",
+        "responses" : {
+          "200" : {
+            "description" : "User list retrieved successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataListUserResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized access",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataListUserResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/user/media-download" : {
+      "get" : {
+        "tags" : [ "User Management" ],
+        "summary" : "Get media download URL",
+        "description" : "Generates a temporary download URL for one of the caller's own uploaded media objects.",
+        "operationId" : "downloadMedia",
+        "parameters" : [ {
+          "name" : "objectName",
+          "in" : "query",
+          "description" : "The unique storage object name/key",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : "uploads/1/3f2b9c1e-7a4d-4e8a-9b1c-2d5e6f7a8b9c.jpg"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Download URL generated successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Media object not found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "Media storage unavailable (MEDIA_UNAVAILABLE); see Retry-After",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/transfer/{id}" : {
+      "get" : {
+        "tags" : [ "Transfer Management" ],
+        "summary" : "Get transfer by ID",
+        "description" : "Retrieves specific details of a transfer using its unique internal ID.",
+        "operationId" : "getTransferById",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Unique ID of the transfer",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "example" : 105
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Transfer details retrieved successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataTransferResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Transfer not found with the given ID",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataTransferResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/transaction" : {
+      "get" : {
+        "tags" : [ "Transaction Management" ],
+        "summary" : "Get all transactions",
+        "description" : "Retrieves all transactions of all users (admin only).",
+        "operationId" : "getAllTransactions",
+        "responses" : {
+          "200" : {
+            "description" : "Transaction list retrieved successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataListTransactionsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/transaction/{id}" : {
+      "get" : {
+        "tags" : [ "Transaction Management" ],
+        "summary" : "Get transaction by ID",
+        "description" : "Retrieves details of a specific transaction using its unique ID.",
+        "operationId" : "getTransactionById",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Transaction details found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataTransactionsResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Transaction not found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataTransactionsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/transaction/between" : {
+      "get" : {
+        "tags" : [ "Transaction Management" ],
+        "summary" : "Filter transactions by date range",
+        "description" : "Retrieves transactions created between two specified dates (inclusive).",
+        "operationId" : "getTransactionsBetweenDates",
+        "parameters" : [ {
+          "name" : "start",
+          "in" : "query",
+          "description" : "Start date in dd-MM-yyyy format",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "example" : "01-01-2024"
+        }, {
+          "name" : "end",
+          "in" : "query",
+          "description" : "End date in dd-MM-yyyy format",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "example" : "31-12-2024"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Filtered transactions retrieved successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataListTransactionsResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid date format or range",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataListTransactionsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/stories/media-download" : {
+      "get" : {
+        "tags" : [ "Stories" ],
+        "summary" : "Get media download URL",
+        "description" : "Generates a temporary download link for story media (Cloud Storage).",
+        "operationId" : "getMediaDownloadUrl",
+        "parameters" : [ {
+          "name" : "objectName",
+          "in" : "query",
+          "description" : "Storage object name/key",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Presigned download URL",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not one of the caller's own media keys (NOT_FOUND)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "Storage could not sign the URL; retry after Retry-After (MEDIA_UNAVAILABLE)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/stories/feed" : {
+      "get" : {
+        "tags" : [ "Stories" ],
+        "summary" : "Get story feed",
+        "description" : "Retrieves the stories of users that the current user follows.",
+        "operationId" : "getStoryFeed",
+        "responses" : {
+          "200" : {
+            "description" : "Story feed retrieved successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataStoryFeedResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/payment/history" : {
+      "get" : {
+        "tags" : [ "Payment Management" ],
+        "summary" : "Get transaction history",
+        "description" : "Retrieves a list of all past payment transactions for the authenticated user.",
+        "operationId" : "getPaymentHistory",
+        "responses" : {
+          "200" : {
+            "description" : "Transaction history retrieved successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataListPaymentTransactionResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/legal/terms" : {
+      "get" : {
+        "tags" : [ "Legal Documents" ],
+        "summary" : "Get Terms of Service",
+        "description" : "Retrieves the latest active version of the Terms and Conditions.",
+        "operationId" : "getDocumentTerms",
+        "responses" : {
+          "200" : {
+            "description" : "Terms of Service retrieved successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataLegalDocumentResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Active terms document not found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataLegalDocumentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/legal/privacy" : {
+      "get" : {
+        "tags" : [ "Legal Documents" ],
+        "summary" : "Get Privacy Policy",
+        "description" : "Retrieves the latest active version of the Privacy Policy.",
+        "operationId" : "getDocumentPrivacy",
+        "responses" : {
+          "200" : {
+            "description" : "Privacy Policy retrieved successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataLegalDocumentResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Active privacy document not found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataLegalDocumentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cards/{id}" : {
+      "get" : {
+        "tags" : [ "Card Management" ],
+        "summary" : "Get one of my cards",
+        "description" : "Returns a card owned by the logged-in user.",
+        "operationId" : "getCardById",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Card details retrieved",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataCardResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such card for this user",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataCardResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      },
+      "delete" : {
+        "tags" : [ "Card Management" ],
+        "summary" : "Close a card",
+        "description" : "Closes one of the logged-in user's cards. The balance must be zero.",
+        "operationId" : "closeCard",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Card closed",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such card for this user",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Card still holds a balance",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/cards/me" : {
+      "get" : {
+        "tags" : [ "Card Management" ],
+        "summary" : "List my cards",
+        "description" : "Returns the logged-in user's cards.",
+        "operationId" : "getMyCards",
+        "responses" : {
+          "200" : {
+            "description" : "Cards retrieved",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataListCardResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/auth/sessions" : {
+      "get" : {
+        "tags" : [ "Sessions" ],
+        "summary" : "List active sessions",
+        "description" : "One entry per signed-in device; `current` marks the one making this request.",
+        "operationId" : "list",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataListSessionResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      },
+      "delete" : {
+        "tags" : [ "Sessions" ],
+        "summary" : "Revoke all sessions",
+        "description" : "Signs out every device, including this one.",
+        "operationId" : "revokeAll",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/auth/providers" : {
+      "get" : {
+        "tags" : [ "Authentication" ],
+        "summary" : "OAuth2 Provayderləri",
+        "description" : "Sistemdə aktiv olan xarici giriş provayderlərinin (Google) siyahısını qaytarır.",
+        "operationId" : "getOAuth2Providers",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataListString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/me" : {
+      "get" : {
+        "tags" : [ "Authentication" ],
+        "summary" : "Cari istifadəçi məlumatları",
+        "description" : "Token-ə əsasən sistemə daxil olmuş istifadəçinin profil məlumatlarını qaytarır.",
+        "operationId" : "me",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataUserMeResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/auth/" : {
+      "get" : {
+        "tags" : [ "Authentication" ],
+        "summary" : "Sistem salamlaması",
+        "description" : "Servisin aktiv olub-olmadığını yoxlamaq üçün sadə endpoint.",
+        "operationId" : "loginWeb",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stories/{storyId}" : {
+      "delete" : {
+        "tags" : [ "Stories" ],
+        "summary" : "Delete a story",
+        "description" : "Permanently removes a story if the current user is the owner.",
+        "operationId" : "deleteStory",
+        "parameters" : [ {
+          "name" : "storyId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Story deleted successfully",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden - Not the owner of the story",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Story not found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/auth/sessions/{id}" : {
+      "delete" : {
+        "tags" : [ "Sessions" ],
+        "summary" : "Revoke one session",
+        "description" : "Signs that device out: its refresh and access tokens stop working at once. Revoking the current session is a logout.",
+        "operationId" : "revoke",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Session revoked",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No active session with this id for this user",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "UsernameRequest" : {
+        "type" : "object",
+        "properties" : {
+          "username" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "[A-Za-z0-9._]{3,30}"
+          }
+        },
+        "required" : [ "username" ]
+      },
+      "ApiResponseDataVoid" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : { }
+        }
+      },
+      "PinRequest" : {
+        "type" : "object",
+        "properties" : {
+          "pin" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "\\d{6}"
+          },
+          "password" : {
+            "type" : "string",
+            "maxLength" : 72,
+            "minLength" : 8
+          }
+        },
+        "required" : [ "password", "pin" ]
+      },
+      "FullNameRequest" : {
+        "type" : "object",
+        "properties" : {
+          "fullName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "fullName" ]
+      },
+      "VerifyRequest" : {
+        "type" : "object",
+        "properties" : {
+          "fullName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "dateOfBirth" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "gender" : {
+            "type" : "string",
+            "enum" : [ "MALE", "FEMALE" ]
+          }
+        },
+        "required" : [ "dateOfBirth", "fullName", "gender" ]
+      },
+      "SetPinRequest" : {
+        "type" : "object",
+        "properties" : {
+          "pin" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "\\d{6}"
+          }
+        },
+        "required" : [ "pin" ]
+      },
+      "ApiResponseDataString" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "string"
+          }
+        }
+      },
+      "TransferRequest" : {
+        "type" : "object",
+        "properties" : {
+          "fromCardNumber" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "\\d{16}"
+          },
+          "toCardNumber" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "\\d{16}"
+          },
+          "amount" : {
+            "type" : "number",
+            "minimum" : 0.01
+          },
+          "pin" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "\\d{6}"
+          }
+        },
+        "required" : [ "amount", "fromCardNumber", "pin", "toCardNumber" ]
+      },
+      "ApiResponseDataTransferResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/TransferResponse"
+          }
+        }
+      },
+      "TransferResponse" : {
+        "type" : "object",
+        "properties" : {
+          "fromCardNumber" : {
+            "type" : "string"
+          },
+          "toCardNumber" : {
+            "type" : "string"
+          },
+          "amount" : {
+            "type" : "number"
+          }
+        }
+      },
+      "ApiResponseDataStoryUploadResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/StoryUploadResponse"
+          }
+        }
+      },
+      "StoryUploadResponse" : {
+        "type" : "object",
+        "properties" : {
+          "storyId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "objectName" : {
+            "type" : "string"
+          }
+        }
+      },
+      "CreateProblemReportRequest" : {
+        "type" : "object",
+        "properties" : {
+          "category" : {
+            "type" : "string",
+            "enum" : [ "TRANSACTION_FAILED", "CARD_NOT_WORKING", "TRANSFER_DELAYED", "INCORRECT_AMOUNT_CHARGED", "MISSING_TRANSACTION", "SECURITY_CONCERN" ]
+          },
+          "message" : {
+            "type" : "string",
+            "maxLength" : 2000,
+            "minLength" : 0
+          },
+          "referenceId" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "category", "message" ]
+      },
+      "ApiResponseDataCreateProblemReportResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/CreateProblemReportResponse"
+          }
+        }
+      },
+      "CreateProblemReportResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "EditProfileRequest" : {
+        "type" : "object",
+        "properties" : {
+          "fullName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0,
+            "pattern" : ".*\\S.*"
+          },
+          "phoneNumber" : {
+            "type" : "string",
+            "pattern" : "^\\+994\\d{9}$"
+          },
+          "dateOfBirth" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "gender" : {
+            "type" : "string",
+            "enum" : [ "MALE", "FEMALE" ]
+          }
+        }
+      },
+      "ApiResponseDataEditProfileResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/EditProfileResponse"
+          }
+        }
+      },
+      "EditProfileResponse" : {
+        "type" : "object",
+        "properties" : {
+          "fullName" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "phoneNumber" : {
+            "type" : "string"
+          },
+          "dateOfBirth" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "gender" : {
+            "type" : "string",
+            "enum" : [ "MALE", "FEMALE" ]
+          },
+          "objectName" : {
+            "type" : "string"
+          }
+        }
+      },
+      "EmailChangeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 0
+          },
+          "pin" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "\\d{6}"
+          }
+        },
+        "required" : [ "email", "pin" ]
+      },
+      "EmailChangeConfirmRequest" : {
+        "type" : "object",
+        "properties" : {
+          "otp" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "\\d{6}"
+          },
+          "currentEmailOtp" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "\\d{6}"
+          }
+        },
+        "required" : [ "currentEmailOtp", "otp" ]
+      },
+      "PaymentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "phoneNumber" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "^\\+994\\d{9}$"
+          },
+          "fromCardNumber" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "^\\d{16}$"
+          },
+          "amount" : {
+            "type" : "number",
+            "minimum" : 0.01
+          }
+        },
+        "required" : [ "amount", "fromCardNumber", "phoneNumber" ]
+      },
+      "ConfirmPaymentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "flowId" : {
+            "type" : "string",
+            "minLength" : 1
+          },
+          "pin" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "\\d{6}"
+          }
+        },
+        "required" : [ "flowId", "pin" ]
+      },
+      "ApiResponseDataPaymentResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/PaymentResponse"
+          }
+        }
+      },
+      "PaymentResponse" : {
+        "type" : "object",
+        "properties" : {
+          "phoneNumber" : {
+            "type" : "string"
+          },
+          "fromCardNumber" : {
+            "type" : "string"
+          },
+          "amount" : {
+            "type" : "number"
+          },
+          "currency" : {
+            "type" : "string",
+            "enum" : [ "AZN", "USD", "EUR" ]
+          }
+        }
+      },
+      "OtpRequest" : {
+        "type" : "object",
+        "properties" : {
+          "otp" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "\\d{6}"
+          }
+        },
+        "required" : [ "otp" ]
+      },
+      "EmailRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "email" ]
+      },
+      "ChangePinRequest" : {
+        "type" : "object",
+        "properties" : {
+          "newPin" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "\\d{6}"
+          },
+          "reEnterNewPin" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "\\d{6}"
+          }
+        },
+        "required" : [ "newPin", "reEnterNewPin" ]
+      },
+      "SuccessResponseVoid" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "data" : { }
+        }
+      },
+      "CardRequest" : {
+        "type" : "object",
+        "properties" : {
+          "currency" : {
+            "type" : "string",
+            "enum" : [ "AZN", "USD", "EUR" ]
+          }
+        },
+        "required" : [ "currency" ]
+      },
+      "ApiResponseDataIssuedCardResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/IssuedCardResponse"
+          }
+        }
+      },
+      "CardResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "maskedNumber" : {
+            "type" : "string"
+          },
+          "expirationDate" : {
+            "type" : "string"
+          },
+          "cardHolderName" : {
+            "type" : "string"
+          },
+          "cardNetwork" : {
+            "type" : "string",
+            "enum" : [ "VISA", "MASTERCARD", "AMEX", "DISCO", "DINERS" ]
+          },
+          "currency" : {
+            "type" : "string",
+            "enum" : [ "AZN", "USD", "EUR" ]
+          },
+          "displayAmount" : {
+            "type" : "string"
+          }
+        }
+      },
+      "IssuedCardResponse" : {
+        "type" : "object",
+        "properties" : {
+          "cardNumber" : {
+            "type" : "string"
+          },
+          "card" : {
+            "$ref" : "#/components/schemas/CardResponse"
+          }
+        }
+      },
+      "RefreshTokenRequest" : {
+        "type" : "object",
+        "properties" : {
+          "refreshToken" : {
+            "type" : "string",
+            "maxLength" : 2048,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "refreshToken" ]
+      },
+      "ApiResponseDataJwtTokenResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/JwtTokenResponse"
+          }
+        }
+      },
+      "JwtTokenResponse" : {
+        "type" : "object",
+        "properties" : {
+          "token" : {
+            "type" : "string"
+          },
+          "refreshToken" : {
+            "type" : "string"
+          },
+          "tokenType" : {
+            "type" : "string"
+          },
+          "expiresIn" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "user" : {
+            "$ref" : "#/components/schemas/UserResponse"
+          }
+        }
+      },
+      "UserResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "fullName" : {
+            "type" : "string"
+          },
+          "active" : {
+            "type" : "boolean"
+          },
+          "roles" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            },
+            "uniqueItems" : true
+          }
+        }
+      },
+      "OAuthExchangeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "maxLength" : 64,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "code" ]
+      },
+      "LoginRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 0
+          },
+          "password" : {
+            "type" : "string",
+            "maxLength" : 72,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "email", "password" ]
+      },
+      "ApiResponseDataListUserResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/UserResponse"
+            }
+          }
+        }
+      },
+      "ApiResponseDataListTransferResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TransferResponse"
+            }
+          }
+        }
+      },
+      "ApiResponseDataListTransactionsResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TransactionsResponse"
+            }
+          }
+        }
+      },
+      "TransactionsResponse" : {
+        "type" : "object",
+        "properties" : {
+          "transactionId" : {
+            "type" : "string"
+          },
+          "fromCard" : {
+            "type" : "string"
+          },
+          "toCard" : {
+            "type" : "string"
+          },
+          "amount" : {
+            "type" : "string"
+          },
+          "commissionRate" : {
+            "type" : "string"
+          },
+          "commissionValue" : {
+            "type" : "string"
+          },
+          "totalAmount" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "PROCESSING", "COMPLETED", "FAILED", "REVERSED" ]
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ApiResponseDataTransactionsResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/TransactionsResponse"
+          }
+        }
+      },
+      "ApiResponseDataStoryFeedResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/StoryFeedResponse"
+          }
+        }
+      },
+      "StoryFeedResponse" : {
+        "type" : "object",
+        "properties" : {
+          "groups" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StoryGroupResponse"
+            }
+          }
+        }
+      },
+      "StoryGroupResponse" : {
+        "type" : "object",
+        "properties" : {
+          "userId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "username" : {
+            "type" : "string"
+          },
+          "hasUnseen" : {
+            "type" : "boolean"
+          },
+          "latestStoryAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "stories" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StoryResponse"
+            }
+          }
+        }
+      },
+      "StoryResponse" : {
+        "type" : "object",
+        "properties" : {
+          "storyId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "mediaType" : {
+            "type" : "string",
+            "enum" : [ "IMAGE", "VIDEO" ]
+          },
+          "mediaUrl" : {
+            "type" : "string"
+          },
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "viewed" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ApiResponseDataListProblemReportResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ProblemReportResponse"
+            }
+          }
+        }
+      },
+      "ProblemReportResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "userId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "category" : {
+            "type" : "string",
+            "enum" : [ "TRANSACTION_FAILED", "CARD_NOT_WORKING", "TRANSFER_DELAYED", "INCORRECT_AMOUNT_CHARGED", "MISSING_TRANSACTION", "SECURITY_CONCERN" ]
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "OPEN", "IN_PROGRESS", "RESOLVED", "REJECTED" ]
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ApiResponseDataListEditProfileResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EditProfileResponse"
+            }
+          }
+        }
+      },
+      "ApiResponseDataListPaymentTransactionResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PaymentTransactionResponse"
+            }
+          }
+        }
+      },
+      "PaymentTransactionResponse" : {
+        "type" : "object",
+        "properties" : {
+          "transactionId" : {
+            "type" : "string"
+          },
+          "fromCard" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "amount" : {
+            "type" : "string"
+          },
+          "cashbackPercent" : {
+            "type" : "string"
+          },
+          "cashbackValue" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "COMPLETED" ]
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ApiResponseDataLegalDocumentResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/LegalDocumentResponse"
+          }
+        }
+      },
+      "LegalDocumentResponse" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          },
+          "effectiveDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "content" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ApiResponseDataListCardResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CardResponse"
+            }
+          }
+        }
+      },
+      "ApiResponseDataCardResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/CardResponse"
+          }
+        }
+      },
+      "ApiResponseDataListSessionResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SessionResponse"
+            }
+          }
+        }
+      },
+      "SessionResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "deviceName" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lastUsedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "current" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ApiResponseDataListString" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "ApiResponseDataUserMeResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/UserMeResponse"
+          }
+        }
+      },
+      "UserMeResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "username" : {
+            "type" : "string"
+          },
+          "roles" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "enum" : [ "USER_ROLE", "ADMIN_ROLE" ]
+            },
+            "uniqueItems" : true
+          },
+          "expiresAt" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      }
+    },
+    "securitySchemes" : {
+      "bearerAuth" : {
+        "type" : "http",
+        "name" : "bearerAuth",
+        "scheme" : "bearer",
+        "bearerFormat" : "JWT"
+      }
+    }
+  }
+}
