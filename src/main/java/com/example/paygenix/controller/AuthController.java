@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -98,18 +99,22 @@ public class AuthController {
                     + RefreshCookie.NAME + " cookie, and the request must carry an allowed Origin header.")
             @Valid @RequestBody(required = false) RefreshTokenRequest requestDTO,
             @CookieValue(name = RefreshCookie.NAME, required = false) String cookieToken,
-            @RequestHeader(value = HttpHeaders.ORIGIN, required = false) String origin) {
+            @RequestHeader(value = HttpHeaders.ORIGIN, required = false) String origin,
+            HttpServletResponse servletResponse) {
         log.info("Refresh token request received");
-        String token;
-        if (requestDTO != null) {
-            token = requestDTO.refreshToken();
-        } else {
+        if (requestDTO == null) {
             // The browser attaches the cookie on its own, so this path needs the CSRF check.
             refreshCookie.checkOrigin(origin);
             if (cookieToken == null || cookieToken.isBlank()) throw InvalidRefreshTokenException.invalid();
-            token = cookieToken;
+            try {
+                return withCookie(sessionService.refresh(cookieToken), "Token refreshed successfully");
+            } catch (InvalidRefreshTokenException dead) {
+                // The cookie can never work again; drop it so the browser stops sending it.
+                servletResponse.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.clear());
+                throw dead;
+            }
         }
-        return withCookie(sessionService.refresh(token), "Token refreshed successfully");
+        return withCookie(sessionService.refresh(requestDTO.refreshToken()), "Token refreshed successfully");
     }
 
     @Operation(summary = "Google sign-in: exchange code", description = "After Google sign-in the browser lands on "

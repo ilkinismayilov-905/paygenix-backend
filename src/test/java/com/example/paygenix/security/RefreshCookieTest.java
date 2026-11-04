@@ -3,7 +3,9 @@ package com.example.paygenix.security;
 import com.example.paygenix.dto.response.JwtTokenResponse;
 import com.example.paygenix.entity.User;
 import com.jayway.jsonpath.JsonPath;
+import com.example.paygenix.service.OAuthCodeService;
 import com.example.paygenix.support.IntegrationTest;
+import org.springframework.beans.factory.annotation.Autowired;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -19,6 +21,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class RefreshCookieTest extends IntegrationTest {
 
     private static final String ORIGIN = "http://localhost:3000";
+
+    @Autowired private OAuthCodeService oAuthCodeService;
 
     @Test
     void loginSetsAHardenedCookieScopedToAuth() throws Exception {
@@ -42,8 +46,28 @@ class RefreshCookieTest extends IntegrationTest {
         assertThat(res.getHeader("Set-Cookie")).startsWith(RefreshCookie.NAME + "=" + rotated + ";");
         assertThat(rotated).isNotEqualTo(login.refreshToken());
 
-        cookieRefresh(login.refreshToken(), ORIGIN).andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("REFRESH_TOKEN_REUSED"));
+        String cleared = cookieRefresh(login.refreshToken(), ORIGIN).andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("REFRESH_TOKEN_REUSED"))
+                .andReturn().getResponse().getHeader("Set-Cookie");
+        assertThat(cleared).as("a dead cookie is dropped").startsWith(RefreshCookie.NAME + "=;").contains("Max-Age=0");
+    }
+
+    @Test
+    void aBodyTokenWinsOverTheCookieAndNeedsNoOrigin() throws Exception {
+        JwtTokenResponse login = sessionService.start(createUser(), "app");
+        mockMvc.perform(post("/api/auth/refresh-token").cookie(new Cookie(RefreshCookie.NAME, "garbage"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"refreshToken\":\"" + login.refreshToken() + "\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void googleCodeExchangeSetsTheCookie() throws Exception {
+        String code = oAuthCodeService.issue(createUser().getId());
+        String cookie = mockMvc.perform(post("/api/auth/oauth/exchange").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"code\":\"" + code + "\"}"))
+                .andExpect(status().isOk()).andReturn().getResponse().getHeader("Set-Cookie");
+        assertThat(cookie).startsWith(RefreshCookie.NAME + "=").contains("HttpOnly", "SameSite=Strict");
     }
 
     @Test

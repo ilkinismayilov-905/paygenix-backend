@@ -33,6 +33,7 @@ public class RefreshCookie {
         this.allowedOrigins = Stream.concat(corsOrigins.stream(), Stream.of(frontendUrl)).toList();
     }
 
+    // The server also enforces the session's absolute cap, so a cookie that outlives it only fails on refresh.
     public String issue(String refreshToken) {
         return build(refreshToken, maxAge);
     }
