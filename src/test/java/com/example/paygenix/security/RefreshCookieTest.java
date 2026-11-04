@@ -114,6 +114,44 @@ class RefreshCookieTest extends IntegrationTest {
         assertThat(cleared).startsWith(RefreshCookie.NAME + "=;").contains("Max-Age=0");
     }
 
+    @Test
+    void logoutRevokesTheCookiesSessionAndClearsIt() throws Exception {
+        User user = createUser();
+        JwtTokenResponse here = sessionService.start(user, "browser");
+        JwtTokenResponse other = sessionService.start(user, "phone");
+
+        String cleared = mockMvc.perform(post("/api/auth/logout").header("Origin", ORIGIN)
+                        .cookie(new Cookie(RefreshCookie.NAME, here.refreshToken())))
+                .andExpect(status().isOk()).andReturn().getResponse().getHeader("Set-Cookie");
+        assertThat(cleared).startsWith(RefreshCookie.NAME + "=;").contains("Max-Age=0", "Path=/api/auth");
+
+        assertThat(sessionService.isActive(jwtService.extractSessionId(here.token()), user.getId())).isFalse();
+        assertThat(sessionService.isActive(jwtService.extractSessionId(other.token()), user.getId())).isTrue();
+        cookieRefresh(here.refreshToken(), ORIGIN).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void logoutWithoutAValidCookieStillClearsIt() throws Exception {
+        JwtTokenResponse login = sessionService.start(createUser(), "browser");
+        for (Cookie c : new Cookie[]{null, new Cookie(RefreshCookie.NAME, "garbage"),
+                new Cookie(RefreshCookie.NAME, login.token())}) { // an access token is not a refresh token
+            var req = post("/api/auth/logout").header("Origin", ORIGIN);
+            if (c != null) req.cookie(c);
+            assertThat(mockMvc.perform(req).andExpect(status().isOk()).andReturn().getResponse().getHeader("Set-Cookie"))
+                    .contains("Max-Age=0");
+        }
+        cookieRefresh(login.refreshToken(), ORIGIN).andExpect(status().isOk());
+    }
+
+    @Test
+    void logoutWithoutAnAllowedOriginIsRejectedAndKeepsTheSession() throws Exception {
+        JwtTokenResponse login = sessionService.start(createUser(), "browser");
+        mockMvc.perform(post("/api/auth/logout").cookie(new Cookie(RefreshCookie.NAME, login.refreshToken())))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("REFRESH_ORIGIN_REJECTED"));
+        cookieRefresh(login.refreshToken(), ORIGIN).andExpect(status().isOk());
+    }
+
     private org.springframework.test.web.servlet.ResultActions cookieRefresh(String token, String origin) throws Exception {
         var req = post("/api/auth/refresh-token").cookie(new Cookie(RefreshCookie.NAME, token));
         if (origin != null) req.header("Origin", origin);
