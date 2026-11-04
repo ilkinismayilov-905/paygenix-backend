@@ -1,10 +1,11 @@
 import { t } from '../i18n'
 
+// shortcut: placeholder until the dashboard screen (cards + stories) is built.
 export default function Home() {
   return (
-    <main>
+    <main className="page">
       <h1>{t('home.title')}</h1>
-      <p>{t('home.body')}</p>
+      <p className="muted">{t('home.body')}</p>
     </main>
   )
 }
