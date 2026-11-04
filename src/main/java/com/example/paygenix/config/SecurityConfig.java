@@ -72,6 +72,9 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/refresh-token",
                                 "/api/auth/logout",
+                                // sign-up shows them before the account exists (T-110)
+                                "/api/legal/terms",
+                                "/api/legal/privacy",
                                 "/api/auth/oauth/exchange",
                                 "/actuator/health",
                                 // only served when SWAGGER_ENABLED=true
