@@ -1,14 +1,31 @@
 import { createBrowserRouter } from 'react-router'
+import { PublicOnly, RequireAuth } from './routes/guards'
 import RouteError from './routes/RouteError'
 
-// Each route is its own chunk.
-export const router = createBrowserRouter([
+const page = (load: () => Promise<{ default: React.ComponentType }>) => async () => ({ Component: (await load()).default })
+
+// Each page is its own chunk.
+export const routes = [
   {
     errorElement: <RouteError />,
     children: [
-      { path: '/', lazy: async () => ({ Component: (await import('./routes/Home')).default }) },
-      { path: '/design', lazy: async () => ({ Component: (await import('./routes/DesignPreview')).default }) },
-      { path: '*', lazy: async () => ({ Component: (await import('./routes/NotFound')).default }) },
+      {
+        element: <PublicOnly />,
+        children: [{ path: '/sign-in', lazy: page(() => import('./routes/SignIn')) }],
+      },
+      { path: '/oauth2/callback', lazy: page(() => import('./routes/OAuthCallback')) },
+      {
+        element: <RequireAuth />,
+        children: [{
+          lazy: page(() => import('./routes/AppShell')),
+          children: [{ path: '/', lazy: page(() => import('./routes/Home')) }],
+        }],
+      },
+      // shortcut: the design preview stays reachable without sign-in; remove it once the screens are done.
+      { path: '/design', lazy: page(() => import('./routes/DesignPreview')) },
+      { path: '*', lazy: page(() => import('./routes/NotFound')) },
     ],
   },
-])
+]
+
+export const router = createBrowserRouter(routes)
