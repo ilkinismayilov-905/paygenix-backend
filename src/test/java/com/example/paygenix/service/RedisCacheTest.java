@@ -79,6 +79,21 @@ class RedisCacheTest extends IntegrationTest {
         mockMvc.perform(get("/api/legal/privacy"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content").value("Privacy text"));
+        // a stale token does not block a public page
+        mockMvc.perform(get("/api/legal/privacy").header("Authorization", "Bearer garbage")).andExpect(status().isOk());
+    }
+
+    @Test
+    void onlyTheTwoLegalPagesArePublic() throws Exception {
+        mockMvc.perform(get("/api/legal/other")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/auth/sessions")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void aMissingDocumentIs404() throws Exception {
+        cacheManager.getCache(CacheNames.LEGAL_DOCUMENT_BY_TYPE).evict("TERMS");
+        jdbc.update("UPDATE legal_documents SET is_active = false WHERE type = 'TERMS'");
+        mockMvc.perform(get("/api/legal/terms")).andExpect(status().isNotFound());
     }
 
     // T-085: cached entries expire with the configured TTL (-1 would mean none)
