@@ -128,6 +128,11 @@ class RefreshCookieTest extends IntegrationTest {
         assertThat(sessionService.isActive(jwtService.extractSessionId(here.token()), user.getId())).isFalse();
         assertThat(sessionService.isActive(jwtService.extractSessionId(other.token()), user.getId())).isTrue();
         cookieRefresh(here.refreshToken(), ORIGIN).andExpect(status().isUnauthorized());
+
+        // idempotent: signing out again with the same cookie is still a 200 that clears it
+        assertThat(mockMvc.perform(post("/api/auth/logout").header("Origin", ORIGIN)
+                        .cookie(new Cookie(RefreshCookie.NAME, here.refreshToken())))
+                .andExpect(status().isOk()).andReturn().getResponse().getHeader("Set-Cookie")).contains("Max-Age=0");
     }
 
     @Test

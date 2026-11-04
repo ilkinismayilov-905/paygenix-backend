@@ -130,9 +130,13 @@ public class SessionService {
             return;
         }
         if (sessionId == null) return;
+        Instant now = Instant.now();
         sessions.findByIdForUpdate(sessionId)
-                .filter(s -> s.getRevokedAt() == null)
-                .ifPresent(s -> s.setRevokedAt(Instant.now()));
+                .filter(s -> s.isActive(now))
+                .ifPresent(s -> {
+                    s.setRevokedAt(now);
+                    log.info("Session {} of user {} signed out", s.getId(), s.getUserId());
+                });
     }
 
     @Transactional(readOnly = true)
