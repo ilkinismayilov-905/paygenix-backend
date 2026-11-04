@@ -117,6 +117,23 @@ public class AuthController {
         return withCookie(sessionService.refresh(requestDTO.refreshToken()), "Token refreshed successfully");
     }
 
+    @Operation(summary = "Sign out this browser", description = "Revokes the session of the " + RefreshCookie.NAME
+            + " cookie and clears the cookie. Needs no access token and always succeeds, even without a valid cookie, "
+            + "but like a cookie refresh it must carry an allowed Origin header.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Signed out; the cookie is cleared"),
+            @ApiResponse(responseCode = "401", description = "Origin not allowed (REFRESH_ORIGIN_REJECTED)", content = @Content)
+    })
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponseData<Void>> logout(
+            @CookieValue(name = RefreshCookie.NAME, required = false) String cookieToken,
+            @RequestHeader(value = HttpHeaders.ORIGIN, required = false) String origin) {
+        // CSRF check as on refresh: the browser attaches the cookie on its own.
+        refreshCookie.checkOrigin(origin);
+        if (cookieToken != null && !cookieToken.isBlank()) sessionService.logout(cookieToken);
+        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, refreshCookie.clear()).body(ApiResponseData.success(null));
+    }
+
     @Operation(summary = "Google sign-in: exchange code", description = "After Google sign-in the browser lands on "
             + "FRONTEND_URL/oauth2/callback?code=... The frontend trades the code here, once, within 60 seconds, for the same tokens as /login. "
             + "On failure it lands on ?error=email_not_verified | account_exists | account_locked | oauth_failed instead.")

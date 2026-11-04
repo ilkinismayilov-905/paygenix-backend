@@ -1756,6 +1756,44 @@
         }
       }
     },
+    "/api/auth/logout" : {
+      "post" : {
+        "tags" : [ "Authentication" ],
+        "summary" : "Sign out this browser",
+        "description" : "Revokes the session of the pg_refresh cookie and clears the cookie. Needs no access token and always succeeds, even without a valid cookie, but like a cookie refresh it must carry an allowed Origin header.",
+        "operationId" : "logout",
+        "parameters" : [ {
+          "name" : "pg_refresh",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Origin",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Signed out; the cookie is cleared",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Origin not allowed (REFRESH_ORIGIN_REJECTED)"
+          }
+        }
+      }
+    },
     "/api/auth/login" : {
       "post" : {
         "tags" : [ "Authentication" ],

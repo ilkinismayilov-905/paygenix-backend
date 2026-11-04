@@ -125,13 +125,11 @@ test('a refresh that finishes after a newer sign-in does not overwrite it', asyn
   expect(getAccessToken()).toBe('google-session')
 })
 
-test('sign-out revokes the current session, and signs out even if that fails', async () => {
+test('sign-out posts the cookie logout, and signs out even if that fails', async () => {
   signedIn('t')
-  fetchMock.mockImplementation(async (input: RequestInfo | URL) =>
-    (input as Request).method === 'GET' ? json(200, { data: [{ id: 'a1b2', current: false }, { id: 'c3d4', current: true }] }) : json(200, {}))
+  fetchMock.mockResolvedValue(json(200, {}))
   await signOut()
-  const del = fetchMock.mock.calls.map(([r]) => r as Request).find((r) => r.method === 'DELETE')
-  expect(del?.url).toMatch(/\/api\/auth\/sessions\/c3d4$/)
+  expect(fetchMock).toHaveBeenCalledExactlyOnceWith('/api/auth/logout', expect.objectContaining({ method: 'POST', credentials: 'same-origin' }))
   expect(getAccessToken()).toBeNull()
 
   signedIn('t')

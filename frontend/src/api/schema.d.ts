@@ -520,6 +520,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign out this browser
+         * @description Revokes the session of the pg_refresh cookie and clears the cookie. Needs no access token and always succeeds, even without a valid cookie, but like a cookie refresh it must carry an allowed Origin header.
+         */
+        post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/login": {
         parameters: {
             query?: never;
@@ -2698,6 +2718,37 @@ export interface operations {
             };
             /** @description Account is locked (ACCOUNT_LOCKED) */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: {
+                Origin?: string;
+            };
+            path?: never;
+            cookie?: {
+                pg_refresh?: string;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Signed out; the cookie is cleared */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataVoid"];
+                };
+            };
+            /** @description Origin not allowed (REFRESH_ORIGIN_REJECTED) */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

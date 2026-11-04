@@ -115,6 +115,26 @@ public class SessionService {
         return issueTokens(session, user, now);
     }
 
+    /**
+     * Sign-out with the refresh cookie: revokes the session the token names. Idempotent, so an invalid, expired
+     * or already revoked token is ignored; the caller clears the cookie either way. The hash is not compared: an
+     * old rotated token of the same session may end it too, which a refresh with it would do anyway.
+     */
+    @Transactional
+    public void logout(String refreshToken) {
+        UUID sessionId;
+        try {
+            if (!JwtService.REFRESH.equals(jwtService.extractTokenUse(refreshToken))) return;
+            sessionId = jwtService.extractSessionId(refreshToken);
+        } catch (JwtException | IllegalArgumentException e) {
+            return;
+        }
+        if (sessionId == null) return;
+        sessions.findByIdForUpdate(sessionId)
+                .filter(s -> s.getRevokedAt() == null)
+                .ifPresent(s -> s.setRevokedAt(Instant.now()));
+    }
+
     @Transactional(readOnly = true)
     public boolean isActive(UUID sessionId, Long userId) {
         Instant now = Instant.now();

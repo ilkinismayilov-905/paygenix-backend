@@ -71,6 +71,7 @@ public class SecurityConfig {
                                 "/api/onboarding/*/otp",
                                 "/api/auth/login",
                                 "/api/auth/refresh-token",
+                                "/api/auth/logout",
                                 "/api/auth/oauth/exchange",
                                 "/actuator/health",
                                 // only served when SWAGGER_ENABLED=true
