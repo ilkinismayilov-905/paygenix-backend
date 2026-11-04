@@ -1,6 +1,7 @@
 @import '@fontsource-variable/onest';
 @import './styles/tokens.css';
 @import './ui/ui.css';
+@import './styles/layout.css';
 
 *, *::before, *::after { box-sizing: border-box; }
 
