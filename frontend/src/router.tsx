@@ -7,6 +7,7 @@ export const router = createBrowserRouter([
     errorElement: <RouteError />,
     children: [
       { path: '/', lazy: async () => ({ Component: (await import('./routes/Home')).default }) },
+      { path: '/design', lazy: async () => ({ Component: (await import('./routes/DesignPreview')).default }) },
       { path: '*', lazy: async () => ({ Component: (await import('./routes/NotFound')).default }) },
     ],
   },

@@ -1,0 +1,151 @@
+/*
+ * Paygenix design tokens. Components use only the semantic tokens (--bg, --text, --primary, ...),
+ * never the raw palette, so a theme is one block of overrides.
+ */
+:root {
+  /* palette */
+  --caspian-900: #0c1a3d;
+  --caspian-800: #122653;
+  --caspian-700: #16306b;
+  --caspian-600: #1f428f;
+  --caspian-100: #e3e9f6;
+  --saffron-500: #e3a21a;
+  --saffron-300: #f2c766;
+  --saffron-100: #fbefd2;
+  --slate-950: #0a1020;
+  --slate-900: #111a2e;
+  --slate-800: #1a2540;
+  --slate-700: #2a3655;
+  --slate-500: #5d6884;
+  --slate-400: #8a93ab;
+  --slate-200: #d9dde7;
+  --slate-100: #eceff5;
+  --slate-50: #f6f7fa;
+  --white: #ffffff;
+  --green-600: #17804f;
+  --green-100: #dcf1e6;
+  --red-600: #c2362b;
+  --red-100: #f9e1de;
+  --amber-700: #8a5a00;
+  --amber-100: #fbefd2;
+
+  /* semantic: light */
+  color-scheme: light;
+  --bg: var(--slate-50);
+  --surface: var(--white);
+  --surface-sunken: var(--slate-100);
+  --border: var(--slate-200);
+  --border-strong: var(--slate-400);
+  --text: var(--caspian-900);
+  --text-muted: var(--slate-500);
+  --text-on-primary: var(--white);
+  --primary: var(--caspian-700);
+  --primary-hover: var(--caspian-600);
+  --primary-soft: var(--caspian-100);
+  --accent: var(--saffron-500);
+  --accent-soft: var(--saffron-100);
+  --success: var(--green-600);
+  --success-soft: var(--green-100);
+  --danger: var(--red-600);
+  --danger-soft: var(--red-100);
+  --warning: var(--amber-700);
+  --warning-soft: var(--amber-100);
+  --focus: var(--saffron-500);
+  --card-from: var(--caspian-700);
+  --card-to: var(--caspian-900);
+  --scrim: rgb(10 16 32 / 0.5);
+  --shadow-raised: 0 1px 2px rgb(12 26 61 / 0.06), 0 8px 24px -12px rgb(12 26 61 / 0.18);
+
+  /* type: Onest, scale ~1.2 */
+  --font: 'Onest Variable', system-ui, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-3xl: 2.75rem;
+  --leading-tight: 1.15;
+  --leading: 1.5;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* space: 4px grid */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+
+  /* radius: controls < cards < sheets */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 999px;
+
+  --duration: 160ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --control-height: 3rem;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: var(--slate-950);
+  --surface: var(--slate-900);
+  --surface-sunken: #0d1528;
+  --border: var(--slate-800);
+  --border-strong: var(--slate-700);
+  --text: #eef1f8;
+  --text-muted: var(--slate-400);
+  --text-on-primary: var(--caspian-900);
+  --primary: var(--saffron-300);
+  --primary-hover: #f6d68e;
+  --primary-soft: #2a2412;
+  --accent: var(--saffron-500);
+  --accent-soft: #2a2412;
+  --success: #4cc38a;
+  --success-soft: #10291f;
+  --danger: #f07167;
+  --danger-soft: #2f1517;
+  --warning: var(--saffron-300);
+  --warning-soft: #2a2412;
+  --card-from: var(--caspian-600);
+  --card-to: var(--caspian-800);
+  --scrim: rgb(0 0 0 / 0.6);
+  --shadow-raised: 0 0 0 1px var(--slate-800), 0 12px 32px -16px rgb(0 0 0 / 0.6);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: var(--slate-950);
+    --surface: var(--slate-900);
+    --surface-sunken: #0d1528;
+    --border: var(--slate-800);
+    --border-strong: var(--slate-700);
+    --text: #eef1f8;
+    --text-muted: var(--slate-400);
+    --text-on-primary: var(--caspian-900);
+    --primary: var(--saffron-300);
+    --primary-hover: #f6d68e;
+    --primary-soft: #2a2412;
+    --accent: var(--saffron-500);
+    --accent-soft: #2a2412;
+    --success: #4cc38a;
+    --success-soft: #10291f;
+    --danger: #f07167;
+    --danger-soft: #2f1517;
+    --warning: var(--saffron-300);
+    --warning-soft: #2a2412;
+    --card-from: var(--caspian-600);
+    --card-to: var(--caspian-800);
+    --scrim: rgb(0 0 0 / 0.6);
+    --shadow-raised: 0 0 0 1px var(--slate-800), 0 12px 32px -16px rgb(0 0 0 / 0.6);
+  }
+}
