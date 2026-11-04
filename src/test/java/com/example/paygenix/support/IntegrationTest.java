@@ -7,21 +7,25 @@ import com.example.paygenix.enums.Role;
 import com.example.paygenix.enums.SystemAccount;
 import com.example.paygenix.repository.CardRepository;
 import com.example.paygenix.repository.UserRepository;
+import com.example.paygenix.security.RefreshCookie;
 import com.example.paygenix.service.JwtService;
 import com.example.paygenix.service.LedgerService;
 import com.example.paygenix.service.LedgerService.Leg;
 import com.example.paygenix.service.PanService;
 import com.example.paygenix.service.SessionService;
 import com.jayway.jsonpath.JsonPath;
+import jakarta.servlet.http.Cookie;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
@@ -58,15 +62,15 @@ public abstract class IntegrationTest {
     protected static final String ALLOWED_ORIGIN = "http://localhost:3000";
 
     /** A browser refresh: the token as the refresh cookie, from the frontend's origin. */
-    protected org.springframework.test.web.servlet.ResultActions cookieRefresh(String refreshToken) throws Exception {
+    protected ResultActions cookieRefresh(String refreshToken) throws Exception {
         return mockMvc.perform(post("/api/auth/refresh-token").header("Origin", ALLOWED_ORIGIN)
-                .cookie(new jakarta.servlet.http.Cookie(com.example.paygenix.security.RefreshCookie.NAME, refreshToken)));
+                .cookie(new Cookie(RefreshCookie.NAME, refreshToken)));
     }
 
     /** The refresh token a response set as the cookie. */
-    protected static String refreshCookieOf(org.springframework.mock.web.MockHttpServletResponse res) {
+    protected static String refreshCookieOf(MockHttpServletResponse res) {
         String header = res.getHeader("Set-Cookie");
-        assertThat(header).startsWith(com.example.paygenix.security.RefreshCookie.NAME + "=");
+        assertThat(header).startsWith(RefreshCookie.NAME + "=");
         return header.substring(header.indexOf('=') + 1, header.indexOf(';'));
     }
 

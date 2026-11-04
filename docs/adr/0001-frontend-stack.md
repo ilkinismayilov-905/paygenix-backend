@@ -31,15 +31,15 @@
 ## Auth and token storage
 
 - What the backend does today:
-  - `/api/auth/login`, `/api/auth/oauth/exchange` and `/api/auth/refresh-token` return the access and refresh tokens in the JSON body.
+  - `/api/auth/login`, `/api/auth/oauth/exchange` and `/api/auth/refresh-token` return the access token in the JSON body. The refresh token is only ever set as the httpOnly `pg_refresh` cookie (T-109, T-116).
+  - `/api/auth/refresh-token` reads only that cookie and needs an allowed `Origin` header.
   - Refresh tokens rotate. Presenting an already-used one revokes the whole session (`REFRESH_TOKEN_REUSED`).
-  - Sign-out is `DELETE /api/auth/sessions/{id}` on the session marked `current`.
+  - Sign-out is `POST /api/auth/logout`: it revokes the cookie's session and clears the cookie (T-118). Other devices are signed out with `DELETE /api/auth/sessions/{id}`.
 - Plan:
   - The **access token stays in memory only**: never in localStorage or sessionStorage, so an XSS bug cannot read a stored token later.
-  - The **refresh token moves to an httpOnly, Secure, SameSite=Strict cookie scoped to `/api/auth`**, which needs backend change T-109:
-    - The refresh endpoint also checks `Origin`, because CSRF protection is off for the API.
+  - The **refresh token lives in an httpOnly, Secure, SameSite=Strict cookie scoped to `/api/auth`** (done in T-109):
+    - The refresh and logout endpoints also check `Origin`, because CSRF protection is off for the API.
     - Sign-out clears the cookie.
-    - Until T-109 lands, the refresh token is kept in memory, so a page reload signs the user out. That is acceptable during development.
   - **Exactly one refresh at a time.** On a 401 the client starts one refresh. Every other request that gets a 401 waits for that same refresh, then retries once. If the refresh fails, the user goes to the sign-in screen.
     - Once the cookie exists, tabs coordinate through the Web Locks API, so two tabs never present the same refresh token.
 - XSS is the main risk for an in-memory token, so nginx sends a strict Content-Security-Policy for the build: `script-src 'self'`, no inline scripts, `frame-ancestors 'none'`.
