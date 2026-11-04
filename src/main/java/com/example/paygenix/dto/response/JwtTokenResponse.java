@@ -12,4 +12,9 @@ public record JwtTokenResponse (
         Long expiresIn,
         UserResponse user
 ){
+    // a record's generated toString would print the refresh token into any log line that formats this
+    @Override
+    public String toString() {
+        return "JwtTokenResponse[tokenType=" + tokenType + ", expiresIn=" + expiresIn + "]";
+    }
 }
