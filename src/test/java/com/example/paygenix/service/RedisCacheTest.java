@@ -60,14 +60,25 @@ class RedisCacheTest extends IntegrationTest {
         jdbc.update("INSERT INTO legal_documents (type, version, effective_date, content, is_active) "
                 + "VALUES ('TERMS', '1.0', CURRENT_DATE, 'Terms text', true)");
 
-        String auth = bearer(createUser());
+        // T-110: public, no Authorization header
         for (int i = 0; i < 2; i++) {
-            mockMvc.perform(get("/api/legal/terms").header("Authorization", auth))
+            mockMvc.perform(get("/api/legal/terms"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.content").value("Terms text"));
             assertThat(redis.hasKey("legalDocumentByType::TERMS")).isTrue();
         }
         assertExpiresWithin("legalDocumentByType::TERMS", 3600);
+    }
+
+    @Test
+    void privacyIsPublicToo() throws Exception {
+        cacheManager.getCache(CacheNames.LEGAL_DOCUMENT_BY_TYPE).evict("PRIVACY");
+        jdbc.update("UPDATE legal_documents SET is_active = false WHERE type = 'PRIVACY'");
+        jdbc.update("INSERT INTO legal_documents (type, version, effective_date, content, is_active) "
+                + "VALUES ('PRIVACY', '1.0', CURRENT_DATE, 'Privacy text', true)");
+        mockMvc.perform(get("/api/legal/privacy"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content").value("Privacy text"));
     }
 
     // T-085: cached entries expire with the configured TTL (-1 would mean none)

@@ -49,8 +49,6 @@ All `/api/**` calls except the public ones need `Authorization: Bearer <access t
 |---|---|---|
 | A user cannot list their own transfers, payments or transactions: `GET /api/transfer`, `/api/transaction`, `/api/payment/history` are admin-only | no activity list on dashboard or card detail | T-073 |
 | No way to fund a card | balances stay 0 outside seeded data | T-064 Stripe top-up (owner) |
-| `/api/legal/*` needs a signed-in user | sign-up cannot show Terms before the account exists | T-110 |
 | Transfer and payment take the full 16-digit `fromCardNumber`, but `GET /api/cards/me` gives only the masked number | the client cannot pick the source card | T-112 (`fromCardId`) |
 | No endpoint to read one's own profile (`GET /api/profile` is admin-only, `/api/auth/me` has only id, username, roles) | profile form cannot be prefilled | T-113 |
-| Refresh token only in the JSON body | page reload signs the user out | T-109 |
 | No KYC review / admin API | verify screen submits only; no admin UI | T-070, T-071 |
