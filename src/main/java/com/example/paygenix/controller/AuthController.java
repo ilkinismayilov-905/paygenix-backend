@@ -7,7 +7,9 @@ import com.example.paygenix.dto.request.RefreshTokenRequest;
 import com.example.paygenix.dto.response.JwtTokenResponse;
 import com.example.paygenix.dto.response.UserMeResponse;
 import com.example.paygenix.entity.User;
+import com.example.paygenix.exceptions.InvalidRefreshTokenException;
 import com.example.paygenix.exceptions.UserNotLoginException;
+import com.example.paygenix.security.RefreshCookie;
 import com.example.paygenix.service.AuthService;
 import com.example.paygenix.service.SessionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,6 +42,7 @@ public class AuthController {
     private final AuthService authService;
     private final SessionService sessionService;
     private final ClientRegistrationRepository clientRegistrationRepository;
+    private final RefreshCookie refreshCookie;
 
     @Operation(summary = "Sistem salamlaması", description = "Servisin aktiv olub-olmadığını yoxlamaq üçün sadə endpoint.")
     @GetMapping("/")
@@ -60,7 +63,7 @@ public class AuthController {
             @RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent) {
         log.info("Login request received");
         JwtTokenResponse response = authService.login(request, userAgent);
-        return ResponseEntity.ok(ApiResponseData.build(HttpStatus.OK, "Login successful", response));
+        return withCookie(response, "Login successful");
     }
 
     @Operation(
@@ -86,13 +89,27 @@ public class AuthController {
             + "Presenting an already rotated refresh token revokes the whole session.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "New access and refresh token"),
-            @ApiResponse(responseCode = "401", description = "Invalid, expired or revoked (INVALID_REFRESH_TOKEN), or reused (REFRESH_TOKEN_REUSED)", content = @Content)
+            @ApiResponse(responseCode = "401", description = "Invalid, expired or revoked (INVALID_REFRESH_TOKEN), reused (REFRESH_TOKEN_REUSED), "
+                    + "or a cookie refresh from an origin that is not allowed (REFRESH_ORIGIN_REJECTED)", content = @Content)
     })
     @PostMapping("/refresh-token")
-    public ResponseEntity<ApiResponseData<JwtTokenResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest requestDTO) {
+    public ResponseEntity<ApiResponseData<JwtTokenResponse>> refreshToken(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Optional: without a body the refresh token is read from the "
+                    + RefreshCookie.NAME + " cookie, and the request must carry an allowed Origin header.")
+            @Valid @RequestBody(required = false) RefreshTokenRequest requestDTO,
+            @CookieValue(name = RefreshCookie.NAME, required = false) String cookieToken,
+            @RequestHeader(value = HttpHeaders.ORIGIN, required = false) String origin) {
         log.info("Refresh token request received");
-        JwtTokenResponse responseDTO = sessionService.refresh(requestDTO.refreshToken());
-        return ResponseEntity.ok(ApiResponseData.build(HttpStatus.OK, "Token refreshed successfully", responseDTO));
+        String token;
+        if (requestDTO != null) {
+            token = requestDTO.refreshToken();
+        } else {
+            // The browser attaches the cookie on its own, so this path needs the CSRF check.
+            refreshCookie.checkOrigin(origin);
+            if (cookieToken == null || cookieToken.isBlank()) throw InvalidRefreshTokenException.invalid();
+            token = cookieToken;
+        }
+        return withCookie(sessionService.refresh(token), "Token refreshed successfully");
     }
 
     @Operation(summary = "Google sign-in: exchange code", description = "After Google sign-in the browser lands on "
@@ -108,7 +125,14 @@ public class AuthController {
             @Valid @RequestBody OAuthExchangeRequest request,
             @RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent) {
         JwtTokenResponse response = authService.loginWithOAuthCode(request.code(), userAgent);
-        return ResponseEntity.ok(ApiResponseData.build(HttpStatus.OK, "Login successful", response));
+        return withCookie(response, "Login successful");
+    }
+
+    private ResponseEntity<ApiResponseData<JwtTokenResponse>> withCookie(JwtTokenResponse tokens, String message) {
+        // shortcut: the refresh token is also still in the body until the frontend reads only the cookie (T-116).
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.issue(tokens.refreshToken()))
+                .body(ApiResponseData.build(HttpStatus.OK, message, tokens));
     }
 
     @Operation(summary = "OAuth2 Provayderləri", description = "Sistemdə aktiv olan xarici giriş provayderlərinin (Google) siyahısını qaytarır.")

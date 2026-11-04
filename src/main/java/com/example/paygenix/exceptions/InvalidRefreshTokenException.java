@@ -19,6 +19,11 @@ public class InvalidRefreshTokenException extends BusinessException {
         return new InvalidRefreshTokenException("Refresh token was already used; the session is revoked", "REFRESH_TOKEN_REUSED");
     }
 
+    /** A cookie-based refresh without an allowed Origin header (possible cross-site request). */
+    public static InvalidRefreshTokenException originRejected() {
+        return new InvalidRefreshTokenException("Refresh request origin is not allowed", "REFRESH_ORIGIN_REJECTED");
+    }
+
     @Override
     public String getErrorCode() {
         return errorCode;
