@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 /**
  * The frontend generates its API types from frontend/openapi.json. This fails when the backend contract
  * changed and the snapshot did not. Refresh it with: UPDATE_OPENAPI=true ./mvnw test -Dtest=OpenApiSnapshotTest
+ * (run from the repo root, like Maven does).
  */
 @TestPropertySource(properties = "springdoc.api-docs.enabled=true")
 class OpenApiSnapshotTest extends IntegrationTest {
@@ -29,8 +30,10 @@ class OpenApiSnapshotTest extends IntegrationTest {
         if ("true".equals(System.getenv("UPDATE_OPENAPI"))) {
             Files.writeString(SNAPSHOT, JSON.writerWithDefaultPrettyPrinter().writeValueAsString(liveTree) + "\n");
         }
-        assertThat(JSON.readTree(Files.readString(SNAPSHOT)))
+        // Both sides go through the same pretty printer, so formatting never matters and a failure shows a readable diff.
+        var pretty = JSON.writerWithDefaultPrettyPrinter();
+        assertThat(pretty.writeValueAsString(JSON.readTree(Files.readString(SNAPSHOT))))
                 .as("frontend/openapi.json is stale; see the class comment to refresh it")
-                .isEqualTo(liveTree);
+                .isEqualTo(pretty.writeValueAsString(liveTree));
     }
 }
