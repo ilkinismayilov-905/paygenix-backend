@@ -18,7 +18,7 @@
 .btn-secondary:hover:not(:disabled) { background: var(--surface-sunken); }
 .btn-ghost { background: transparent; color: var(--primary); }
 .btn-ghost:hover:not(:disabled) { background: var(--primary-soft); }
-.btn-danger { background: var(--danger); color: var(--white); }
+.btn-danger { background: var(--danger); color: var(--text-on-danger); }
 .btn-danger:hover:not(:disabled) { filter: brightness(1.08); }
 
 .spinner {
@@ -77,19 +77,20 @@
   display: grid; align-content: space-between; gap: var(--space-4);
   width: 100%; aspect-ratio: 1.586; max-width: 22rem; padding: var(--space-5);
   border: 0; border-radius: var(--radius-lg); text-align: left; font: inherit;
-  color: #fff; background: linear-gradient(150deg, var(--card-from), var(--card-to));
+  color: var(--card-text); background: linear-gradient(150deg, var(--card-from), var(--card-to));
   box-shadow: var(--shadow-raised);
 }
 /* saffron arc: a quiet nod to the sun on the horizon of the Caspian */
 .cardtile::before {
   content: ''; position: absolute; z-index: -1;
   width: 70%; aspect-ratio: 1; right: -22%; top: -30%;
-  border-radius: 50%; border: 1.5rem solid var(--saffron-500); opacity: 0.9;
+  border-radius: 50%; border: 1.5rem solid var(--card-arc); opacity: 0.9;
 }
-.cardtile .money { color: #fff; }
+.cardtile .money { color: var(--card-text); }
 button.cardtile { cursor: pointer; transition: transform var(--duration) var(--ease); }
 button.cardtile:hover { transform: translateY(-2px); }
 .cardtile[aria-pressed='true'] { outline: 3px solid var(--accent); outline-offset: 3px; }
+.cardtile[aria-pressed]:focus-visible { outline-color: var(--focus); }
 .cardtile-top { display: flex; justify-content: space-between; font-size: var(--text-sm); font-weight: var(--weight-semibold); }
 .cardtile-currency { padding: 2px var(--space-2); border-radius: var(--radius-sm); background: rgb(255 255 255 / 0.16); }
 .cardtile-network { font-style: italic; font-weight: var(--weight-bold); letter-spacing: 0.02em; }
@@ -117,11 +118,12 @@ button.cardtile:hover { transform: translateY(-2px); }
 
 /* dialog */
 .dialog {
-  width: min(28rem, calc(100% - 2rem)); padding: var(--space-5);
+  width: min(28rem, calc(100% - 2rem)); padding: 0;
   border: 0; border-radius: var(--radius-xl); background: var(--surface); color: var(--text);
   box-shadow: var(--shadow-raised);
 }
 .dialog::backdrop { background: var(--scrim); }
+.dialog-inner { padding: var(--space-5); }
 .dialog-body { margin-top: var(--space-3); color: var(--text-muted); }
 .dialog-actions { display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-5); }
 @media (max-width: 480px) {
@@ -156,3 +158,5 @@ button.cardtile:hover { transform: translateY(-2px); }
 .state-body { color: var(--text-muted); max-width: 32ch; }
 .state .btn { margin-top: var(--space-3); }
 .state-error .state-title { color: var(--danger); }
+
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

@@ -51,6 +51,9 @@
   --warning: var(--amber-700);
   --warning-soft: var(--amber-100);
   --focus: var(--saffron-500);
+  --text-on-danger: var(--white);
+  --card-text: var(--white);
+  --card-arc: var(--saffron-500);
   --card-from: var(--caspian-700);
   --card-to: var(--caspian-900);
   --scrim: rgb(10 16 32 / 0.5);
@@ -115,6 +118,8 @@
   --danger-soft: #2f1517;
   --warning: var(--saffron-300);
   --warning-soft: #2a2412;
+  --focus: #9db4ea;
+  --text-on-danger: var(--slate-950);
   --card-from: var(--caspian-600);
   --card-to: var(--caspian-800);
   --scrim: rgb(0 0 0 / 0.6);
@@ -143,6 +148,8 @@
     --danger-soft: #2f1517;
     --warning: var(--saffron-300);
     --warning-soft: #2a2412;
+    --focus: #9db4ea;
+    --text-on-danger: var(--slate-950);
     --card-from: var(--caspian-600);
     --card-to: var(--caspian-800);
     --scrim: rgb(0 0 0 / 0.6);

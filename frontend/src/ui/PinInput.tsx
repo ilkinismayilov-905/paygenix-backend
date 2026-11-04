@@ -15,6 +15,7 @@ export function PinInput({ label, value, onChange, length = 6, error, autoFocus 
   const refs = useRef<(HTMLInputElement | null)[]>([])
   const focus = (i: number) => refs.current[Math.max(0, Math.min(length - 1, i))]?.focus()
 
+  // Clearing a middle box closes the gap (later digits shift left), so the value is always a prefix.
   const setDigit = (i: number, digit: string) => {
     const chars = value.padEnd(length, ' ').split('')
     chars[i] = digit || ' '
@@ -28,9 +29,9 @@ export function PinInput({ label, value, onChange, length = 6, error, autoFocus 
   }
 
   const onPaste = (e: ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault()
     const digits = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, length)
     if (!digits) return
-    e.preventDefault()
     onChange(digits)
     focus(digits.length)
   }
@@ -46,9 +47,9 @@ export function PinInput({ label, value, onChange, length = 6, error, autoFocus 
             type="password"
             inputMode="numeric"
             autoComplete="off"
-            maxLength={1}
             aria-label={`Digit ${i + 1} of ${length}`}
             aria-invalid={error ? true : undefined}
+            aria-describedby={error ? `${id}-error` : undefined}
             autoFocus={autoFocus && i === 0}
             value={value[i] ?? ''}
             onChange={(e) => {
