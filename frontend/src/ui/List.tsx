@@ -26,6 +26,6 @@ export function ListRow({ leading, title, subtitle, trailing, trailingSub }: Row
 
 /** Round initials badge for people and merchants. */
 export function Avatar({ name }: { name: string }) {
-  const initials = name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+  const initials = name.trim().split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase()
   return <span className="avatar" aria-hidden="true">{initials}</span>
 }

@@ -4,9 +4,10 @@ import { Money } from './Money'
 type Props = {
   maskedNumber: string
   holder: string
-  expires: string
+  expires?: string | null
   network: string
   currency: Currency
+  /** Raw decimal string, not a pre-formatted display value. */
   balance: string
   selected?: boolean
   onSelect?: () => void
@@ -24,14 +25,17 @@ export function CardTile({ maskedNumber, holder, expires, network, currency, bal
       </span>
       <Money amount={balance} currency={currency} size="lg" />
       <span className="cardtile-bottom">
-        <span className="cardtile-number" aria-label={`Card ending in ${last4}`}>•••• {last4}</span>
+        <span className="cardtile-number">
+          <span aria-hidden="true">•••• {last4}</span>
+          <span className="sr-only">Card ending in {last4}</span>
+        </span>
         <span className="cardtile-meta">{holder}</span>
-        <span className="cardtile-meta">{expires}</span>
+        {expires && <span className="cardtile-meta">{expires}</span>}
       </span>
     </>
   )
   return onSelect ? (
-    <button type="button" className="cardtile" aria-pressed={selected} onClick={onSelect}>{body}</button>
+    <button type="button" className="cardtile" aria-pressed={!!selected} onClick={onSelect}>{body}</button>
   ) : (
     <div className="cardtile">{body}</div>
   )
