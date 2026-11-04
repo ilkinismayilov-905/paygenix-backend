@@ -3,6 +3,7 @@ package com.example.paygenix.controller;
 import com.example.paygenix.dto.ApiResponseData;
 import com.example.paygenix.dto.response.SessionResponse;
 import com.example.paygenix.entity.User;
+import com.example.paygenix.security.RefreshCookie;
 import com.example.paygenix.service.SessionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -10,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -30,6 +32,7 @@ import java.util.UUID;
 public class SessionController {
 
     private final SessionService sessionService;
+    private final RefreshCookie refreshCookie;
 
     @Operation(summary = "List active sessions", description = "One entry per signed-in device; `current` marks the one making this request.")
     @GetMapping
@@ -45,15 +48,21 @@ public class SessionController {
             @ApiResponse(responseCode = "404", description = "No active session with this id for this user")
     })
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponseData<Void>> revoke(@AuthenticationPrincipal User user, @PathVariable UUID id) {
+    public ResponseEntity<ApiResponseData<Void>> revoke(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID id,
+            @RequestAttribute(SessionService.SESSION_ID_ATTRIBUTE) UUID currentSessionId) {
         sessionService.revoke(user.getId(), id);
-        return ResponseEntity.ok(ApiResponseData.success(null));
+        var ok = ResponseEntity.ok();
+        // Signing this device out also drops its refresh cookie; revoking another device leaves it alone.
+        if (id.equals(currentSessionId)) ok.header(HttpHeaders.SET_COOKIE, refreshCookie.clear());
+        return ok.body(ApiResponseData.success(null));
     }
 
     @Operation(summary = "Revoke all sessions", description = "Signs out every device, including this one.")
     @DeleteMapping
     public ResponseEntity<ApiResponseData<Void>> revokeAll(@AuthenticationPrincipal User user) {
         sessionService.revokeAll(user.getId());
-        return ResponseEntity.ok(ApiResponseData.success(null));
+        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, refreshCookie.clear()).body(ApiResponseData.success(null));
     }
 }

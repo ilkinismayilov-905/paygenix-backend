@@ -2632,11 +2632,16 @@ export interface operations {
     refreshToken: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                Origin?: string;
+            };
             path?: never;
-            cookie?: never;
+            cookie?: {
+                pg_refresh?: string;
+            };
         };
-        requestBody: {
+        /** @description Optional: without a body the refresh token is read from the pg_refresh cookie, and the request must carry an allowed Origin header. */
+        requestBody?: {
             content: {
                 "application/json": components["schemas"]["RefreshTokenRequest"];
             };
@@ -2651,7 +2656,7 @@ export interface operations {
                     "*/*": components["schemas"]["ApiResponseDataJwtTokenResponse"];
                 };
             };
-            /** @description Invalid, expired or revoked (INVALID_REFRESH_TOKEN), or reused (REFRESH_TOKEN_REUSED) */
+            /** @description Invalid, expired or revoked (INVALID_REFRESH_TOKEN), reused (REFRESH_TOKEN_REUSED), or a cookie refresh from an origin that is not allowed (REFRESH_ORIGIN_REJECTED) */
             401: {
                 headers: {
                     [name: string]: unknown;

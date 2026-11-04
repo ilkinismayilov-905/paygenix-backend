@@ -1670,15 +1670,30 @@
         "summary" : "Token yeniləmə (Refresh)",
         "description" : "Rotates the refresh token: the old one stops working. Presenting an already rotated refresh token revokes the whole session.",
         "operationId" : "refreshToken",
+        "parameters" : [ {
+          "name" : "pg_refresh",
+          "in" : "cookie",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Origin",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
+          "description" : "Optional: without a body the refresh token is read from the pg_refresh cookie, and the request must carry an allowed Origin header.",
           "content" : {
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/RefreshTokenRequest"
               }
             }
-          },
-          "required" : true
+          }
         },
         "responses" : {
           "200" : {
@@ -1692,7 +1707,7 @@
             }
           },
           "401" : {
-            "description" : "Invalid, expired or revoked (INVALID_REFRESH_TOKEN), or reused (REFRESH_TOKEN_REUSED)"
+            "description" : "Invalid, expired or revoked (INVALID_REFRESH_TOKEN), reused (REFRESH_TOKEN_REUSED), or a cookie refresh from an origin that is not allowed (REFRESH_ORIGIN_REJECTED)"
           }
         }
       }
