@@ -2,6 +2,7 @@ package com.example.paygenix.service;
 
 import com.example.paygenix.cache.CacheNames;
 import com.example.paygenix.dto.response.LegalDocumentResponse;
+import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.repository.LegalDocumentRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -25,6 +26,6 @@ public class LegalDocumentService {
         log.info("Getting active document for type {}", type);
         return repository.findByTypeAndIsActiveTrue(type)
                 .map(doc -> new LegalDocumentResponse(doc.getType(), doc.getVersion(), doc.getEffectiveDate(), doc.getContent()))
-                .orElseThrow(() -> new RuntimeException("Document not found"));
+                .orElseThrow(() -> new NotFoundException("Document not found"));
     }
 }

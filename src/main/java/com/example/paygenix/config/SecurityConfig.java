@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AccountExpiredException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.DisabledException;
@@ -72,9 +73,6 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/refresh-token",
                                 "/api/auth/logout",
-                                // sign-up shows them before the account exists (T-110)
-                                "/api/legal/terms",
-                                "/api/legal/privacy",
                                 "/api/auth/oauth/exchange",
                                 "/actuator/health",
                                 // only served when SWAGGER_ENABLED=true
@@ -82,6 +80,8 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**"
                         ).permitAll()
+                        // sign-up shows them before the account exists (T-110)
+                        .requestMatchers(HttpMethod.GET, "/api/legal/terms", "/api/legal/privacy").permitAll()
                         .requestMatchers("/api/onboarding/**").hasAuthority("onboarding")
                         .requestMatchers("/api/**").hasAnyRole("USER_ROLE", "ADMIN_ROLE")
                         .anyRequest().authenticated()
