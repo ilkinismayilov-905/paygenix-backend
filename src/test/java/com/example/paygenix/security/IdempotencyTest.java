@@ -3,6 +3,7 @@ package com.example.paygenix.security;
 import com.example.paygenix.dto.request.TransferRequest;
 import com.example.paygenix.dto.response.TransferResponse;
 import com.example.paygenix.entity.User;
+import com.example.paygenix.repository.IdempotencyKeyRepository;
 import com.example.paygenix.service.IdempotencyService;
 import com.example.paygenix.service.TransferService;
 import com.example.paygenix.support.IntegrationTest;
@@ -32,6 +33,7 @@ class IdempotencyTest extends IntegrationTest {
 
     @Autowired IdempotencyService idempotencyService;
     @Autowired TransferService transferService;
+    @Autowired IdempotencyKeyRepository idempotencyKeyRepository;
 
     @Test
     void retryWithSameKeyReplaysWithoutMovingMoneyAgain() throws Exception {
@@ -220,6 +222,8 @@ class IdempotencyTest extends IntegrationTest {
         assertThat((Integer) JsonPath.read(replay, "$.data.card.id")).isEqualTo(JsonPath.read(first, "$.data.card.id"));
         assertThat(cardRepository.findByOwnerId(owner.getId())).hasSize(1);
         assertThat(JsonPath.<String>read(first, "$.data.cardNumber")).hasSize(16);
+        assertThat(idempotencyKeyRepository.findByUserIdAndIdemKey(owner.getId(), key).orElseThrow().getResponseBody())
+                .doesNotContain(JsonPath.<String>read(first, "$.data.cardNumber"));
         issueWithKey(owner, key, "EUR").andExpect(status().isUnprocessableContent());
     }
 

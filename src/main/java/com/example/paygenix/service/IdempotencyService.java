@@ -14,7 +14,7 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 /**
- * Runs a money-moving action at most once per (user, Idempotency-Key). The key is claimed in the same
+ * Runs a non-repeatable action (money movement, card issue) at most once per (user, Idempotency-Key). The key is claimed in the same
  * transaction as the action, so a failed action leaves no key behind and can be retried.
  * shortcut: keys are kept forever; add a purge of rows older than ~24h when the table grows.
  */
