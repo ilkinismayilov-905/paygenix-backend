@@ -28,6 +28,7 @@ export default function AppShell() {
       <header className="shell-header">
         <Link to="/" className="shell-brand"><Logo /> {t('app.name')}</Link>
         <nav className="shell-nav">
+          <Link className="btn btn-ghost btn-sm" to="/cards">{t('shell.cards')}</Link>
           <Link className="btn btn-ghost btn-sm" to="/settings/profile">{t('shell.profile')}</Link>
           <Button variant="ghost" size="sm" loading={busy} onClick={() => void onSignOut()}>
             {t('shell.signOut')}

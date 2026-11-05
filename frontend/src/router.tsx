@@ -23,6 +23,8 @@ export const routes = [
           lazy: page(() => import('./routes/AppShell')),
           children: [
             { path: '/', lazy: page(() => import('./routes/Home')) },
+            { path: '/cards', lazy: page(() => import('./routes/Cards')) },
+            { path: '/cards/:id', lazy: page(() => import('./routes/CardDetail')) },
             { path: '/transfer', lazy: page(() => import('./routes/Transfer')) },
             { path: '/pay', lazy: page(() => import('./routes/Pay')) },
             { path: '/settings/profile', lazy: page(() => import('./routes/Profile')) },

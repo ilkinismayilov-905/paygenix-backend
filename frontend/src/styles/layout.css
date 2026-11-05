@@ -47,3 +47,9 @@ fieldset.field { border: 0; margin: 0; padding: 0; min-width: 0; }
 .summary dd { margin: 0; text-align: end; font-weight: var(--weight-medium); font-variant-numeric: tabular-nums; }
 .transfer-done { display: grid; justify-items: center; gap: var(--space-3); text-align: center; padding: var(--space-6) var(--space-4); background: var(--surface); border-radius: var(--radius-lg); }
 .transfer-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-3); }
+.cards-issue { grid-template-columns: 1fr auto; align-items: end; gap: var(--space-3); }
+.cards-issue > .alert { grid-column: 1 / -1; }
+.cards-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-4); }
+.cards-list > li { min-width: 0; }
+@media (min-width: 40rem) { .cards-list { grid-template-columns: 1fr 1fr; } }
+.cards-pan { color: var(--text); font-weight: var(--weight-semibold); font-size: var(--text-xl); letter-spacing: 0.06em; font-variant-numeric: tabular-nums; user-select: all; }
