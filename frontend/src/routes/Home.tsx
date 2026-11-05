@@ -65,13 +65,26 @@ function useHome() {
   return { cards, items, hasMore: next !== null, moreBusy, moreFailed, loadMore, retry }
 }
 
+/** First name for the greeting; null until loaded, or when there is none (the greeting is optional, errors are ignored). */
+function useFirstName() {
+  const [name, setName] = useState<string | null>(null)
+  useEffect(() => {
+    let live = true
+    void api.GET('/api/profile/me')
+      .then(({ data }) => { if (live) setName(data?.data?.fullName?.trim().split(/\s+/)[0] || null) })
+      .catch(() => {})
+    return () => { live = false }
+  }, [])
+  return name
+}
+
 export default function Home() {
+  const name = useFirstName()
   const { cards, items, hasMore, moreBusy, moreFailed, loadMore, retry } = useHome()
   const failed = cards === 'failed' || items === 'failed'
   return (
     <main className="page">
-      {/* shortcut: no name in the greeting — /api/auth/me "username" is the email; add it with T-113 (own profile) */}
-      <h1>{t('home.title')}</h1>
+      <h1>{name ? t('home.hello', { name }) : t('home.title')}</h1>
       {Array.isArray(cards) && cards.length > 0 && (
         <div className="home-actions">
           <Link className="btn btn-primary" to="/transfer">{t('home.send')}</Link>
