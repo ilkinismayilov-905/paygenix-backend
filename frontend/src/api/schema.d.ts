@@ -844,6 +844,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cards/me/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My activity
+         * @description Money movements on the logged-in user's cards (closed cards included), newest first. Optional cardId narrows it to one card.
+         */
+        get: operations["getMyActivity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/sessions": {
         parameters: {
             query?: never;
@@ -1374,6 +1394,40 @@ export interface components {
             status?: number;
             message?: string;
             data?: components["schemas"]["CardResponse"];
+        };
+        ActivityItem: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            cardId?: number;
+            last4?: string;
+            /** @enum {string} */
+            kind?: "TRANSFER" | "PAYMENT" | "CASHBACK" | "TOP_UP" | "OPENING_BALANCE";
+            /**
+             * @description Signed decimal string, two decimals: negative leaves the card, positive arrives
+             * @example -10.20
+             */
+            amount?: string;
+            /** @enum {string} */
+            currency?: "AZN" | "USD" | "EUR";
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        ActivityPage: {
+            items?: components["schemas"]["ActivityItem"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            hasNext?: boolean;
+        };
+        ApiResponseDataActivityPage: {
+            /** Format: date-time */
+            timestamp?: string;
+            /** Format: int32 */
+            status?: number;
+            message?: string;
+            data?: components["schemas"]["ActivityPage"];
         };
         ApiResponseDataListSessionResponse: {
             /** Format: date-time */
@@ -3320,6 +3374,39 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseDataListCardResponse"];
+                };
+            };
+        };
+    };
+    getMyActivity: {
+        parameters: {
+            query?: {
+                cardId?: number;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Activity page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataActivityPage"];
+                };
+            };
+            /** @description page < 0 or size outside 1..100 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataActivityPage"];
                 };
             };
         };
