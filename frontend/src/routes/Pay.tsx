@@ -1,11 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { api, retryAfterMinutes } from '../api/client'
 import { t } from '../i18n'
 import { Alert, Button, formatMoney, PinInput, TextField, type Currency } from '../ui'
-import { amountSchema, cardLabel, problemCode, pinSchema, useOwnCards } from './money'
+import { amountSchema, cardLabel, pickCard, problemCode, pinSchema, useOwnCards } from './money'
 import { CardsGate, MoneyDone } from './MoneyViews'
 
 /** Accepts "+994 50 123 45 67", "050 123 45 67" or "501234567"; the API wants +994 and 9 digits. */
@@ -17,7 +17,7 @@ function toPhone(s: string): string | null {
 
 // Mirrors PaymentRequest: +994 and 9 digits, own card id, amount.
 const schema = z.object({
-  fromCardId: z.string().min(1),
+  fromCardId: z.string(),
   phoneNumber: z.string().transform((s, ctx) => toPhone(s) ?? (ctx.addIssue({ code: 'custom', message: t('pay.phoneInvalid') }), z.NEVER)),
   amount: amountSchema,
 })
@@ -36,22 +36,17 @@ export default function Pay() {
   // Initiate: one key per (phone, card, amount), the server's own fingerprint, so a resend cannot open a second flow.
   // Confirm: one key per flow (the server fingerprints the flow id only), so a resend cannot pay twice.
   const attempt = useRef<{ body: string; key: string } | null>(null)
-  const { register, control, handleSubmit, getValues, reset, setError: setFieldError, setValue, formState: { errors, isSubmitting } } =
+  const { register, control, handleSubmit, reset, setError: setFieldError, formState: { errors, isSubmitting } } =
     useForm<Input, unknown, z.output<typeof schema>>({ resolver: zodResolver(schema), defaultValues: { fromCardId: '', phoneNumber: '', amount: '' } })
 
-  useEffect(() => {
-    // also when the chosen card left the list (closed): the select would show the first card but submit the old id
-    if (Array.isArray(cards) && cards[0] && !cards.some((c) => String(c.id) === getValues('fromCardId'))) setValue('fromCardId', String(cards[0].id))
-  }, [cards, getValues, setValue])
-
   const fromCardId = useWatch({ control, name: 'fromCardId' })
-  const from = Array.isArray(cards) ? cards.find((c) => String(c.id) === fromCardId) : undefined
+  const from = Array.isArray(cards) ? pickCard(cards, fromCardId) : undefined
 
   const initiate = async (form: z.output<typeof schema>) => {
     setError(null)
-    const card = Array.isArray(cards) ? cards.find((c) => String(c.id) === form.fromCardId) : undefined
-    if (!card) { setError(t('pay.cardGone')); return }
-    const body = { phoneNumber: form.phoneNumber, fromCardId: Number(form.fromCardId), amount: form.amount }
+    const card = Array.isArray(cards) ? pickCard(cards, form.fromCardId) : undefined
+    if (!card?.id) { setError(t('pay.cardGone')); return }
+    const body = { phoneNumber: form.phoneNumber, fromCardId: card.id, amount: form.amount }
     const same = `${body.phoneNumber}|${body.fromCardId}|${body.amount}`
     const key = attempt.current?.body === same ? attempt.current.key : crypto.randomUUID()
     attempt.current = { body: same, key }
@@ -109,7 +104,7 @@ export default function Pay() {
 
   const again = () => {
     setDone(null); setFlow(null)
-    reset({ fromCardId: getValues('fromCardId'), phoneNumber: '', amount: '' })
+    reset({ fromCardId: from ? String(from.id) : '', phoneNumber: '', amount: '' })
     reload() // balances changed
   }
 

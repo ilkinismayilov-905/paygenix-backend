@@ -1,18 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { api, retryAfterMinutes } from '../api/client'
 import { t } from '../i18n'
 import { Alert, Button, PinInput, TextField, type Currency } from '../ui'
-import { amountSchema, cardLabel, problemCode, pinSchema, useOwnCards } from './money'
+import { amountSchema, cardLabel, pickCard, problemCode, pinSchema, useOwnCards } from './money'
 import { CardsGate, MoneyDone } from './MoneyViews'
 
 type Done = { amount: string; currency: Currency; last4: string }
 
 // Mirrors TransferRequest: own card id, 16-digit card number, amount, 6-digit PIN.
 const schema = z.object({
-  fromCardId: z.string().min(1),
+  fromCardId: z.string(),
   toCardNumber: z.string().transform((s) => s.replace(/[\s-]/g, ''))
     .pipe(z.string().regex(/^\d{16}$/, t('transfer.toInvalid'))),
   amount: amountSchema,
@@ -28,20 +28,17 @@ export default function Transfer() {
   // One key per (card, recipient, amount), PIN left out like the server does: a resend of the same transfer (network error,
   // RESOURCE_BUSY, retyped PIN) reuses it, so it cannot move money twice. The server keeps a key only on success.
   const attempt = useRef<{ body: string; key: string } | null>(null)
-  const { register, control, handleSubmit, getValues, reset, setError: setFieldError, setValue, formState: { errors, isSubmitting } } =
+  const { register, control, handleSubmit, reset, setError: setFieldError, setValue, formState: { errors, isSubmitting } } =
     useForm<Input, unknown, Form>({ resolver: zodResolver(schema), defaultValues: { fromCardId: '', toCardNumber: '', amount: '', pin: '' } })
 
-  useEffect(() => {
-    // also when the chosen card left the list (closed): the select would show the first card but submit the old id
-    if (Array.isArray(cards) && cards[0] && !cards.some((c) => String(c.id) === getValues('fromCardId'))) setValue('fromCardId', String(cards[0].id))
-  }, [cards, getValues, setValue])
-
   const fromCardId = useWatch({ control, name: 'fromCardId' })
-  const from = Array.isArray(cards) ? cards.find((c) => String(c.id) === fromCardId) : undefined
+  const from = Array.isArray(cards) ? pickCard(cards, fromCardId) : undefined
 
   const send = async (form: Form) => {
     setError(null)
-    const body = { fromCardId: Number(form.fromCardId), toCardNumber: form.toCardNumber, amount: form.amount, pin: form.pin }
+    const card = Array.isArray(cards) ? pickCard(cards, form.fromCardId) : undefined
+    if (!card?.id) return
+    const body = { fromCardId: card.id, toCardNumber: form.toCardNumber, amount: form.amount, pin: form.pin }
     const same = `${body.fromCardId}|${body.toCardNumber}|${body.amount}`
     const key = attempt.current?.body === same ? attempt.current.key : crypto.randomUUID()
     attempt.current = { body: same, key }
@@ -73,7 +70,7 @@ export default function Transfer() {
 
   const again = () => {
     setDone(null)
-    reset({ fromCardId: getValues('fromCardId'), toCardNumber: '', amount: '', pin: '' })
+    reset({ fromCardId: from ? String(from.id) : '', toCardNumber: '', amount: '', pin: '' })
     reload() // balances changed
   }
 
