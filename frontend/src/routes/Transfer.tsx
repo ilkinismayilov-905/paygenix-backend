@@ -13,13 +13,19 @@ type Done = { amount: string; currency: Currency; last4: string }
 
 // Mirrors TransferRequest: 16-digit card, 0.01+ with at most 2 decimals, 6-digit PIN.
 const schema = z.object({
-  fromCardId: z.string().min(1, t('transfer.fromRequired')),
+  fromCardId: z.string().min(1),
   toCardNumber: z.string().transform((s) => s.replace(/[\s-]/g, ''))
     .pipe(z.string().regex(/^\d{16}$/, t('transfer.toInvalid'))),
   amount: z.string().transform((s) => s.trim().replace(',', '.'))
-    .pipe(z.string().regex(/^\d{1,15}(\.\d{1,2})?$/, t('transfer.amountInvalid')).refine((s) => /[1-9]/.test(s), t('transfer.amountInvalid'))),
+    .pipe(z.string().regex(/^\d{1,15}(\.\d{1,2})?$/, t('transfer.amountInvalid')).refine((s) => /[1-9]/.test(s), t('transfer.amountInvalid')))
+    .transform(canonical),
   pin: z.string().regex(/^\d{6}$/, t('transfer.pinInvalid')),
 })
+/** "010,5" and "10.50" are the same money: one spelling, so the idempotency key below sees them as one request. */
+function canonical(amount: string): string {
+  const [int = '', frac = ''] = amount.split('.')
+  return `${int.replace(/^0+(?=\d)/, '')}.${frac.padEnd(2, '0')}`
+}
 type Input = z.input<typeof schema>
 type Form = z.output<typeof schema>
 
@@ -28,7 +34,10 @@ export default function Transfer() {
   const [round, setRound] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState<Done | null>(null)
-  // One key per request body: a resend of the same body (network error, RESOURCE_BUSY) reuses it, so it cannot move money twice.
+  const doneHeading = useRef<HTMLHeadingElement>(null)
+  useEffect(() => { if (done) doneHeading.current?.focus() }, [done]) // the form is gone: move focus so the result is read out
+  // One key per (card, recipient, amount), PIN left out like the server does: a resend of the same transfer (network error,
+  // RESOURCE_BUSY, retyped PIN) reuses it, so it cannot move money twice. The server keeps a key only on success.
   const attempt = useRef<{ body: string; key: string } | null>(null)
   const { register, control, handleSubmit, getValues, reset, setError: setFieldError, setValue, formState: { errors, isSubmitting } } =
     useForm<Input, unknown, Form>({ resolver: zodResolver(schema), defaultValues: { fromCardId: '', toCardNumber: '', amount: '', pin: '' } })
@@ -52,9 +61,9 @@ export default function Transfer() {
   const send = async (form: Form) => {
     setError(null)
     const body = { fromCardId: Number(form.fromCardId), toCardNumber: form.toCardNumber, amount: form.amount, pin: form.pin }
-    const json = JSON.stringify(body)
-    const key = attempt.current?.body === json ? attempt.current.key : crypto.randomUUID()
-    attempt.current = { body: json, key }
+    const same = `${body.fromCardId}|${body.toCardNumber}|${body.amount}`
+    const key = attempt.current?.body === same ? attempt.current.key : crypto.randomUUID()
+    attempt.current = { body: same, key }
     try {
       const { data, error: problem, response } = await api.POST('/api/transfer',
         { body, params: { header: { 'Idempotency-Key': key } } })
@@ -67,15 +76,15 @@ export default function Transfer() {
       const code = (problem as Problem | undefined)?.code
       switch (code) {
         case 'INVALID_PIN': setValue('pin', ''); setFieldError('pin', { message: t('transfer.pinWrong') }); return
-        case 'NOT_FOUND': setFieldError('toCardNumber', { message: t('transfer.toNotFound') }); return
-        case 'SAME_CARD': setFieldError('toCardNumber', { message: t('transfer.sameCard') }); return
-        case 'CURRENCY_MISMATCH': setFieldError('toCardNumber', { message: t('transfer.currencyMismatch') }); return
-        case 'INSUFFICIENT_BALANCE': setFieldError('amount', { message: t('transfer.insufficient') }); return
+        case 'NOT_FOUND': setError(t('transfer.notFound')); return // the recipient, or the source card if it was just closed
+        case 'SAME_CARD': setFieldError('toCardNumber', { message: t('transfer.sameCard') }, { shouldFocus: true }); return
+        case 'CURRENCY_MISMATCH': setFieldError('toCardNumber', { message: t('transfer.currencyMismatch') }, { shouldFocus: true }); return
+        case 'INSUFFICIENT_BALANCE': setFieldError('amount', { message: t('transfer.insufficient') }, { shouldFocus: true }); return
         case 'PIN_LOCKED': setError(t('transfer.pinLocked', { minutes: retryAfterMinutes(response) ?? 15 })); return
         case 'PIN_NOT_SET': setError(t('transfer.pinNotSet')); return
         case 'LEGAL_ACCEPTANCE_REQUIRED': setError(t('transfer.legal')); return
         case 'RESOURCE_BUSY': setError(t('transfer.busy')); return
-        default: setError(t('transfer.failed'))
+        default: setError(t('transfer.rejected'))
       }
     } catch {
       setError(t('transfer.failed')) // the key is kept: pressing Send again is a safe retry
@@ -92,7 +101,7 @@ export default function Transfer() {
     return (
       <main className="page">
         <section className="transfer-done" aria-labelledby="sent">
-          <h1 id="sent">{t('transfer.sent')}</h1>
+          <h1 id="sent" ref={doneHeading} tabIndex={-1}>{t('transfer.sent')}</h1>
           <Money amount={done.amount} currency={done.currency} size="xl" />
           <p className="muted">{t('transfer.sentTo', { last4: done.last4 })}</p>
           <div className="transfer-actions">

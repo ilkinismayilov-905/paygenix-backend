@@ -55,11 +55,16 @@ test('a resend after a network error reuses the key; a changed body gets a new o
   expect(await screen.findByText(/did not go through/)).toBeInTheDocument()
   send()
   expect(await screen.findByText(/Not enough money/)).toBeInTheDocument()
-  fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '5' } })
+  fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '010.5' } }) // same money, other spelling
+  fireEvent.paste(screen.getByLabelText('Digit 1 of 6'), { clipboardData: { getData: () => '111111' } })
   send()
   await vi.waitFor(() => expect(sent).toHaveLength(3))
+  fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '5' } })
+  send()
+  await vi.waitFor(() => expect(sent).toHaveLength(4))
   expect(sent[1]!.key).toBe(sent[0]!.key)
-  expect(sent[2]!.key).not.toBe(sent[0]!.key)
+  expect(sent[2]!.key).toBe(sent[0]!.key)
+  expect(sent[3]!.key).not.toBe(sent[0]!.key)
 })
 
 test('a wrong PIN clears the PIN and says so', async () => {
@@ -86,4 +91,29 @@ test('invalid input never reaches the server', async () => {
   expect(screen.getByText('Enter an amount like 10 or 10.50.')).toBeInTheDocument()
   expect(screen.getByText('Enter your 6-digit PIN.')).toBeInTheDocument()
   expect(sent).toHaveLength(0)
+})
+
+test('a second press while sending does not send twice; the result gets focus', async () => {
+  let answer!: (r: Response) => void
+  transfer = () => new Promise((r) => { answer = r })
+  await fill()
+  send()
+  send()
+  await vi.waitFor(() => expect(sent).toHaveLength(1))
+  answer(ok({ toCardNumber: '**** **** **** 4455', amount: '10.50', currency: 'AZN' }))
+  expect(await screen.findByRole('heading', { name: 'Money sent' })).toHaveFocus()
+  expect(sent).toHaveLength(1)
+})
+
+test.each([
+  ['NOT_FOUND', 404, /Card not found/],
+  ['SAME_CARD', 400, /different card/],
+  ['CURRENCY_MISMATCH', 400, /same currency/],
+  ['RESOURCE_BUSY', 409, /card is busy/],
+  ['SOMETHING_NEW', 500, /could not be sent/],
+])('%s shows its message', async (code, status, text) => {
+  transfer = () => json(status, { code })
+  await fill()
+  send()
+  expect(await screen.findByText(text)).toBeInTheDocument()
 })
