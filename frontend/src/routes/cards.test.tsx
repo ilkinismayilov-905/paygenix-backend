@@ -95,13 +95,14 @@ test('the detail shows the card and only its activity', async () => {
   expect(activityAsked).toContain('7')
 })
 
-test('a card with money cannot be closed', async () => {
-  close = () => json(409, { code: 'CARD_HAS_BALANCE' })
+test('a card with money cannot be closed, and its balance is reloaded', async () => {
+  close = () => { mine = [card(7, '2207', '120.00')]; return json(409, { code: 'CARD_HAS_BALANCE' }) } // money arrived meanwhile
   open('/cards/7')
   fireEvent.click(await screen.findByRole('button', { name: 'Close card' }))
   const dialog = await screen.findByRole('dialog', { name: 'Close this card?' })
   fireEvent.click(within(dialog).getByRole('button', { name: 'Close card' }))
   expect(await within(dialog).findByText(/Move the money to another card first/)).toBeInTheDocument()
+  expect(await screen.findByText(/120\.00/)).toBeInTheDocument()
 })
 
 test('closing an empty card goes back to the list', async () => {
@@ -112,6 +113,7 @@ test('closing an empty card goes back to the list', async () => {
   fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Close card' }))
   expect(await screen.findByText('No cards yet')).toBeInTheDocument()
   expect(router.state.location.pathname).toBe('/cards')
+  expect(screen.getByRole('heading', { level: 1 })).toHaveFocus()
 })
 
 test('an unknown or closed card says so', async () => {

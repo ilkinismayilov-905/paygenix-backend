@@ -17,13 +17,23 @@ function useCard(id: number) {
       .then(({ data, response }) => {
         if (!live) return
         const c = data?.data
-        setCard(response.status === 404 ? 'missing' : response.ok && c?.id && c.amount && c.currency ? c : 'failed')
+        if (response.status === 404) setCard('missing')
+        else if (response.ok && c?.id && c.amount && c.currency) setCard(c)
+        else setCard(keepOr('failed'))
       })
-      .catch(() => { if (live) setCard('failed') })
+      .catch(() => { if (live) setCard(keepOr('failed')) })
     return () => { live = false }
   }, [id, round])
-  return { card, retry: () => { setCard(null); setRound((r) => r + 1) } }
+  return {
+    card,
+    retry: () => { setCard(null); setRound((r) => r + 1) },
+    refresh: () => setRound((r) => r + 1), // quiet: the shown card stays until the new one lands
+  }
 }
+
+/** A failed quiet refresh keeps the card already shown. */
+const keepOr = (fallback: 'failed') => (prev: Card | null | 'missing' | 'failed') =>
+  prev && typeof prev === 'object' ? prev : fallback
 
 function Missing() {
   return (
@@ -41,7 +51,7 @@ export default function CardDetailRoute() {
 }
 
 function CardDetail({ id }: { id: number }) {
-  const { card, retry: retryCard } = useCard(id)
+  const { card, retry: retryCard, refresh } = useCard(id)
   const activity = useActivity(id)
   const retry = () => { retryCard(); activity.retry() }
 
@@ -54,8 +64,10 @@ function CardDetail({ id }: { id: number }) {
     try {
       const { error: problem, response } = await api.DELETE('/api/cards/{id}', { params: { path: { id } } })
       // 404: closed already (another tab) — the outcome the user asked for
-      if (response.ok || response.status === 404) { navigate('/cards', { replace: true }); return }
-      setCloseError(problemCode(problem) === 'CARD_HAS_BALANCE' ? t('card.hasBalance') : t('card.closeFailed'))
+      if (response.ok || response.status === 404) { navigate('/cards', { replace: true, state: { closed: true } }); return }
+      const hasBalance = problemCode(problem) === 'CARD_HAS_BALANCE'
+      if (hasBalance) refresh() // the balance shown may be stale
+      setCloseError(hasBalance ? t('card.hasBalance') : t('card.closeFailed'))
     } catch {
       setCloseError(t('card.closeFailed'))
     } finally {
