@@ -11,6 +11,6 @@ public record CardResponse(
         String cardHolderName,
         CardNetwork cardNetwork,
         Currency currency,
-        @Schema(example = "1300.00", description = "Balance as a decimal string, two decimals") String amount,
+        @Schema(example = "\"1300.00\"", description = "Balance as a decimal string, two decimals") String amount,
         String displayAmount) {     // $1,300.00, server-formatted
 }

@@ -16,7 +16,7 @@ public record TransferRequest(
         String toCardNumber,
         @NotNull @DecimalMin(value = "0.01", message = "Amount must be at least 0.01")
         @Digits(integer = 15, fraction = 2, message = "Amount can have at most 2 decimal places")
-        @Schema(type = "string", example = "10.00", description = "Decimal string; a JSON number is also accepted")
+        @Schema(type = "string", example = "\"10.00\"", pattern = "^\\d{1,15}(\\.\\d{1,2})?$", description = "Decimal string; a JSON number is also accepted")
         BigDecimal amount,
         @NotBlank(message = "PIN is required")
         @Pattern(regexp = "\\d{6}", message = "PIN must be 6 digits")

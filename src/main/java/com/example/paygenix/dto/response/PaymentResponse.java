@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 public record PaymentResponse(
         String phoneNumber,
         String fromCardNumber,
-        @JsonFormat(shape = JsonFormat.Shape.STRING) @Schema(type = "string", example = "10.00", description = "Decimal string (ADR 0001 money rule)")
+        @JsonFormat(shape = JsonFormat.Shape.STRING) @Schema(type = "string", example = "\"10.00\"", description = "Decimal string (ADR 0001 money rule)")
         BigDecimal amount,
         Currency currency
 ) {

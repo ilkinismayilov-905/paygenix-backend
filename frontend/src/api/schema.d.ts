@@ -1018,7 +1018,7 @@ export interface components {
             toCardNumber: string;
             /**
              * @description Decimal string; a JSON number is also accepted
-             * @example 10
+             * @example 10.00
              */
             amount: string;
             pin: string;
@@ -1036,7 +1036,7 @@ export interface components {
             toCardNumber?: string;
             /**
              * @description Decimal string (ADR 0001 money rule)
-             * @example 10
+             * @example 10.00
              */
             amount?: string;
         };
@@ -1113,7 +1113,7 @@ export interface components {
             fromCardNumber: string;
             /**
              * @description Decimal string; a JSON number is also accepted
-             * @example 10
+             * @example 10.00
              */
             amount: string;
         };
@@ -1134,7 +1134,7 @@ export interface components {
             fromCardNumber?: string;
             /**
              * @description Decimal string (ADR 0001 money rule)
-             * @example 10
+             * @example 10.00
              */
             amount?: string;
             /** @enum {string} */
@@ -1181,7 +1181,7 @@ export interface components {
             currency?: "AZN" | "USD" | "EUR";
             /**
              * @description Balance as a decimal string, two decimals
-             * @example 1300
+             * @example 1300.00
              */
             amount?: string;
             displayAmount?: string;
