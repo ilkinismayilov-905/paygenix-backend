@@ -2814,10 +2814,10 @@
       "TransferRequest" : {
         "type" : "object",
         "properties" : {
-          "fromCardNumber" : {
-            "type" : "string",
-            "minLength" : 1,
-            "pattern" : "\\d{16}"
+          "fromCardId" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Id of one of the caller's cards (GET /api/cards/me)"
           },
           "toCardNumber" : {
             "type" : "string",
@@ -2836,7 +2836,7 @@
             "pattern" : "\\d{6}"
           }
         },
-        "required" : [ "amount", "fromCardNumber", "pin", "toCardNumber" ]
+        "required" : [ "amount", "fromCardId", "pin", "toCardNumber" ]
       },
       "ApiResponseDataTransferResponse" : {
         "type" : "object",
@@ -2870,6 +2870,10 @@
             "type" : "string",
             "description" : "Decimal string (ADR 0001 money rule)",
             "example" : "10.00"
+          },
+          "currency" : {
+            "type" : "string",
+            "enum" : [ "AZN", "USD", "EUR" ]
           }
         }
       },
@@ -3066,10 +3070,10 @@
             "minLength" : 1,
             "pattern" : "^\\+994\\d{9}$"
           },
-          "fromCardNumber" : {
-            "type" : "string",
-            "minLength" : 1,
-            "pattern" : "^\\d{16}$"
+          "fromCardId" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Id of one of the caller's cards (GET /api/cards/me)"
           },
           "amount" : {
             "type" : "string",
@@ -3078,7 +3082,7 @@
             "pattern" : "^\\d{1,15}(\\.\\d{1,2})?$"
           }
         },
-        "required" : [ "amount", "fromCardNumber", "phoneNumber" ]
+        "required" : [ "amount", "fromCardId", "phoneNumber" ]
       },
       "ConfirmPaymentRequest" : {
         "type" : "object",

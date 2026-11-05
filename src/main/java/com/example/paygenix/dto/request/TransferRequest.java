@@ -5,13 +5,15 @@ import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 
 public record TransferRequest(
-        @NotBlank @Pattern(regexp = "\\d{16}", message = "Card number must be 16 digits")
-        String fromCardNumber,
+        @NotNull(message = "Source card is required") @Positive
+        @Schema(description = "Id of one of the caller's cards (GET /api/cards/me)")
+        Long fromCardId,
         @NotBlank @Pattern(regexp = "\\d{16}", message = "Card number must be 16 digits")
         String toCardNumber,
         @NotNull @DecimalMin(value = "0.01", message = "Amount must be at least 0.01")

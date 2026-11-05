@@ -120,7 +120,7 @@ class IdempotencyTest extends IntegrationTest {
         String body = mockMvc.perform(post("/api/payment/initiate").header("Authorization", bearer(payer))
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"phoneNumber\":\"+994501234567\",\"fromCardNumber\":\"" + card + "\",\"amount\":10.00}"))
+                        .content("{\"phoneNumber\":\"+994501234567\",\"fromCardId\":" + cardOf(card).getId() + ",\"amount\":10.00}"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         String flowId = JsonPath.read(body, "$.data");
@@ -168,7 +168,7 @@ class IdempotencyTest extends IntegrationTest {
         String to = issueCard(createUser(), "AZN");
         setBalance(from, "100.00");
         String key = UUID.randomUUID().toString();
-        TransferRequest request = new TransferRequest(from, to, new BigDecimal("10.00"), PIN);
+        TransferRequest request = new TransferRequest(cardOf(from).getId(), to, new BigDecimal("10.00"), PIN);
 
         int threads = 8;
         ExecutorService pool = Executors.newFixedThreadPool(threads);
@@ -207,8 +207,8 @@ class IdempotencyTest extends IntegrationTest {
                 .content("{\"flowId\":\"" + flowId + "\",\"pin\":\"" + PIN + "\"}"));
     }
 
-    private static String body(String from, String to, String amount) {
-        return "{\"fromCardNumber\":\"" + from + "\",\"toCardNumber\":\"" + to
+    private String body(String from, String to, String amount) {
+        return "{\"fromCardId\":" + cardOf(from).getId() + ",\"toCardNumber\":\"" + to
                 + "\",\"amount\":" + amount + ",\"pin\":\"" + PIN + "\"}";
     }
 }

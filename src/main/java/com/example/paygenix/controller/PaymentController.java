@@ -60,7 +60,7 @@ public class PaymentController {
         log.info("Initiating payment for user: {}", user.getId());
 
         String flowId = idempotencyService.execute(user, idempotencyKey,
-                "payment-initiate|" + request.phoneNumber() + "|" + request.fromCardNumber()
+                "payment-initiate|" + request.phoneNumber() + "|" + request.fromCardId()
                         + "|" + request.amount().stripTrailingZeros().toPlainString(),
                 String.class, () -> paymentService.transfer(request, user));
         return ResponseEntity.ok(ApiResponseData.success(flowId));

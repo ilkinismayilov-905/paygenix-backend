@@ -112,7 +112,7 @@ class OwnActivityTest extends IntegrationTest {
         return mockMvc.perform(post("/api/transfer").header("Authorization", bearer(caller))
                 .header("Idempotency-Key", UUID.randomUUID().toString())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"fromCardNumber\":\"" + from + "\",\"toCardNumber\":\"" + to
+                .content("{\"fromCardId\":" + cardOf(from).getId() + ",\"toCardNumber\":\"" + to
                         + "\",\"amount\":\"" + amount + "\",\"pin\":\"" + PIN + "\"}"));
     }
 }

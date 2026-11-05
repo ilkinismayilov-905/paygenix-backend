@@ -128,9 +128,9 @@ public class CardService {
 
     // The caller's own card by full number. Someone else's card gets the same 404 as an unknown number.
     @Transactional(readOnly = true)
-    public Cards findOwnedByNumber(User owner, String pan) {
-        return cardRepository.findByPanHmacAndOwnerId(panService.hmac(pan), owner.getId())
-                .orElseThrow(() -> new NotFoundException("Card not found"));
+    // Someone else's or a closed card is "not found", never "forbidden": the answer must not reveal that it exists.
+    public Cards findOwned(User owner, Long id) {
+        return ownedCard(owner, id);
     }
 
     /**

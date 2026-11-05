@@ -22,8 +22,8 @@ All `/api/**` calls except the public ones need `Authorization: Bearer <access t
 | Dashboard | `/` | `GET /api/cards/me` (masked number, `displayAmount` + `currency`), `GET /api/cards/me/activity?page=&size=` (newest first, `hasNext`), `GET /api/stories/feed` |
 | Cards list | `/cards` | `GET /api/cards/me`, `POST /api/cards` (issue virtual card; the full number is shown only in this response) |
 | Card detail | `/cards/:id` | `GET /api/cards/{id}`, `GET /api/cards/me/activity?cardId=`, `DELETE /api/cards/{id}` (409 CARD_HAS_BALANCE) |
-| Transfer (blocked: T-112) | `/transfer` | `POST /api/transfer` with `Idempotency-Key`; 403 INVALID_PIN, 429 PIN_LOCKED + Retry-After, 409 INSUFFICIENT_BALANCE / RESOURCE_BUSY (retry with the same key), 422 IDEMPOTENCY_KEY_REUSED |
-| Payment (blocked: T-112) | `/pay` | `POST /api/payment/initiate` → `POST /api/payment/confirm` (both with `Idempotency-Key`); confirm: same PIN errors, 409 PAYMENT_ALREADY_PROCESSED / INSUFFICIENT_BALANCE, 422 IDEMPOTENCY_KEY_REUSED |
+| Transfer | `/transfer` | `POST /api/transfer` {fromCardId, toCardNumber, amount, pin} with `Idempotency-Key`, response has `currency`; 403 INVALID_PIN, 429 PIN_LOCKED + Retry-After, 409 INSUFFICIENT_BALANCE / RESOURCE_BUSY (retry with the same key), 422 IDEMPOTENCY_KEY_REUSED |
+| Payment | `/pay` | `POST /api/payment/initiate` {phoneNumber, fromCardId, amount} → `POST /api/payment/confirm` (both with `Idempotency-Key`); confirm: same PIN errors, 409 PAYMENT_ALREADY_PROCESSED / INSUFFICIENT_BALANCE, 422 IDEMPOTENCY_KEY_REUSED |
 | Stories viewer | overlay on dashboard | `GET /api/stories/feed`, `POST /api/stories/{id}/view`, `GET /api/stories/media-download` |
 | Profile (blocked: T-113) | `/settings/profile` | `POST /api/profile`, `POST /api/profile/photo`, photo via `GET /api/user/media-download?objectName=`; nothing to prefill the form from yet |
 | Change email | `/settings/email` | `POST /api/profile/email` {email, pin} → `POST /api/profile/email/confirm` {otp, currentEmailOtp} |
@@ -50,6 +50,6 @@ All `/api/**` calls except the public ones need `Authorization: Bearer <access t
 |---|---|---|
 | A user cannot list their own transfers, payments or transactions: `GET /api/transfer`, `/api/transaction`, `/api/payment/history` are admin-only | no activity list on dashboard or card detail | closed by T-073: `GET /api/cards/me/activity` (ledger entries, no counterparty yet) |
 | No way to fund a card | balances stay 0 outside seeded data | T-064 Stripe top-up (owner) |
-| Transfer and payment take the full 16-digit `fromCardNumber`, but `GET /api/cards/me` gives only the masked number | the client cannot pick the source card | T-112 (`fromCardId`) |
+| Transfer and payment took the full 16-digit `fromCardNumber` | — | closed by T-112: `fromCardId` |
 | No endpoint to read one's own profile (`GET /api/profile` is admin-only, `/api/auth/me` has only id, username, roles) | profile form cannot be prefilled | T-113 |
 | No KYC review / admin API | verify screen submits only; no admin UI | T-070, T-071 |

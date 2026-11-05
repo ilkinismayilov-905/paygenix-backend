@@ -52,7 +52,7 @@ class LockTimeoutTest extends IntegrationTest {
             mockMvc.perform(post("/api/transfer").header("Authorization", bearer(sender))
                 .header("Idempotency-Key", UUID.randomUUID().toString())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"fromCardNumber\":\"" + from + "\",\"toCardNumber\":\"" + to
+                            .content("{\"fromCardId\":" + cardOf(from).getId() + ",\"toCardNumber\":\"" + to
                                     + "\",\"amount\":10.00,\"pin\":\"" + PIN + "\"}"))
                     .andExpect(status().isConflict())
                     .andExpect(jsonPath("$.code").value("RESOURCE_BUSY"));

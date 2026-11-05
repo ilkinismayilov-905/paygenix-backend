@@ -24,7 +24,9 @@ class TransferValidationTest extends IntegrationTest {
         String to = issueCard(createUser(), "AZN");
         setBalance(from, "100.00");
 
-        transfer(sender, from, to, "10.00", PIN).andExpect(status().isOk());
+        transfer(sender, from, to, "10.00", PIN).andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.currency").value("AZN")) // T-126
+                .andExpect(jsonPath("$.data.fromCardNumber").value("**** **** **** " + from.substring(12)));
 
         assertThat(balanceOf(from)).isEqualByComparingTo("89.80"); // 10.00 + 2% commission
         assertThat(balanceOf(to)).isEqualByComparingTo("10.00");
@@ -138,7 +140,7 @@ class TransferValidationTest extends IntegrationTest {
     @Test
     void malformedCardNumberIsBadRequest() throws Exception {
         User sender = createUser();
-        transfer(sender, "1234", issueCard(createUser(), "AZN"), "10.00", PIN).andExpect(status().isBadRequest());
+        transfer(sender, issueCard(sender, "AZN"), "1234", "10.00", PIN).andExpect(status().isBadRequest());
     }
 
     @Test
@@ -157,11 +159,22 @@ class TransferValidationTest extends IntegrationTest {
                 .andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"));
     }
 
+    @Test
+    void missingSourceCardIsRejected() throws Exception {
+        User sender = createUser();
+        String to = issueCard(createUser(), "AZN");
+        mockMvc.perform(post("/api/transfer").header("Authorization", bearer(sender))
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"toCardNumber\":\"" + to + "\",\"amount\":\"1.00\",\"pin\":\"" + PIN + "\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
     private ResultActions transfer(User caller, String from, String to, String amount, String pin) throws Exception {
         return mockMvc.perform(post("/api/transfer").header("Authorization", bearer(caller))
                 .header("Idempotency-Key", UUID.randomUUID().toString())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"fromCardNumber\":\"" + from + "\",\"toCardNumber\":\"" + to
+                .content("{\"fromCardId\":" + cardOf(from).getId() + ",\"toCardNumber\":\"" + to
                         + "\",\"amount\":" + amount + ",\"pin\":\"" + pin + "\"}"));
     }
 }

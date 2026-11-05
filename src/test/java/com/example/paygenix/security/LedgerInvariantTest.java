@@ -48,7 +48,7 @@ class LedgerInvariantTest extends IntegrationTest {
             if (random.nextBoolean()) {
                 try {
                     transferService.transfer(users.get(from),
-                            new TransferRequest(cards.get(from), cards.get(to), new BigDecimal(amount), PIN));
+                            new TransferRequest(cardOf(cards.get(from)).getId(), cards.get(to), new BigDecimal(amount), PIN));
                 } catch (InsufficientBalanceException rejected) {
                     // rejected operations must leave no trace in the books
                 }
@@ -72,7 +72,7 @@ class LedgerInvariantTest extends IntegrationTest {
         setBalance(from, "100.00");
         BigDecimal revenueBefore = systemBalance("FEE_REVENUE", "EUR");
 
-        transferService.transfer(sender, new TransferRequest(from, to, new BigDecimal("10.00"), PIN));
+        transferService.transfer(sender, new TransferRequest(cardOf(from).getId(), to, new BigDecimal("10.00"), PIN));
 
         assertThat(systemBalance("FEE_REVENUE", "EUR").subtract(revenueBefore)).isEqualByComparingTo("0.20");
         assertThat(jdbc.queryForObject("SELECT commission_rate FROM transactions ORDER BY id DESC LIMIT 1", BigDecimal.class))
@@ -106,8 +106,8 @@ class LedgerInvariantTest extends IntegrationTest {
         var initiated = mockMvc.perform(post("/api/payment/initiate").header("Authorization", bearer(payer))
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"phoneNumber\":\"+994501234567\",\"fromCardNumber\":\"" + card
-                                + "\",\"amount\":" + amount + "}"))
+                        .content("{\"phoneNumber\":\"+994501234567\",\"fromCardId\":" + cardOf(card).getId()
+                                + ",\"amount\":" + amount + "}"))
                 .andReturn().getResponse();
         if (initiated.getStatus() == 409) {
             return; // insufficient balance at initiate

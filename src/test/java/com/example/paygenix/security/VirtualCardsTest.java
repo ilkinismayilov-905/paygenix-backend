@@ -110,7 +110,7 @@ class VirtualCardsTest extends IntegrationTest {
         mockMvc.perform(post("/api/transfer").header("Authorization", bearer(sender))
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"fromCardNumber\":\"" + from + "\",\"toCardNumber\":\"" + closed + "\",\"amount\":10.00,\"pin\":\"" + PIN + "\"}"))
+                        .content("{\"fromCardId\":" + cardOf(from).getId() + ",\"toCardNumber\":\"" + closed + "\",\"amount\":10.00,\"pin\":\"" + PIN + "\"}"))
                 .andExpect(status().isNotFound());
 
         assertThat(balanceOf(from)).isEqualByComparingTo("100.00");
@@ -130,7 +130,7 @@ class VirtualCardsTest extends IntegrationTest {
         mockMvc.perform(post("/api/transfer").header("Authorization", bearer(sender))
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"fromCardNumber\":\"" + fromPan + "\",\"toCardNumber\":\"" + toPan + "\",\"amount\":10.00,\"pin\":\"" + PIN + "\"}"))
+                        .content("{\"fromCardId\":" + cardOf(fromPan).getId() + ",\"toCardNumber\":\"" + toPan + "\",\"amount\":10.00,\"pin\":\"" + PIN + "\"}"))
                 .andExpect(status().isOk());
 
         assertThat(cardRepository.findById(to.getId()).orElseThrow().getAmount()).isEqualByComparingTo("10.00");
