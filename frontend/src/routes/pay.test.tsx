@@ -133,6 +133,7 @@ test('after "card not found" the list reloads and Continue uses a card that stil
   }
   await details()
   expect(await screen.findByText(/no longer available/)).toBeInTheDocument()
+  await screen.findByRole('option', { name: /9999/ }) // the reload has landed
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
   await screen.findByRole('heading', { name: 'Confirm payment' })
   expect(calls[1]!.body.fromCardId).toBe(9)

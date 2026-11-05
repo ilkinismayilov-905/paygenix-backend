@@ -66,3 +66,11 @@ test('the dashboard greets by first name', async () => {
   open('/')
   expect(await screen.findByRole('heading', { name: 'Hi, Nigar' })).toBeInTheDocument()
 })
+
+test('a date of birth that is today or later is refused', async () => {
+  open()
+  fireEvent.change(await screen.findByLabelText('Date of birth'), { target: { value: new Date().toLocaleDateString('sv') } })
+  submit()
+  expect(await screen.findByText('Date of birth must be in the past.')).toBeInTheDocument()
+  expect(posted).toHaveLength(0)
+})

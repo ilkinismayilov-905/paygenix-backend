@@ -8,13 +8,16 @@ import { Alert, Button, ErrorState, Skeleton, TextField } from '../ui'
 import { problemCode } from './money'
 import { toPhone } from './phone'
 
+/** Today as yyyy-mm-dd in the user's own time zone (toISOString would give the UTC date: wrong in Baku 00:00–04:00). */
+const localToday = () => new Date().toLocaleDateString('sv')
+
 // Mirrors EditProfileRequest. The first save needs every field, so the form always asks for all of them.
 const schema = z.object({
   fullName: z.string().trim().min(1, t('profile.required')).max(100, t('profile.nameTooLong')),
   phoneNumber: z.string().transform((s, ctx) => toPhone(s) ?? (ctx.addIssue({ code: 'custom', message: t('pay.phoneInvalid') }), z.NEVER)),
   // <input type="date"> gives yyyy-mm-dd; the API wants dd-MM-yyyy
   dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, t('profile.required'))
-    .refine((d) => d < new Date().toISOString().slice(0, 10), t('profile.dobPast'))
+    .refine((d) => d < localToday(), t('profile.dobPast'))
     .transform((d) => d.split('-').reverse().join('-')),
   gender: z.enum(['MALE', 'FEMALE'], { error: t('profile.required') }),
 })
@@ -73,12 +76,12 @@ export default function Profile() {
           <TextField label={t('profile.fullName')} autoComplete="name" error={errors.fullName?.message} {...register('fullName')} />
           <TextField label={t('pay.phone')} type="tel" inputMode="tel" autoComplete="tel" placeholder="+994 50 123 45 67"
             error={errors.phoneNumber?.message} {...register('phoneNumber')} />
-          <TextField label={t('profile.dob')} type="date" autoComplete="bday" error={errors.dateOfBirth?.message} {...register('dateOfBirth')} />
-          <fieldset className="field" aria-describedby={errors.gender ? 'gender-error' : undefined}>
+          <TextField label={t('profile.dob')} type="date" autoComplete="bday" max={localToday()} error={errors.dateOfBirth?.message} {...register('dateOfBirth')} />
+          <fieldset className="field">
             <legend className="field-label">{t('profile.gender')}</legend>
             <div className="radio-row">
-              <label><input type="radio" value="FEMALE" {...register('gender')} /> {t('profile.female')}</label>
-              <label><input type="radio" value="MALE" {...register('gender')} /> {t('profile.male')}</label>
+              <label><input type="radio" value="FEMALE" aria-invalid={errors.gender ? true : undefined} aria-describedby={errors.gender ? 'gender-error' : undefined} {...register('gender')} /> {t('profile.female')}</label>
+              <label><input type="radio" value="MALE" aria-invalid={errors.gender ? true : undefined} aria-describedby={errors.gender ? 'gender-error' : undefined} {...register('gender')} /> {t('profile.male')}</label>
             </div>
             {errors.gender && <p id="gender-error" className="field-error">{errors.gender.message}</p>}
           </fieldset>
