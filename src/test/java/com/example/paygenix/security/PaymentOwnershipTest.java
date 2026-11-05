@@ -191,8 +191,8 @@ class PaymentOwnershipTest extends IntegrationTest {
         return mockMvc.perform(post("/api/payment/initiate").header("Authorization", bearer(payer))
                 .header("Idempotency-Key", UUID.randomUUID().toString())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"phoneNumber\":\"" + PHONE + "\",\"fromCardNumber\":\"" + card
-                        + "\",\"amount\":" + amount + "}"));
+                .content("{\"phoneNumber\":\"" + PHONE + "\",\"fromCardId\":" + cardOf(card).getId()
+                        + ",\"amount\":" + amount + "}"));
     }
 
     private ResultActions confirm(User caller, String flowId, String pin) throws Exception {

@@ -131,7 +131,7 @@ class PinAttemptLimitTest extends IntegrationTest {
         String from = issueCard(sender, "AZN");
         String to = issueCard(createUser(), "AZN");
         setBalance(from, "100.00");
-        TransferRequest guess = new TransferRequest(from, to, new BigDecimal("10.00"), "000000");
+        TransferRequest guess = new TransferRequest(cardOf(from).getId(), to, new BigDecimal("10.00"), "000000");
 
         int threads = 20;
         ExecutorService pool = Executors.newFixedThreadPool(threads);
@@ -167,7 +167,7 @@ class PinAttemptLimitTest extends IntegrationTest {
         return mockMvc.perform(post("/api/transfer").header("Authorization", bearer(caller))
                 .header("Idempotency-Key", UUID.randomUUID().toString())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"fromCardNumber\":\"" + from + "\",\"toCardNumber\":\"" + to
+                .content("{\"fromCardId\":" + cardOf(from).getId() + ",\"toCardNumber\":\"" + to
                         + "\",\"amount\":10.00,\"pin\":\"" + pin + "\"}"));
     }
 }

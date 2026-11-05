@@ -1034,7 +1034,11 @@ export interface components {
             data?: string;
         };
         TransferRequest: {
-            fromCardNumber: string;
+            /**
+             * Format: int64
+             * @description Id of one of the caller's cards (GET /api/cards/me)
+             */
+            fromCardId: number;
             toCardNumber: string;
             /**
              * @description Decimal string; a JSON number is also accepted
@@ -1059,6 +1063,8 @@ export interface components {
              * @example 10.00
              */
             amount?: string;
+            /** @enum {string} */
+            currency?: "AZN" | "USD" | "EUR";
         };
         ApiResponseDataStoryUploadResponse: {
             /** Format: date-time */
@@ -1130,7 +1136,11 @@ export interface components {
         };
         PaymentRequest: {
             phoneNumber: string;
-            fromCardNumber: string;
+            /**
+             * Format: int64
+             * @description Id of one of the caller's cards (GET /api/cards/me)
+             */
+            fromCardId: number;
             /**
              * @description Decimal string; a JSON number is also accepted
              * @example 10.00

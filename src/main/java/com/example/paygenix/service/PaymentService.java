@@ -52,7 +52,7 @@ public class PaymentService {
     @Transactional
     public String transfer(PaymentRequest req, User payer) {
         legalAcceptanceService.requireAccepted(payer.getId());
-        Cards from = cardService.findOwnedByNumber(payer, req.fromCardNumber());
+        Cards from = cardService.findOwned(payer, req.fromCardId());
 
         // early rejection only; confirm re-checks the balance under the row lock
         if (from.getAmount().compareTo(req.amount()) < 0) {

@@ -28,7 +28,7 @@ class AmountFormatTest extends IntegrationTest {
         mockMvc.perform(post("/api/transfer").header("Authorization", bearer(user))
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"fromCardNumber\":\"" + from + "\",\"toCardNumber\":\"" + to + "\",\"amount\":\"10.00\",\"pin\":\"" + PIN + "\"}"))
+                        .content("{\"fromCardId\":" + cardOf(from).getId() + ",\"toCardNumber\":\"" + to + "\",\"amount\":\"10.00\",\"pin\":\"" + PIN + "\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.amount").value("10.00"))
                 .andExpect(jsonPath("$.data.amount", instanceOf(String.class)));
@@ -47,7 +47,7 @@ class AmountFormatTest extends IntegrationTest {
         String flow = JsonPath.read(mockMvc.perform(post("/api/payment/initiate").header("Authorization", bearer(user))
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"phoneNumber\":\"+994501234567\",\"fromCardNumber\":\"" + card + "\",\"amount\":\"5.25\"}"))
+                        .content("{\"phoneNumber\":\"+994501234567\",\"fromCardId\":" + cardOf(card).getId() + ",\"amount\":\"5.25\"}"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(), "$.data");
 
         mockMvc.perform(post("/api/payment/confirm").header("Authorization", bearer(user))
@@ -69,7 +69,7 @@ class AmountFormatTest extends IntegrationTest {
             mockMvc.perform(post("/api/transfer").header("Authorization", bearer(user))
                             .header("Idempotency-Key", UUID.randomUUID().toString())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"fromCardNumber\":\"" + from + "\",\"toCardNumber\":\"" + to + "\",\"amount\":\"" + sent + "\",\"pin\":\"" + PIN + "\"}"))
+                            .content("{\"fromCardId\":" + cardOf(from).getId() + ",\"toCardNumber\":\"" + to + "\",\"amount\":\"" + sent + "\",\"pin\":\"" + PIN + "\"}"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.amount").value("1000.00"));
             setBalance(from, "2000.00");

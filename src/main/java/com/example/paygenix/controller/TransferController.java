@@ -56,7 +56,7 @@ public class TransferController {
     ) {
         log.info("Initiating a new transfer request");
         TransferResponse transfer = idempotencyService.execute(user, idempotencyKey,
-                "transfer|" + transferRequest.fromCardNumber() + "|" + transferRequest.toCardNumber()
+                "transfer|" + transferRequest.fromCardId() + "|" + transferRequest.toCardNumber()
                         + "|" + transferRequest.amount().stripTrailingZeros().toPlainString(),
                 TransferResponse.class, () -> transferService.transfer(user, transferRequest));
         return ResponseEntity.ok(ApiResponseData.success(transfer));

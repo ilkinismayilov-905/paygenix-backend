@@ -13,7 +13,6 @@ public interface CardRepository extends JpaRepository<Cards, Long> {
 
     Optional<Cards> findByPanHmac(String panHmac);
 
-    Optional<Cards> findByPanHmacAndOwnerId(String panHmac, Long ownerId);
 
     // Counts closed cards too, so a closed card's number is never issued again.
     @Query(value = "SELECT EXISTS (SELECT 1 FROM cards WHERE pan_hmac = :panHmac)", nativeQuery = true)

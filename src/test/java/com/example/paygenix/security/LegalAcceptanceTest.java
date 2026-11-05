@@ -35,7 +35,7 @@ class LegalAcceptanceTest extends IntegrationTest {
         mockMvc.perform(post("/api/payment/initiate").header("Authorization", bearer(user))
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"phoneNumber\":\"+994501234567\",\"fromCardNumber\":\"" + from + "\",\"amount\":10.00}"))
+                        .content("{\"phoneNumber\":\"+994501234567\",\"fromCardId\":" + cardOf(from).getId() + ",\"amount\":10.00}"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("LEGAL_ACCEPTANCE_REQUIRED"));
 
@@ -120,7 +120,7 @@ class LegalAcceptanceTest extends IntegrationTest {
         return mockMvc.perform(post("/api/transfer").header("Authorization", bearer(user))
                 .header("Idempotency-Key", UUID.randomUUID().toString())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"fromCardNumber\":\"" + from + "\",\"toCardNumber\":\"" + to + "\",\"amount\":1.00,\"pin\":\"" + PIN + "\"}"));
+                .content("{\"fromCardId\":" + cardOf(from).getId() + ",\"toCardNumber\":\"" + to + "\",\"amount\":1.00,\"pin\":\"" + PIN + "\"}"));
     }
 
     private String activeVersion(String type) {

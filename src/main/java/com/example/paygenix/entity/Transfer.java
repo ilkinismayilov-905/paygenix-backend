@@ -1,5 +1,6 @@
 package com.example.paygenix.entity;
 
+import com.example.paygenix.enums.Currency;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,6 +26,9 @@ public class Transfer {
     private String fromCardNumber;
     private String toCardNumber;
     private BigDecimal amount;
+
+    @Enumerated(EnumType.STRING)
+    private Currency currency; // null on rows from before V15
 
     @CreationTimestamp
     private Instant creationDate;

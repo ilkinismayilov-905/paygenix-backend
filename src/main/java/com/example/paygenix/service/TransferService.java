@@ -49,7 +49,7 @@ public class TransferService {
         legalAcceptanceService.requireAccepted(caller.getId());
         pinValidationService.validatePin(caller.getId(), req.pin());
 
-        Cards from = cardService.findOwnedByNumber(caller, req.fromCardNumber());
+        Cards from = cardService.findOwned(caller, req.fromCardId());
         Cards to   = cardService.findByNumber(req.toCardNumber());
         if (from.getId().equals(to.getId())) {
             throw TransferRejectedException.sameCard();
@@ -85,12 +85,14 @@ public class TransferService {
 
         transactionRepository.save(transaction);
 
-        Transfer transfer = mapper.mapToTransfer(req);
-        // the response repeats this amount: "1E+3" or "10.000" from the request must go out as "1000.00" / "10.00"
-        transfer.setAmount(req.amount().setScale(2, RoundingMode.UNNECESSARY));
-        // history keeps only the last four digits, never the full number from the request
-        transfer.setFromCardNumber(from.getLast4());
-        transfer.setToCardNumber(to.getLast4());
+        Transfer transfer = Transfer.builder()
+                // the response repeats this amount: "1E+3" or "10.000" from the request must go out as "1000.00" / "10.00"
+                .amount(req.amount().setScale(2, RoundingMode.UNNECESSARY))
+                .currency(from.getCurrency())
+                // history keeps only the last four digits, never the full number from the request
+                .fromCardNumber(from.getLast4())
+                .toCardNumber(to.getLast4())
+                .build();
         transferRepository.save(transfer);
 
         return mapper.mapToTransferResponse(transfer);

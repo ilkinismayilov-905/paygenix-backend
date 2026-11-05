@@ -66,7 +66,7 @@ class ConcurrentTransferTest extends IntegrationTest {
 
     private boolean transfer(User caller, String from, String to, String amount) {
         try {
-            transferService.transfer(caller, new TransferRequest(from, to, new BigDecimal(amount), PIN));
+            transferService.transfer(caller, new TransferRequest(cardOf(from).getId(), to, new BigDecimal(amount), PIN));
             return true;
         } catch (InsufficientBalanceException rejected) {
             return false;
