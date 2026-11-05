@@ -65,9 +65,9 @@ class RedisCacheTest extends IntegrationTest {
             mockMvc.perform(get("/api/legal/terms"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.content").value("Terms text"));
-            assertThat(redis.hasKey("legalDocumentByType::TERMS")).isTrue();
+            assertThat(redis.hasKey("legalDocument::TERMS")).isTrue();
         }
-        assertExpiresWithin("legalDocumentByType::TERMS", 3600);
+        assertExpiresWithin("legalDocument::TERMS", 3600);
     }
 
     @Test

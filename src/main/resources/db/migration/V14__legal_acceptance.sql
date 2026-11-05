@@ -1,5 +1,6 @@
 -- T-121: versioned legal documents and a record of who accepted which version.
 -- Before deploy: SELECT type, version, count(*) FROM legal_documents GROUP BY 1, 2 HAVING count(*) > 1; must be empty.
+-- Every existing user must accept these texts before the next transfer or payment.
 
 -- The demo v1 texts below replace whatever was active.
 UPDATE public.legal_documents SET is_active = false WHERE is_active;
@@ -56,4 +57,6 @@ Paygenix is a portfolio project, not a real financial service. This text is a de
 
 5. Your choice. Please use a test email address and no real personal data. To have your data removed, contact the project owner.
 
-6. Changes. When this policy changes, you will be asked to accept the new version.');
+6. Changes. When this policy changes, you will be asked to accept the new version.')
+-- an older row with the same version is replaced by the demo text
+ON CONFLICT (type, version) DO UPDATE SET is_active = true, content = EXCLUDED.content, effective_date = EXCLUDED.effective_date;

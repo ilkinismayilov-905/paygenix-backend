@@ -69,9 +69,20 @@ class LegalAcceptanceTest extends IntegrationTest {
         setBalance(from, "100.00");
 
         String version = "test-" + UUID.randomUUID();
+        Long previous = jdbc.queryForObject("SELECT max(id) FROM legal_documents WHERE type = 'TERMS' AND is_active", Long.class);
         jdbc.update("UPDATE legal_documents SET is_active = false WHERE type = 'TERMS'");
         jdbc.update("INSERT INTO legal_documents (type, version, effective_date, content, is_active) "
                 + "VALUES ('TERMS', ?, CURRENT_DATE, 'New terms', true)", version);
+        try {
+            publishedVersionIsAskedAgain(user, from, to, version);
+        } finally {
+            // later test classes expect the seeded documents
+            jdbc.update("UPDATE legal_documents SET is_active = false WHERE type = 'TERMS'");
+            jdbc.update("UPDATE legal_documents SET is_active = true WHERE id = ?", previous);
+        }
+    }
+
+    private void publishedVersionIsAskedAgain(User user, String from, String to, String version) throws Exception {
 
         mockMvc.perform(get("/api/auth/me").header("Authorization", bearer(user)))
                 .andExpect(jsonPath("$.data.pendingLegalDocuments", hasSize(1)))
