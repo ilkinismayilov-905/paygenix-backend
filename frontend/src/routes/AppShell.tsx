@@ -27,9 +27,12 @@ export default function AppShell() {
     <div className="shell">
       <header className="shell-header">
         <Link to="/" className="shell-brand"><Logo /> {t('app.name')}</Link>
-        <Button variant="ghost" size="sm" loading={busy} onClick={() => void onSignOut()}>
-          {t('shell.signOut')}
-        </Button>
+        <nav className="shell-nav">
+          <Link className="btn btn-ghost btn-sm" to="/settings/profile">{t('shell.profile')}</Link>
+          <Button variant="ghost" size="sm" loading={busy} onClick={() => void onSignOut()}>
+            {t('shell.signOut')}
+          </Button>
+        </nav>
       </header>
       {failed && <Alert tone="danger" title={t('shell.signOutFailed')} />}
       {pending === null ? null : pending.length > 0 ? <AcceptLegal pending={pending} onDone={setPending} /> : <Outlet />}

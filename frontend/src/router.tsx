@@ -25,6 +25,7 @@ export const routes = [
             { path: '/', lazy: page(() => import('./routes/Home')) },
             { path: '/transfer', lazy: page(() => import('./routes/Transfer')) },
             { path: '/pay', lazy: page(() => import('./routes/Pay')) },
+            { path: '/settings/profile', lazy: page(() => import('./routes/Profile')) },
           ],
         }],
       },
