@@ -2,10 +2,10 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useRef, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
-import { api, retryAfterMinutes, type Problem } from '../api/client'
+import { api, retryAfterMinutes } from '../api/client'
 import { t } from '../i18n'
 import { Alert, Button, formatMoney, PinInput, TextField, type Currency } from '../ui'
-import { amountSchema, cardLabel, pinSchema, useOwnCards } from './money'
+import { amountSchema, cardLabel, problemCode, pinSchema, useOwnCards } from './money'
 import { CardsGate, MoneyDone } from './MoneyViews'
 
 /** Accepts "+994 50 123 45 67", "050 123 45 67" or "501234567"; the API wants +994 and 9 digits. */
@@ -25,8 +25,6 @@ type Input = z.input<typeof schema>
 type Details = z.output<typeof schema> & { currency: Currency; last4: string }
 type Flow = { id: string; key: string; details: Details }
 
-const code = (problem: unknown) => (problem as Problem | undefined)?.code
-
 export default function Pay() {
   const { cards, reload, retry } = useOwnCards()
   const [error, setError] = useState<string | null>(null)
@@ -42,7 +40,8 @@ export default function Pay() {
     useForm<Input, unknown, z.output<typeof schema>>({ resolver: zodResolver(schema), defaultValues: { fromCardId: '', phoneNumber: '', amount: '' } })
 
   useEffect(() => {
-    if (Array.isArray(cards) && cards[0] && !getValues('fromCardId')) setValue('fromCardId', String(cards[0].id))
+    // also when the chosen card left the list (closed): the select would show the first card but submit the old id
+    if (Array.isArray(cards) && cards[0] && !cards.some((c) => String(c.id) === getValues('fromCardId'))) setValue('fromCardId', String(cards[0].id))
   }, [cards, getValues, setValue])
 
   const fromCardId = useWatch({ control, name: 'fromCardId' })
@@ -51,7 +50,7 @@ export default function Pay() {
   const initiate = async (form: z.output<typeof schema>) => {
     setError(null)
     const card = Array.isArray(cards) ? cards.find((c) => String(c.id) === form.fromCardId) : undefined
-    if (!card) return
+    if (!card) { setError(t('pay.cardGone')); return }
     const body = { phoneNumber: form.phoneNumber, fromCardId: Number(form.fromCardId), amount: form.amount }
     const same = `${body.phoneNumber}|${body.fromCardId}|${body.amount}`
     const key = attempt.current?.body === same ? attempt.current.key : crypto.randomUUID()
@@ -66,7 +65,7 @@ export default function Pay() {
           details: { ...form, currency: card.currency as Currency, last4: card.maskedNumber?.slice(-4) ?? '' } })
         return
       }
-      switch (code(problem)) {
+      switch (problemCode(problem)) {
         case 'INSUFFICIENT_BALANCE': setFieldError('amount', { message: t('pay.insufficient') }, { shouldFocus: true }); return
         case 'NOT_FOUND': setError(t('pay.cardGone')); reload(); return
         case 'LEGAL_ACCEPTANCE_REQUIRED': setError(t('money.legal')); return
@@ -90,15 +89,15 @@ export default function Pay() {
         setDone({ amount: r.amount, currency: r.currency, phone: flow.details.phoneNumber })
         return
       }
-      switch (code(problem)) {
+      switch (problemCode(problem)) {
         case 'INVALID_PIN': setPin(''); setPinError(t('money.pinWrong')); return
         case 'PIN_LOCKED': setError(t('money.pinLocked', { minutes: retryAfterMinutes(response) ?? 15 })); return
         case 'PIN_NOT_SET': setError(t('money.pinNotSet')); return
         case 'LEGAL_ACCEPTANCE_REQUIRED': setError(t('money.legal')); return
         case 'RESOURCE_BUSY': setError(t('money.busy')); return
         case 'INSUFFICIENT_BALANCE': setError(t('pay.insufficient')); return
-        case 'PAYMENT_ALREADY_PROCESSED': setError(t('pay.already')); return
-        case 'NOT_FOUND': setFlow(null); setError(t('pay.flowGone')); return
+        case 'PAYMENT_ALREADY_PROCESSED': setFlow(null); setError(t('pay.already')); reload(); return
+        case 'NOT_FOUND': setFlow(null); setError(t('pay.flowGone')); reload(); return // unknown flow, or the card was closed
         default: setError(t('pay.rejected'))
       }
     } catch {
@@ -133,7 +132,7 @@ export default function Pay() {
           </dl>
           <PinInput label={t('money.pin')} value={pin} onChange={setPin} error={pinError} autoFocus />
           <Button type="submit" block loading={confirming}>{t('pay.submit')}</Button>
-          {/* the pending flow is left to expire on the server; editing starts a new one */}
+          {/* the old flow stays PENDING on the server (nothing expires it yet, T-132); editing starts a new one */}
           <Button variant="ghost" block disabled={confirming} onClick={() => { setFlow(null); setError(null) }}>{t('pay.edit')}</Button>
         </form>
       </main>

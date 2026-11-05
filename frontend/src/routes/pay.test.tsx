@@ -11,18 +11,20 @@ const card = { id: 7, maskedNumber: '**** **** **** 2207', currency: 'AZN', amou
 const paid = () => ok({ phoneNumber: '+994501234567', fromCardNumber: '**** **** **** 2207', amount: '12.30', currency: 'AZN' })
 
 type Call = { path: string; key: string | null; body: Record<string, unknown> }
+let cardList: unknown[]
 let initiate: () => Response | Promise<Response>
 let confirm: () => Response | Promise<Response>
 const calls: Call[] = []
 beforeEach(() => {
   calls.length = 0
   signedIn('session')
+  cardList = [card]
   initiate = () => ok('flow-1')
   confirm = paid
   vi.stubGlobal('fetch', async (req: Request) => {
     const url = new URL(req.url)
     if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
-    if (url.pathname === '/api/cards/me') return ok([card])
+    if (url.pathname === '/api/cards/me') return ok(cardList)
     if (url.pathname.startsWith('/api/payment/')) {
       calls.push({ path: url.pathname, key: req.headers.get('Idempotency-Key'), body: await req.clone().json() })
       return url.pathname.endsWith('initiate') ? initiate() : confirm()
@@ -118,6 +120,36 @@ test('an expired flow sends the user back to the details', async () => {
   await details()
   await screen.findByRole('heading', { name: 'Confirm payment' })
   enterPin(); pay()
-  expect(await screen.findByText(/payment expired/)).toBeInTheDocument()
+  expect(await screen.findByText(/can no longer be completed/)).toBeInTheDocument()
   expect(screen.getByRole('heading', { name: 'Pay by phone' })).toBeInTheDocument()
+})
+
+test('after "card not found" the list reloads and Continue uses a card that still exists', async () => {
+  let n = 0
+  initiate = () => {
+    if (n++ > 0) return ok('flow-2')
+    cardList = [{ ...card, id: 9, maskedNumber: '**** **** **** 9999' }] // card 7 was just closed
+    return json(404, { code: 'NOT_FOUND' })
+  }
+  await details()
+  expect(await screen.findByText(/no longer available/)).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+  await screen.findByRole('heading', { name: 'Confirm payment' })
+  expect(calls[1]!.body.fromCardId).toBe(9)
+})
+
+test('Change details starts a new flow with a new key and an empty PIN', async () => {
+  let n = 0
+  initiate = () => ok(`flow-${++n}`)
+  await details()
+  await screen.findByRole('heading', { name: 'Confirm payment' })
+  enterPin()
+  fireEvent.click(screen.getByRole('button', { name: 'Change details' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Continue' }))
+  await screen.findByRole('heading', { name: 'Confirm payment' })
+  expect(screen.getByLabelText('Digit 1 of 6')).toHaveValue('')
+  expect(calls[1]!.key).not.toBe(calls[0]!.key)
+  enterPin(); pay()
+  await screen.findByRole('heading', { name: 'Payment made' })
+  expect(confirms()[0]!.body.flowId).toBe('flow-2')
 })
