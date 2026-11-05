@@ -88,6 +88,15 @@ public class EditProfileService {
         return mapper.toEditProfileResponse(ep);
     }
 
+    // Not cached: the admin list cache is the only profile cache, and this read is one indexed row.
+    @Transactional(readOnly = true)
+    public EditProfileResponse getMine(User user) {
+        return editProfileRepository.findByUserId(user.getId())
+                .map(mapper::toEditProfileResponse)
+                // no profile saved yet (fresh sign-up): what the account itself knows
+                .orElseGet(() -> new EditProfileResponse(user.getDisplayName(), user.getEmail(), null, null, null, null));
+    }
+
     @Transactional(readOnly = true)
     @Cacheable(cacheNames = CacheNames.EDIT_PROFILE_ALL, key = "'all'")
     public List<EditProfileResponse> getAll() {
