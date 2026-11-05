@@ -56,7 +56,7 @@ export const en = {
   'signUp.usernameTaken': 'That username is taken. Try another one.',
   'signUp.usernameLimit': 'Too many tries. Try again in {minutes} min.',
   'signUp.password': 'Password',
-  'signUp.passwordShort': 'Use at least 8 characters.',
+  'signUp.passwordRulesUnmet': 'The password does not meet the requirements yet.',
   'signUp.pin': 'PIN',
   'signUp.pinHint': 'The 6-digit PIN confirms every payment and transfer.',
   'signUp.pinInvalid': 'Enter 6 digits.',

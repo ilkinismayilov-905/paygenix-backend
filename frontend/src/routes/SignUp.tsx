@@ -20,7 +20,7 @@ const bytes = (s: string) => new TextEncoder().encode(s).length
 // Codes after which this flow cannot continue: the user has to start again.
 const FATAL = new Set(['FLOW_EXPIRED', 'FLOW_NOT_FOUND', 'TOO_MANY_ATTEMPTS', 'INVALID_STEP', 'UNAUTHORIZED', 'FORBIDDEN', 'ALREADY_TAKEN'])
 
-type Failure = { message: string; fatal: boolean }
+type Failure = { message: string; fatal: boolean; code?: string }
 
 function failure(problem: unknown, res: Response | undefined): Failure {
   const code = (problem as Problem | undefined)?.code
@@ -36,7 +36,7 @@ function failure(problem: unknown, res: Response | undefined): Failure {
     VALIDATION_FAILED: t('signUp.invalid'),
   }
   const fatal = code !== undefined && FATAL.has(code)
-  return { message: (code && messages[code]) ?? (fatal ? t('signUp.expired') : t('signUp.failed')), fatal }
+  return { message: (code && messages[code]) ?? (fatal ? t('signUp.expired') : t('signUp.failed')), fatal, code }
 }
 
 /** Runs one API call; a thrown fetch (offline) becomes the generic failure. */
@@ -61,7 +61,7 @@ export default function SignUp() {
   const path = () => ({ path: { flowId: flow?.flowId ?? '' } })
 
   const go = (next: Step) => { setError(null); setNotice(null); setStep(next) }
-  const restart = () => { setFlow(null); go('email') }
+  const restart = () => { setFlow(null); setSecret({ password: '', pin: '' }); go('email') }
 
   const startFlow = async (email: string) => {
     const r = await call(() => api.POST('/api/onboarding/email', { body: { email } }))
@@ -110,7 +110,10 @@ export default function SignUp() {
           return setError({ message: t('signUp.pinMismatch'), fatal: false })
         }
         const r = await call(() => api.PUT('/api/onboarding/{flowId}/pin', { params: path(), headers: auth(), body: { pin, password } }))
-        if (r.failure) return setError(r.failure)
+        if (r.failure) {
+          if (r.failure.code === 'VALIDATION_FAILED') go('password') // the PIN was checked here, so it is the password
+          return setError(r.failure)
+        }
         // The account exists now; sign in with what was just typed so the user lands in the app.
         const login = await call(() => api.POST('/api/auth/login', { body: { email: flow?.email ?? '', password } }))
         if (login.data?.data?.token) signedIn(login.data.data.token) // PublicOnly then opens the app
@@ -234,7 +237,7 @@ const passwordRules = [
 
 function PasswordStep({ onSubmit }: { onSubmit: (password: string) => void }) {
   const [shown, setShown] = useState(false)
-  const [tried, setTried] = useState(false)
+  const [tried, setTried] = useState(0) // submit attempts; re-keys the alert so each one is announced
   const { register, handleSubmit, control, setFocus } = useForm({ defaultValues: { password: '' } })
   const password = useWatch({ control, name: 'password' })
   const valid = passwordRules.every((r) => r.ok(password))
@@ -247,7 +250,7 @@ function PasswordStep({ onSubmit }: { onSubmit: (password: string) => void }) {
   const rules = (
     <ul className="rules">
       {passwordRules.map((r) => (
-        <li key={r.key} className={r.ok(password) ? 'rule-ok' : tried ? 'rule-bad' : undefined}>
+        <li key={r.key} className={r.ok(password) ? 'rule-ok' : tried > 0 ? 'rule-bad' : undefined}>
           <span aria-hidden="true">{r.ok(password) ? '✓' : '•'}</span> {t(r.key)}{' '}
           <span className="sr-only">{r.ok(password) ? t('signUp.ruleMet') : t('signUp.ruleNotMet')}</span>
         </li>
@@ -256,12 +259,13 @@ function PasswordStep({ onSubmit }: { onSubmit: (password: string) => void }) {
   )
   return (
     <form className="auth-form" noValidate onSubmit={handleSubmit((f) => {
-      setTried(true)
+      setTried((n) => n + 1)
       if (valid) onSubmit(f.password)
-      else setFocus('password') // re-reads the field with its checklist
+      else setFocus('password')
     })}>
       <TextField label={t('signUp.password')} type={shown ? 'text' : 'password'} autoComplete="new-password" autoFocus
-        suffix={toggle} hint={rules} aria-invalid={tried && !valid ? true : undefined} {...register('password')} />
+        suffix={toggle} hint={rules} aria-invalid={tried > 0 && !valid ? true : undefined} {...register('password')} />
+      {tried > 0 && !valid && <p key={tried} role="alert" className="sr-only">{t('signUp.passwordRulesUnmet')}</p>}
       <Button type="submit" block>{t('signUp.continue')}</Button>
     </form>
   )

@@ -116,6 +116,11 @@ test('the password checklist blocks a short password; show reveals it', async ()
   expect(field).toHaveAttribute('type', 'text')
   type('Password', 'long-enough-pass')
   expect(field).toHaveAccessibleDescription(/At least 8 characters \(done\)/)
+  type('Password', 'ə'.repeat(37)) // 37 characters, 74 bytes
+  fireEvent.submit(field.closest('form')!) // Enter
+  expect(await screen.findByRole('alert')).toHaveTextContent('does not meet the requirements')
+  expect(field).toHaveAccessibleDescription(/At most 72 bytes.*\(not yet\)/)
+  expect(screen.getByRole('heading', { name: 'Create a password' })).toBeInTheDocument()
 })
 
 test('a repeated PIN that differs goes back to creating it, without sending', async () => {
@@ -126,6 +131,18 @@ test('a repeated PIN that differs goes back to creating it, without sending', as
   expect(await screen.findByRole('alert')).toHaveTextContent('The PINs did not match')
   expect(screen.getByRole('heading', { name: 'Create a PIN' })).toBeInTheDocument()
   expect(fetchMock.mock.calls.length).toBe(before)
+
+  const boxes = screen.getByRole('group', { name: 'PIN' }).querySelectorAll('input')
+  expect(Array.from(boxes).every((b) => b.value === '')).toBe(true)
+  pin('PIN', '333333')
+  next()
+  await screen.findByRole('heading', { name: 'Repeat your PIN' })
+  pin('PIN again', '333333')
+  fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
+  await vi.waitFor(async () => {
+    const sent = fetchMock.mock.calls.map(([r]) => r as Request).find((r) => r.url.endsWith('/pin'))
+    expect(sent && await sent.clone().json()).toEqual({ pin: '333333', password: 'long-enough-pass' })
+  })
 })
 
 test('if sign-in fails after the account is created, the sign-in page takes over', async () => {
