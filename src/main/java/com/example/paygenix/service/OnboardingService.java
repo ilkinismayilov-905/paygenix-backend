@@ -93,7 +93,7 @@ public class OnboardingService {
 
         if (!encoder.matches(otp, flow.getOtpHash())) {
             if (attempts >= MAX_VERIFY_ATTEMPTS) {
-                clearAttempts(flowId);
+                // T-138: keep the counter (it lives as long as the code), so later tries stay refused
                 throw ApiException.tooManyAttempts();
             }
             throw ApiException.invalidOtp();

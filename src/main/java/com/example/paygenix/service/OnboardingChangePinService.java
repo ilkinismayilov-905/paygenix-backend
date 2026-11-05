@@ -55,7 +55,7 @@ public class OnboardingChangePinService {
                 .email(email)
                 .step(OnboardingChangePin.Step.OTP_SENT)
                 .otpHash(encoder.encode(otp))
-                .otpExpiresAt(Instant.now().plusSeconds(300))
+                .otpExpiresAt(Instant.now().plus(OTP_TTL))
                 .build();
 
         changePinRepository.save(flow);
@@ -80,7 +80,7 @@ public class OnboardingChangePinService {
 
         if (!encoder.matches(otp, flow.getOtpHash())) {
             if (attempts >= MAX_VERIFY_ATTEMPTS) {
-                clearAttempts(flowId);
+                // T-138: keep the counter (it lives as long as the code), so later tries stay refused
                 throw ApiException.tooManyAttempts();
             }
             throw ApiException.invalidOtp();
@@ -105,12 +105,13 @@ public class OnboardingChangePinService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "Both PIN fields are required");
         }
 
-        if (encoder.matches(newPin, user.getPinHash())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "PIN_UNCHANGED", "The new PIN must differ from the current one");
-        }
-
+        // mismatch first, so a wrong pair never reveals whether one of them is the current PIN (T-140)
         if (!newPin.equals(reEnterNewPin)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "PIN_MISMATCH", "The two PINs do not match");
+        }
+
+        if (encoder.matches(newPin, user.getPinHash())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "PIN_UNCHANGED", "The new PIN must differ from the current one");
         }
 
         user.setPinHash(encoder.encode(newPin));
