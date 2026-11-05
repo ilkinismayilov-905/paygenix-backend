@@ -9,10 +9,11 @@ import { t } from '../i18n'
 import { Alert, Button, TextField } from '../ui'
 import { Logo } from './Logo'
 
-// Mirrors LoginRequest: valid email up to 255, password up to 72 (bcrypt limit).
+// Mirrors LoginRequest: valid email up to 255. Password up to 72 UTF-8 bytes, bcrypt's real limit (letters like ə take 2).
 const schema = z.object({
   email: z.string().trim().max(255).pipe(z.email({ error: t('signIn.emailInvalid') })),
-  password: z.string().min(1, t('signIn.passwordRequired')).max(72),
+  password: z.string().min(1, t('signIn.passwordRequired'))
+    .refine((p) => new TextEncoder().encode(p).length <= 72, t('signIn.passwordTooLong')),
 })
 type Form = z.infer<typeof schema>
 
@@ -49,7 +50,7 @@ export default function SignIn() {
       <div className="auth-panel">
         <Logo size={40} />
         <h1>{t('signIn.title')}</h1>
-        {error ? <Alert tone="danger" title={error} /> : state?.expired && state.from !== '/' && <Alert title={t('signIn.expired')} />}
+        {error ? <Alert tone="danger" title={error} /> : state?.expired && <Alert title={t('signIn.expired')} />}
         <form className="auth-form" onSubmit={onSubmit} noValidate>
           <TextField label={t('signIn.email')} type="email" autoComplete="email" autoFocus
             error={errors.email?.message} {...register('email')} />
