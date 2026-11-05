@@ -9,7 +9,9 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -33,6 +35,7 @@ class OwnActivityTest extends IntegrationTest {
                 .andExpect(jsonPath("$.data.items[0].kind").value("TRANSFER"))
                 .andExpect(jsonPath("$.data.items[0].amount").value("-10.20"))
                 .andExpect(jsonPath("$.data.items[0].currency").value("AZN"))
+                .andExpect(jsonPath("$.data.items[0].createdAt").value(startsWith("20")))
                 .andExpect(jsonPath("$.data.items[0].last4").value(from.substring(12)))
                 .andExpect(jsonPath("$.data.items[1].kind").value("TOP_UP"))
                 .andExpect(jsonPath("$.data.items[1].amount").value("100.00"))
@@ -72,10 +75,10 @@ class OwnActivityTest extends IntegrationTest {
         setBalance(card, "6.00");
 
         activity(owner, "size=2")
-                .andExpect(jsonPath("$.data.items[*].amount").value(org.hamcrest.Matchers.contains("3.00", "2.00")))
+                .andExpect(jsonPath("$.data.items[*].amount").value(contains("3.00", "2.00")))
                 .andExpect(jsonPath("$.data.hasNext").value(true));
         activity(owner, "size=2&page=1")
-                .andExpect(jsonPath("$.data.items[*].amount").value(org.hamcrest.Matchers.contains("1.00")))
+                .andExpect(jsonPath("$.data.items[*].amount").value(contains("1.00")))
                 .andExpect(jsonPath("$.data.page").value(1))
                 .andExpect(jsonPath("$.data.hasNext").value(false));
     }
