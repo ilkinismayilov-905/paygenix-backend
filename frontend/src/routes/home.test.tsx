@@ -66,3 +66,39 @@ test('a failed load offers a retry that recovers', async () => {
   fireEvent.click(retry)
   expect(await screen.findByRole('group', { name: 'Your cards' })).toBeInTheDocument()
 })
+
+test('the first page asks for page 0 of 20, and a repeated row on the next page is shown once', async () => {
+  const asked: string[] = []
+  activity = (page) => {
+    asked.push(page ?? '')
+    return page === '1'
+      ? ok({ items: [item(2, '-10.20'), item(1, '100.00', 'TOP_UP')], page: 1, size: 20, hasNext: false })
+      : ok({ items: [item(3, '-5.00'), item(2, '-10.20')], page: 0, size: 20, hasNext: true })
+  }
+  renderHome()
+  fireEvent.click(await screen.findByRole('button', { name: 'Show more' }))
+  expect(await screen.findByText('+₼100.00')).toBeInTheDocument()
+  expect(screen.getAllByText('-₼10.20')).toHaveLength(1)
+  expect(asked).toEqual(['0', '1'])
+})
+
+test('a failed show more keeps the rows and can be tried again', async () => {
+  let fail = true
+  activity = (page) => page === '1'
+    ? (fail ? json(503, { code: 'SERVICE_UNAVAILABLE' }) : ok({ items: [item(1, '100.00', 'TOP_UP')], page: 1, size: 20, hasNext: false }))
+    : ok({ items: [item(2, '-10.20')], page: 0, size: 20, hasNext: true })
+  renderHome()
+  fireEvent.click(await screen.findByRole('button', { name: 'Show more' }))
+  expect(await screen.findByText('Could not load more. Try again.')).toBeInTheDocument()
+  expect(screen.getByText('-₼10.20')).toBeInTheDocument()
+  fail = false
+  fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+  expect(await screen.findByText('+₼100.00')).toBeInTheDocument()
+  expect(screen.queryByText('Could not load more. Try again.')).toBeNull()
+})
+
+test('a failed activity load shows the error state too', async () => {
+  activity = () => json(500, {})
+  renderHome()
+  expect(await screen.findByText('Could not load your cards and activity.')).toBeInTheDocument()
+})
