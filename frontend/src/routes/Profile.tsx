@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { Link } from 'react-router'
 import { z } from 'zod'
 import { api } from '../api/client'
 import { t } from '../i18n'
@@ -88,6 +89,7 @@ export default function Profile() {
           <Button type="submit" block loading={isSubmitting}>{t('profile.save')}</Button>
         </form>
       )}
+      <p><Link to="/settings/pin">{t('changePin.link')}</Link></p>
     </main>
   )
 }

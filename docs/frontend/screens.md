@@ -27,7 +27,7 @@ All `/api/**` calls except the public ones need `Authorization: Bearer <access t
 | Stories viewer | overlay on dashboard | `GET /api/stories/feed`, `POST /api/stories/{id}/view`, `GET /api/stories/media-download` |
 | Profile (blocked: T-113) | `/settings/profile` | `POST /api/profile`, `POST /api/profile/photo`, photo via `GET /api/user/media-download?objectName=`; nothing to prefill the form from yet |
 | Change email | `/settings/email` | `POST /api/profile/email` {email, pin} → `POST /api/profile/email/confirm` {otp, currentEmailOtp} |
-| Change PIN | `/settings/pin` | `POST /api/change-pin` → `/{flowId}/otp` → `/{flowId}/pin` |
+| Change PIN | `/settings/pin` (link on Profile) | `POST /api/change-pin` (429 OTP_SEND_TOO_FREQUENT, 60 s) → `/{flowId}/otp` {otp} (400 INVALID_OTP / OTP_EXPIRED, 429 TOO_MANY_ATTEMPTS) → `/{flowId}/pin` {newPin, reEnterNewPin} (400 PIN_UNCHANGED); 410 FLOW_EXPIRED / 404 / 409 INVALID_STEP → start again. No current PIN asked: the email code is the proof |
 | Devices (sessions) | `/settings/sessions` | `GET /api/auth/sessions`, `DELETE /api/auth/sessions/{id}`, `DELETE /api/auth/sessions` (sign out everywhere) |
 | Verify identity | `/settings/verify` | `POST /api/verify`, `POST /api/verify/photo` (no review flow yet, see gaps) |
 | Report a problem | `/help/report` | `POST /api/reports` |
