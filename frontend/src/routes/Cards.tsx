@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
+import { useLocation } from 'react-router'
 import { api } from '../api/client'
 import { t } from '../i18n'
 import { Alert, Button, CardTile, Dialog, EmptyState, ErrorState, Skeleton, type Currency } from '../ui'
@@ -11,6 +12,9 @@ const groups = (pan: string) => pan.replace(/(\d{4})(?=\d)/g, '$1 ')
 
 export default function Cards() {
   const { cards, reload, retry } = useOwnCards()
+  // After a close the detail page is gone; focus lands on this heading instead of <body>. Stable ref: runs once at mount.
+  const closed = (useLocation().state as { closed?: boolean } | null)?.closed === true
+  const focusOnMount = useCallback((el: HTMLElement | null) => el?.focus(), [])
   const [currency, setCurrency] = useState<Currency>('AZN')
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -42,7 +46,7 @@ export default function Cards() {
 
   return (
     <main className="page">
-      <h1>{t('cards.title')}</h1>
+      <h1 ref={closed ? focusOnMount : undefined} tabIndex={-1}>{t('cards.title')}</h1>
       <section className="home-section cards-issue" aria-label={t('cards.issue')}>
         {failed && <Alert tone="danger" title={t('cards.issueFailed')} />}
         {replayed && <Alert tone="info" title={t('cards.issuedEarlier')} />}
