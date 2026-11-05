@@ -22,7 +22,7 @@ export function TextField({ label, hint, error, suffix, id, className, ...rest }
       {error ? (
         <p id={`${inputId}-error`} className="field-error">{error}</p>
       ) : hint ? (
-        <p id={`${inputId}-hint`} className="field-hint">{hint}</p>
+        <div id={`${inputId}-hint`} className="field-hint">{hint}</div>
       ) : null}
     </div>
   )
