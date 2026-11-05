@@ -41,5 +41,11 @@ export function useOwnCards() {
   return { cards, reload: () => setRound((r) => r + 1), retry: () => { setCards(null); setRound((r) => r + 1) } }
 }
 
+/**
+ * The card a form really uses: the chosen one, or the first when none is chosen yet or the chosen one left the list
+ * (closed) — the same card the browser shows in the select in both cases.
+ */
+export const pickCard = (cards: Card[], id: string): Card | undefined => cards.find((c) => String(c.id) === id) ?? cards[0]
+
 export const cardLabel = (c: Card) =>
   `•••• ${c.maskedNumber?.slice(-4) ?? ''} · ${c.amount ? formatMoney(c.amount, c.currency as Currency) : ''}`
