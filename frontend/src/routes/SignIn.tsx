@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { useLocation } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import { z } from 'zod'
 import { api, retryAfterMinutes } from '../api/client'
 import { signedIn } from '../auth/session'
@@ -61,6 +61,7 @@ export default function SignIn() {
         <p className="auth-or"><span>{t('signIn.or')}</span></p>
         {/* A full-page navigation: Spring runs the Google redirect and returns to /oauth2/callback. */}
         <a className="btn btn-secondary btn-block" href="/oauth2/authorization/google">{t('signIn.google')}</a>
+        <p className="muted">{t('signIn.noAccount')} <Link to="/sign-up">{t('signIn.createAccount')}</Link></p>
       </div>
     </main>
   )

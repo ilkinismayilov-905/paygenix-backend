@@ -9,9 +9,9 @@ All `/api/**` calls except the public ones need `Authorization: Bearer <access t
 |---|---|---|
 | Sign in | `/sign-in` | `POST /api/auth/login` (403 ACCOUNT_LOCKED, 429 LOGIN_LOCKED + Retry-After), "Continue with Google" → backend `/oauth2/authorization/google` |
 | Google callback | `/oauth2/callback` | `?code=` → `POST /api/auth/oauth/exchange`; `?error=email_not_verified \| account_exists \| account_locked \| oauth_failed` → message |
-| Sign up: email | `/sign-up` | `POST /api/onboarding/email` → `flowId` |
-| Sign up: code | `/sign-up/code` | `POST /api/onboarding/{flowId}/otp` → onboarding token for the next steps (400 INVALID_OTP / OTP_EXPIRED, 410 FLOW_EXPIRED, 429 TOO_MANY_ATTEMPTS) |
-| Sign up: name, username, PIN | `/sign-up/profile` | `PUT /api/onboarding/{flowId}/full-name`, `/username` (409 USERNAME_TAKEN, 429 USERNAME_CHECK_LIMIT + Retry-After), `/pin` {pin: 6 digits, password: 8–72} completes sign-up, then sign in with email + password |
+| Sign up (one route, 5 steps; a reload starts over): email | `/sign-up` | `POST /api/onboarding/email` → `flowId` |
+| Sign up: code | `/sign-up` step 2 | `POST /api/onboarding/{flowId}/otp` → onboarding token for the next steps (400 INVALID_OTP / OTP_EXPIRED, 410 FLOW_EXPIRED, 429 TOO_MANY_ATTEMPTS) |
+| Sign up: name, username, password + PIN | `/sign-up` steps 3–5 | `PUT /api/onboarding/{flowId}/full-name`, `/username` (409 USERNAME_TAKEN, 429 USERNAME_CHECK_LIMIT + Retry-After), `/pin` {pin: 6 digits, password: 8–72} completes sign-up; the screen then signs in with the same email + password. Terms/Privacy open in a dialog (`GET /api/legal/terms`, `/privacy`) |
 
 ## Signed in
 

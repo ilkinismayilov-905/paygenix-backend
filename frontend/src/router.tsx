@@ -11,7 +11,10 @@ export const routes = [
     children: [
       {
         element: <PublicOnly />,
-        children: [{ path: '/sign-in', lazy: page(() => import('./routes/SignIn')) }],
+        children: [
+          { path: '/sign-in', lazy: page(() => import('./routes/SignIn')) },
+          { path: '/sign-up', lazy: page(() => import('./routes/SignUp')) },
+        ],
       },
       { path: '/oauth2/callback', lazy: page(() => import('./routes/OAuthCallback')) },
       {
