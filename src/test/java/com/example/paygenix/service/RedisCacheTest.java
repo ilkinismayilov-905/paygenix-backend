@@ -92,8 +92,15 @@ class RedisCacheTest extends IntegrationTest {
     @Test
     void aMissingDocumentIs404() throws Exception {
         cacheManager.getCache(CacheNames.LEGAL_DOCUMENT_BY_TYPE).evict("TERMS");
+        Long active = jdbc.queryForObject("SELECT max(id) FROM legal_documents WHERE type = 'TERMS' AND is_active", Long.class);
         jdbc.update("UPDATE legal_documents SET is_active = false WHERE type = 'TERMS'");
-        mockMvc.perform(get("/api/legal/terms")).andExpect(status().isNotFound());
+        try {
+            mockMvc.perform(get("/api/legal/terms")).andExpect(status().isNotFound());
+        } finally {
+            // other tests sign up with the active documents
+            jdbc.update("UPDATE legal_documents SET is_active = true WHERE id = ?", active);
+            cacheManager.getCache(CacheNames.LEGAL_DOCUMENT_BY_TYPE).evict("TERMS");
+        }
     }
 
     // T-085: cached entries expire with the configured TTL (-1 would mean none)

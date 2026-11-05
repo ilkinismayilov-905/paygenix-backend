@@ -47,9 +47,11 @@ public class PaymentService {
     private final PinValidationService pinValidationService;
     private final LedgerService ledgerService;
     private final FeeProperties fees;
+    private final LegalAcceptanceService legalAcceptanceService;
 
     @Transactional
     public String transfer(PaymentRequest req, User payer) {
+        legalAcceptanceService.requireAccepted(payer.getId());
         Cards from = cardService.findOwnedByNumber(payer, req.fromCardNumber());
 
         // early rejection only; confirm re-checks the balance under the row lock
@@ -75,6 +77,7 @@ public class PaymentService {
 
     @Transactional
     public PaymentResponse confirmPayment(String flowId, String pin, User payer) {
+        legalAcceptanceService.requireAccepted(payer.getId());
         // someone else's flow gets the same 404 as an unknown id
         PaymentOnboarding onboarding = poRepository.findByIdAndUserId(flowId, payer.getId())
                 .orElseThrow(() -> new NotFoundException("Payment not found"));

@@ -74,7 +74,22 @@ public abstract class IntegrationTest {
         return header.substring(header.indexOf('=') + 1, header.indexOf(';'));
     }
 
+    /** A user who accepted the active legal documents, so money moves are not blocked (T-121). */
     protected User createUser(Role... roles) {
+        User user = createUserWithoutLegalAcceptance(roles);
+        jdbc.update("INSERT INTO user_legal_acceptances (user_id, document_id) SELECT ?, id FROM legal_documents WHERE is_active",
+                user.getId());
+        return user;
+    }
+
+    /** The active Terms/Privacy versions as a JSON array, as the sign-up screen sends them. */
+    protected String activeLegalDocumentsJson() {
+        return jdbc.queryForList("SELECT type, version FROM legal_documents WHERE is_active ORDER BY type").stream()
+                .map(r -> "{\"type\":\"" + r.get("type") + "\",\"version\":\"" + r.get("version") + "\"}")
+                .collect(java.util.stream.Collectors.joining(",", "[", "]"));
+    }
+
+    protected User createUserWithoutLegalAcceptance(Role... roles) {
         String id = UUID.randomUUID().toString().substring(0, 8);
         return userRepository.save(User.builder()
                 .email("user-" + id + "@example.test")

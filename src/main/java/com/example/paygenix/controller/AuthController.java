@@ -10,6 +10,7 @@ import com.example.paygenix.exceptions.InvalidRefreshTokenException;
 import com.example.paygenix.exceptions.UserNotLoginException;
 import com.example.paygenix.security.RefreshCookie;
 import com.example.paygenix.service.AuthService;
+import com.example.paygenix.service.LegalAcceptanceService;
 import com.example.paygenix.service.SessionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -43,6 +44,7 @@ public class AuthController {
     private final SessionService sessionService;
     private final ClientRegistrationRepository clientRegistrationRepository;
     private final RefreshCookie refreshCookie;
+    private final LegalAcceptanceService legalAcceptanceService;
 
     @Operation(summary = "Sistem salamlaması", description = "Servisin aktiv olub-olmadığını yoxlamaq üçün sadə endpoint.")
     @GetMapping("/")
@@ -78,7 +80,8 @@ public class AuthController {
                     user.getId(),
                     user.getUsername(),
                     user.getRoles(),
-                    user.getExpiresIn()
+                    user.getExpiresIn(),
+                    legalAcceptanceService.pending(user.getId())
             );
             return ResponseEntity.ok(ApiResponseData.build(HttpStatus.OK, "User profile retrieved successfully", responseData));
         }

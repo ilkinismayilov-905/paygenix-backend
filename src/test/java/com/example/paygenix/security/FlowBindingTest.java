@@ -52,7 +52,7 @@ class FlowBindingTest extends IntegrationTest {
             try {
                 status = mockMvc.perform(put(path).header("Authorization", "Bearer " + token)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"pin\":\"" + PIN + "\",\"password\":\"" + PASSWORD + "\"}"))
+                                .content("{\"pin\":\"" + PIN + "\",\"password\":\"" + PASSWORD + "\",\"acceptedLegalDocuments\":" + activeLegalDocumentsJson() + "}"))
                         .andReturn().getResponse().getStatus();
             } catch (Exception rejectedByFirewall) {
                 status = 400;
@@ -150,7 +150,7 @@ class FlowBindingTest extends IntegrationTest {
         return mockMvc.perform(put("/api/onboarding/" + flow.getId() + "/pin")
                 .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"pin\":\"" + PIN + "\",\"password\":\"" + PASSWORD + "\"}"));
+                .content("{\"pin\":\"" + PIN + "\",\"password\":\"" + PASSWORD + "\",\"acceptedLegalDocuments\":" + activeLegalDocumentsJson() + "}"));
     }
 
     private ResultActions changePin(OnboardingChangePin flow, User caller) throws Exception {

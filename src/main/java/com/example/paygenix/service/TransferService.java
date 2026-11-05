@@ -39,11 +39,13 @@ public class TransferService {
     private final TransferMapper mapper;
     private final LedgerService ledgerService;
     private final FeeProperties fees;
+    private final LegalAcceptanceService legalAcceptanceService;
 
     @Transactional
     public TransferResponse transfer(User caller, TransferRequest req) {
         Transactions transaction = new Transactions();
 
+        legalAcceptanceService.requireAccepted(caller.getId());
         pinValidationService.validatePin(caller.getId(), req.pin());
 
         Cards from = cardService.findOwnedByNumber(caller, req.fromCardNumber());
