@@ -80,6 +80,10 @@ test('a failed save keeps the repeat step for a retry', async () => {
   await enter('135790', 'Set PIN')
   expect(await screen.findByText(/Could not set the PIN/)).toBeInTheDocument()
   expect(screen.getByRole('heading', { name: 'Repeat your PIN' })).toBeInTheDocument()
+  setPin = () => ok(null)
+  await enter('135790', 'Set PIN')
+  expect(await screen.findByRole('heading', { name: 'Your PIN is set.' })).toBeInTheDocument()
+  expect(posted).toHaveLength(2)
 })
 
 test('a transfer with a short PIN focuses the PIN', async () => {
