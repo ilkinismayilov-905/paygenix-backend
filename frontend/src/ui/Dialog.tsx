@@ -1,9 +1,11 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react'
 
-type Props = { open: boolean; onClose: () => void; title: string; children: ReactNode; actions?: ReactNode }
+type Props = { open: boolean; onClose: () => void; title: string; children: ReactNode; actions?: ReactNode
+  /** false: only the dialog's own buttons close it (no Escape, no backdrop click). */
+  dismissable?: boolean }
 
 /** Native <dialog>: focus trap, Escape and the top layer come from the browser. onClose fires once per close. */
-export function Dialog({ open, onClose, title, children, actions }: Props) {
+export function Dialog({ open, onClose, title, children, actions, dismissable = true }: Props) {
   const ref = useRef<HTMLDialogElement>(null)
   const titleId = useId()
   useEffect(() => {
@@ -18,8 +20,9 @@ export function Dialog({ open, onClose, title, children, actions }: Props) {
       className="dialog"
       aria-labelledby={titleId}
       onClose={onClose}
+      onCancel={(e) => { if (!dismissable) e.preventDefault() }}
       // The box has no padding (it is on .dialog-inner), so only a backdrop click targets the <dialog> itself.
-      onClick={(e) => { if (e.target === ref.current) ref.current.close() }}
+      onClick={(e) => { if (dismissable && e.target === ref.current) ref.current.close() }}
     >
       <div className="dialog-inner">
         <h2 id={titleId}>{title}</h2>
