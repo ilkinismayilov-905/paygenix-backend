@@ -26,8 +26,8 @@ function useHome() {
   const page = useCallback(async (n: number) => {
     const { data, response } = await api.GET('/api/cards/me/activity', { params: { query: { page: n, size: PAGE_SIZE } } })
     const p = data?.data
-    if (!response.ok || !Array.isArray(p?.items)) throw new Error('activity')
-    return p
+    if (!response.ok || !p || !Array.isArray(p.items)) throw new Error('activity')
+    return { items: p.items, hasNext: p.hasNext === true }
   }, [])
 
   useEffect(() => {
