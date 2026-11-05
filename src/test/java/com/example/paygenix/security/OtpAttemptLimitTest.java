@@ -56,6 +56,23 @@ class OtpAttemptLimitTest extends IntegrationTest {
                 .header("Authorization", bearer(owner)).content(otp));
     }
 
+    // T-140: a mismatched pair is refused as a mismatch even when one entry is the current PIN
+    @Test
+    void mismatchIsCheckedBeforeUnchanged() throws Exception {
+        User owner = createUser();
+        OnboardingChangePin flow = changePinRepository.save(OnboardingChangePin.builder()
+                .id(UUID.randomUUID().toString())
+                .email(owner.getEmail())
+                .step(OnboardingChangePin.Step.OTP_VERIFIED)
+                .build());
+
+        mockMvc.perform(post("/api/change-pin/" + flow.getId() + "/pin").header("Authorization", bearer(owner))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"newPin\":\"" + PIN + "\",\"reEnterNewPin\":\"654321\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("PIN_MISMATCH"));
+    }
+
     private interface Request { MockHttpServletRequestBuilder of(String body) throws Exception; }
 
     private void assertLockedAfterFiveWrong(Request request) throws Exception {
@@ -65,7 +82,7 @@ class OtpAttemptLimitTest extends IntegrationTest {
         send(request, "000000").andExpect(status().isTooManyRequests()).andExpect(jsonPath("$.code").value("TOO_MANY_ATTEMPTS"));
         // the right code no longer works, and more wrong ones do not get fresh tries
         send(request, CODE).andExpect(status().isTooManyRequests()).andExpect(jsonPath("$.code").value("TOO_MANY_ATTEMPTS"));
-        send(request, "000000").andExpect(status().isTooManyRequests());
+        send(request, "000000").andExpect(status().isTooManyRequests()).andExpect(jsonPath("$.code").value("TOO_MANY_ATTEMPTS"));
     }
 
     private ResultActions send(Request request, String otp) throws Exception {
