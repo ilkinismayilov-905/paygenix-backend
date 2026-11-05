@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router'
 import { api } from '../api/client'
 import type { components } from '../api/schema'
 import { t, type MessageKey } from '../i18n'
@@ -71,6 +72,7 @@ export default function Home() {
     <main className="page">
       {/* shortcut: no name in the greeting — /api/auth/me "username" is the email; add it with T-113 (own profile) */}
       <h1>{t('home.title')}</h1>
+      {Array.isArray(cards) && cards.length > 0 && <Link className="btn btn-primary" to="/transfer">{t('home.send')}</Link>}
 
       {failed ? (
         <ErrorState title={t('home.failed')} action={<Button variant="secondary" onClick={retry}>{t('error.retry')}</Button>} />
