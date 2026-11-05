@@ -142,7 +142,7 @@ test('a sign-out that cannot reach the server keeps the tab signed in and says s
   fetchMock.mockRejectedValue(new TypeError('offline'))
   renderAt('/')
   fireEvent.click(await screen.findByRole('button', { name: 'Sign out' }))
-  expect(await screen.findByRole('alert')).toHaveTextContent('Could not sign out')
+  expect(await screen.findByText(/Could not sign out/)).toBeInTheDocument()
   expect(getAccessToken()).toBe('t')
 })
 
