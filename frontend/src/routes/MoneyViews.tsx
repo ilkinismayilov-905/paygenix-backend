@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { t } from '../i18n'
 import { Button, EmptyState, ErrorState, Money, Skeleton, type Currency } from '../ui'
@@ -17,12 +17,10 @@ export function CardsGate({ cards, retry, children }: { cards: Card[] | null | '
 /** Result view. Focus moves to the heading because the form it replaces is gone, so screen readers read the result. */
 export function MoneyDone({ title, amount, currency, detail, again, againLabel }:
   { title: string; amount: string; currency: Currency; detail: ReactNode; again: () => void; againLabel: string }) {
-  const heading = useRef<HTMLHeadingElement>(null)
-  useEffect(() => { heading.current?.focus() }, [])
   return (
     <main className="page">
       <section className="transfer-done" aria-labelledby="money-done">
-        <h1 id="money-done" ref={heading} tabIndex={-1}>{title}</h1>
+        <h1 id="money-done" ref={(el) => el?.focus()} tabIndex={-1}>{title}</h1>
         <Money amount={amount} currency={currency} size="xl" />
         <p className="muted">{detail}</p>
         <div className="transfer-actions">
