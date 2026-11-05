@@ -86,7 +86,7 @@ public class CardService {
 
     @Transactional(readOnly = true)
     public CardResponse getMyCard(User owner, Long id) {
-        return converter.toResponse(ownedCard(owner, id));
+        return converter.toResponse(findOwned(owner, id));
     }
 
     // cardId == null: every card of the owner; someone else's cardId just matches nothing.
@@ -107,7 +107,7 @@ public class CardService {
 
     @Transactional
     public void closeCard(User owner, Long id) {
-        Cards card = ownedCard(owner, id);
+        Cards card = findOwned(owner, id);
         lockForUpdate(card); // a concurrent credit must not land on a card being closed
         if (card.getAmount().signum() != 0) {
             throw new CardHasBalanceException();
@@ -124,13 +124,6 @@ public class CardService {
         }
         return cardRepository.findByPanHmac(panService.hmac(pan))
                 .orElseThrow(() -> new NotFoundException("Card not found"));
-    }
-
-    // The caller's own card by full number. Someone else's card gets the same 404 as an unknown number.
-    @Transactional(readOnly = true)
-    // Someone else's or a closed card is "not found", never "forbidden": the answer must not reveal that it exists.
-    public Cards findOwned(User owner, Long id) {
-        return ownedCard(owner, id);
     }
 
     /**
@@ -150,7 +143,8 @@ public class CardService {
     }
 
     // Another user's card answers 404, so ids cannot be probed.
-    private Cards ownedCard(User owner, Long id) {
+    // Someone else's or a closed card is "not found", never "forbidden": the answer must not reveal that it exists.
+    public Cards findOwned(User owner, Long id) {
         return cardRepository.findByIdAndOwnerId(id, owner.getId())
                 .orElseThrow(() -> new NotFoundException("Card not found"));
     }

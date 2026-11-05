@@ -20,6 +20,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -71,6 +72,16 @@ class PaymentOwnershipTest extends IntegrationTest {
         setBalance(victimCard, "100.00");
 
         initiateRequest(createUser(), victimCard, "10.00").andExpect(status().isNotFound());
+    }
+
+    @Test
+    void closedOwnCardCannotPayAndMissingCardIsRejected() throws Exception {
+        User payer = createUser();
+        Long closed = cardOf(issueCard(payer, "AZN")).getId();
+        mockMvc.perform(delete("/api/cards/" + closed).header("Authorization", bearer(payer))).andExpect(status().isOk());
+
+        initiateById(payer, String.valueOf(closed), "1.00").andExpect(status().isNotFound());
+        initiateById(payer, "null", "1.00").andExpect(status().isBadRequest());
     }
 
     @Test
@@ -188,10 +199,14 @@ class PaymentOwnershipTest extends IntegrationTest {
     }
 
     private ResultActions initiateRequest(User payer, String card, String amount) throws Exception {
+        return initiateById(payer, String.valueOf(cardOf(card).getId()), amount);
+    }
+
+    private ResultActions initiateById(User payer, String cardId, String amount) throws Exception {
         return mockMvc.perform(post("/api/payment/initiate").header("Authorization", bearer(payer))
                 .header("Idempotency-Key", UUID.randomUUID().toString())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"phoneNumber\":\"" + PHONE + "\",\"fromCardId\":" + cardOf(card).getId()
+                .content("{\"phoneNumber\":\"" + PHONE + "\",\"fromCardId\":" + cardId
                         + ",\"amount\":" + amount + "}"));
     }
 
