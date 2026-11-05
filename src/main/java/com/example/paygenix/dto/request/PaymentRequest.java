@@ -25,7 +25,7 @@ public record PaymentRequest(
         String fromCardNumber,
         @NotNull @DecimalMin(value = "0.01", message = "Amount must be at least 0.01")
         @Digits(integer = 15, fraction = 2, message = "Amount can have at most 2 decimal places")
-        @Schema(type = "string", example = "10.00", description = "Decimal string; a JSON number is also accepted")
+        @Schema(type = "string", example = "\"10.00\"", pattern = "^\\d{1,15}(\\.\\d{1,2})?$", description = "Decimal string; a JSON number is also accepted")
         BigDecimal amount
 ) {
     // Never print the card number.

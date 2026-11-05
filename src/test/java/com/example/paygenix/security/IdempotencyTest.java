@@ -44,7 +44,7 @@ class IdempotencyTest extends IntegrationTest {
         transfer(sender, key, from, to, "10.00").andExpect(status().isOk());
         transfer(sender, key, from, to, "10.0") // same amount, different scale
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.amount").value(10.00));
+                .andExpect(jsonPath("$.data.amount").value("10.00"));
 
         assertThat(balanceOf(from)).isEqualByComparingTo("89.80");
         assertThat(balanceOf(to)).isEqualByComparingTo("10.00");
@@ -127,7 +127,7 @@ class IdempotencyTest extends IntegrationTest {
         String key = UUID.randomUUID().toString();
 
         confirm(payer, key, flowId).andExpect(status().isOk());
-        confirm(payer, key, flowId).andExpect(status().isOk()).andExpect(jsonPath("$.data.amount").value(10.00));
+        confirm(payer, key, flowId).andExpect(status().isOk()).andExpect(jsonPath("$.data.amount").value("10.00"));
 
         assertThat(balanceOf(card)).isEqualByComparingTo("90.05");
     }

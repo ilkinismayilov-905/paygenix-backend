@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 @Slf4j
@@ -85,6 +86,8 @@ public class TransferService {
         transactionRepository.save(transaction);
 
         Transfer transfer = mapper.mapToTransfer(req);
+        // the response repeats this amount: "1E+3" or "10.000" from the request must go out as "1000.00" / "10.00"
+        transfer.setAmount(req.amount().setScale(2, RoundingMode.UNNECESSARY));
         // history keeps only the last four digits, never the full number from the request
         transfer.setFromCardNumber(from.getLast4());
         transfer.setToCardNumber(to.getLast4());
