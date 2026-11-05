@@ -98,6 +98,17 @@ public class EditProfileController {
         return ResponseEntity.ok(ApiResponseData.success(null));
     }
 
+    @Operation(summary = "Get my profile", description = "The caller's own profile. Before the first save only fullName and email are set; "
+            + "objectName is the photo key for GET /api/user/media-download.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Profile of the authenticated user"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized access")
+    })
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponseData<EditProfileResponse>> getMyProfile(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(ApiResponseData.success(editProfileService.getMine(user)));
+    }
+
     @Operation(summary = "Get all profiles", description = "Fetches a list of all profiles (Admin/Internal use).")
     @ApiResponse(responseCode = "200", description = "Profiles retrieved successfully")
     @PreAuthorize("hasRole('ADMIN_ROLE')")

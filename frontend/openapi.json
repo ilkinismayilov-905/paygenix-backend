@@ -2218,6 +2218,39 @@
         } ]
       }
     },
+    "/api/profile/me" : {
+      "get" : {
+        "tags" : [ "Profile Management" ],
+        "summary" : "Get my profile",
+        "description" : "The caller's own profile. Before the first save only fullName and email are set; objectName is the photo key for GET /api/user/media-download.",
+        "operationId" : "getMyProfile",
+        "responses" : {
+          "200" : {
+            "description" : "Profile of the authenticated user",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataEditProfileResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized access",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataEditProfileResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
     "/api/payment/history" : {
       "get" : {
         "tags" : [ "Payment Management" ],
