@@ -2,10 +2,10 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useRef, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
-import { api, retryAfterMinutes, type Problem } from '../api/client'
+import { api, retryAfterMinutes } from '../api/client'
 import { t } from '../i18n'
 import { Alert, Button, PinInput, TextField, type Currency } from '../ui'
-import { amountSchema, cardLabel, pinSchema, useOwnCards } from './money'
+import { amountSchema, cardLabel, problemCode, pinSchema, useOwnCards } from './money'
 import { CardsGate, MoneyDone } from './MoneyViews'
 
 type Done = { amount: string; currency: Currency; last4: string }
@@ -32,7 +32,8 @@ export default function Transfer() {
     useForm<Input, unknown, Form>({ resolver: zodResolver(schema), defaultValues: { fromCardId: '', toCardNumber: '', amount: '', pin: '' } })
 
   useEffect(() => {
-    if (Array.isArray(cards) && cards[0] && !getValues('fromCardId')) setValue('fromCardId', String(cards[0].id))
+    // also when the chosen card left the list (closed): the select would show the first card but submit the old id
+    if (Array.isArray(cards) && cards[0] && !cards.some((c) => String(c.id) === getValues('fromCardId'))) setValue('fromCardId', String(cards[0].id))
   }, [cards, getValues, setValue])
 
   const fromCardId = useWatch({ control, name: 'fromCardId' })
@@ -53,8 +54,7 @@ export default function Transfer() {
         setDone({ amount: r.amount, currency: r.currency, last4: form.toCardNumber.slice(-4) })
         return
       }
-      const code = (problem as Problem | undefined)?.code
-      switch (code) {
+      switch (problemCode(problem)) {
         case 'INVALID_PIN': setValue('pin', ''); setFieldError('pin', { message: t('money.pinWrong') }); return
         case 'NOT_FOUND': setError(t('transfer.notFound')); return // the recipient, or the source card if it was just closed
         case 'SAME_CARD': setFieldError('toCardNumber', { message: t('transfer.sameCard') }, { shouldFocus: true }); return

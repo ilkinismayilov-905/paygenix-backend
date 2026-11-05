@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
-import { api } from '../api/client'
+import { api, type Problem } from '../api/client'
 import type { components } from '../api/schema'
 import { t } from '../i18n'
 import { formatMoney, type Currency } from '../ui'
@@ -19,6 +19,9 @@ function canonical(amount: string): string {
 export const amountSchema = z.string().transform((s) => s.trim().replace(',', '.'))
   .pipe(z.string().regex(/^\d{1,15}(\.\d{1,2})?$/, t('money.amountInvalid')).refine((s) => /[1-9]/.test(s), t('money.amountInvalid')))
   .transform(canonical)
+
+/** The problem+json `code` the UI branches on. */
+export const problemCode = (problem: unknown) => (problem as Problem | undefined)?.code
 
 export const pinSchema = z.string().regex(/^\d{6}$/, t('money.pinInvalid'))
 

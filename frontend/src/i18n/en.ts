@@ -53,7 +53,7 @@ export const en = {
   'pay.edit': 'Change details',
   'pay.insufficient': 'Not enough money on this card.',
   'pay.cardGone': 'This card is no longer available. Choose another one.',
-  'pay.flowGone': 'This payment expired. Enter the details again.',
+  'pay.flowGone': 'This payment can no longer be completed. Enter the details again.',
   'pay.already': 'This payment was already made.',
   'pay.rejected': 'The payment could not be made. Try again later.',
   'pay.failed': 'The payment did not go through. Check your connection and try again.',
