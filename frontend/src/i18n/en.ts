@@ -39,6 +39,8 @@ export const en = {
   'changePin.codeSent': 'We sent a 6-digit code to your email. It works for 5 minutes.',
   'changePin.wait': 'A code was sent a moment ago. Try again in {minutes} min.',
   'changePin.expired': 'This PIN change has expired. Request a new code.',
+  'changePin.tooMany': 'Too many wrong codes. Request a new code.',
+  'changePin.resent': 'A new code is on its way.',
   'changePin.newTitle': 'Choose a new PIN',
   'changePin.newPin': 'New PIN',
   'changePin.unchanged': 'The new PIN must differ from the current one.',
