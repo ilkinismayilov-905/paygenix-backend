@@ -26,6 +26,7 @@ public record PaymentRequest(
         @Schema(type = "string", example = "\"10.00\"", pattern = "^\\d{1,15}(\\.\\d{1,2})?$", description = "Decimal string; a JSON number is also accepted")
         BigDecimal amount
 ) {
+    // Never print the phone number.
     @Override
     public String toString() {
         return "PaymentRequest[amount=" + amount + "]";

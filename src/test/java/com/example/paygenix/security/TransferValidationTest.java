@@ -9,6 +9,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -157,6 +158,19 @@ class TransferValidationTest extends IntegrationTest {
         transfer(sender, issueCard(sender, "AZN"), issueCard(createUser(), "AZN"), "\"abc\"", PIN)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"));
+    }
+
+    @Test
+    void closedOwnCardCannotSend() throws Exception {
+        User sender = createUser();
+        Long closed = cardOf(issueCard(sender, "AZN")).getId();
+        mockMvc.perform(delete("/api/cards/" + closed).header("Authorization", bearer(sender))).andExpect(status().isOk());
+        String to = issueCard(createUser(), "AZN");
+        mockMvc.perform(post("/api/transfer").header("Authorization", bearer(sender))
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"fromCardId\":" + closed + ",\"toCardNumber\":\"" + to + "\",\"amount\":\"1.00\",\"pin\":\"" + PIN + "\"}"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
