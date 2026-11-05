@@ -87,8 +87,8 @@
   border-radius: 50%; border: 1.5rem solid var(--card-arc); opacity: 0.9;
 }
 .cardtile .money { color: var(--card-text); }
-button.cardtile { cursor: pointer; transition: transform var(--duration) var(--ease); }
-button.cardtile:hover { transform: translateY(-2px); }
+button.cardtile, a.cardtile { cursor: pointer; text-decoration: none; transition: transform var(--duration) var(--ease); }
+button.cardtile:hover, a.cardtile:hover { transform: translateY(-2px); }
 .cardtile[aria-pressed='true'] { outline: 3px solid var(--accent); outline-offset: 3px; }
 .cardtile[aria-pressed]:focus-visible { outline-color: var(--focus); }
 .cardtile-top { display: flex; justify-content: space-between; font-size: var(--text-sm); font-weight: var(--weight-semibold); }

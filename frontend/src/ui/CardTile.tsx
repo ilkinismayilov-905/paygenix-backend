@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import type { Currency } from './formatMoney'
 import { Money } from './Money'
 
@@ -11,11 +12,13 @@ type Props = {
   balance: string
   selected?: boolean
   onSelect?: () => void
+  /** Makes the tile a link (e.g. to the card detail). */
+  to?: string
 }
 
 const networkName: Record<string, string> = { VISA: 'Visa', MASTERCARD: 'Mastercard', AMEX: 'Amex', DISCO: 'Discover', DINERS: 'Diners' }
 
-export function CardTile({ maskedNumber, holder, expires, network, currency, balance, selected, onSelect }: Props) {
+export function CardTile({ maskedNumber, holder, expires, network, currency, balance, selected, onSelect, to }: Props) {
   const last4 = maskedNumber.replace(/\D/g, '').slice(-4)
   const body = (
     <>
@@ -34,6 +37,7 @@ export function CardTile({ maskedNumber, holder, expires, network, currency, bal
       </span>
     </>
   )
+  if (to) return <Link className="cardtile" to={to}>{body}</Link>
   return onSelect ? (
     <button type="button" className="cardtile" aria-pressed={!!selected} onClick={onSelect}>{body}</button>
   ) : (

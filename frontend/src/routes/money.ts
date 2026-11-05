@@ -33,7 +33,7 @@ export function useOwnCards() {
     let live = true
     void api.GET('/api/cards/me')
       .then(({ data, response }) => {
-        if (live) setCards(response.ok && Array.isArray(data?.data) && data.data.every((c) => c.id && c.currency) ? data.data : 'failed')
+        if (live) setCards(response.ok && Array.isArray(data?.data) && data.data.every((c) => c.id && c.amount && c.currency) ? data.data : 'failed')
       })
       .catch(() => { if (live) setCards('failed') })
     return () => { live = false }
