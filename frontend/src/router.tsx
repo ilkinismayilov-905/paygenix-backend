@@ -21,7 +21,10 @@ export const routes = [
         element: <RequireAuth />,
         children: [{
           lazy: page(() => import('./routes/AppShell')),
-          children: [{ path: '/', lazy: page(() => import('./routes/Home')) }],
+          children: [
+            { path: '/', lazy: page(() => import('./routes/Home')) },
+            { path: '/transfer', lazy: page(() => import('./routes/Transfer')) },
+          ],
         }],
       },
       // shortcut: the design preview stays reachable without sign-in; remove it once the screens are done.
