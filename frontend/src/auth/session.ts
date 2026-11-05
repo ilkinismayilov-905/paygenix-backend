@@ -10,6 +10,8 @@ let accessToken: string | null = null
 let status: AuthStatus = 'unknown'
 // True only when a live session ended on its own (refresh rejected), so sign-in can say "your session ended".
 let expired = false
+// This tab had a session since the last sign-out; survives an 'unavailable' spell, so a later 401 still counts as expiry.
+let hadSession = false
 // Bumped by every sign-in and sign-out, so a refresh that started earlier cannot overwrite a newer session.
 let epoch = 0
 const listeners = new Set<() => void>()
@@ -28,13 +30,16 @@ export function useAuthStatus(): AuthStatus {
 }
 
 export function signedIn(token: string) {
+  hadSession = true
   set(token, 'signed-in')
 }
 
 export const sessionExpired = () => expired
 
-export function signedOut() {
-  expired = false
+/** `ended`: the server rejected a live session (not the user's own sign-out). Set before listeners run. */
+export function signedOut(ended = false) {
+  expired = ended && hadSession
+  hadSession = false
   set(null, 'signed-out')
 }
 
@@ -58,12 +63,8 @@ export function refresh(): Promise<boolean> {
     if (epoch !== started) return accessToken !== null
     if (token === 'unavailable') set(null, 'unavailable')
     else if (token) signedIn(token)
-    else {
-      const wasSignedIn = status === 'signed-in'
-      signedOut()
-      expired = wasSignedIn
-    }
-    return typeof token === 'string' && token !== 'unavailable'
+    else signedOut(true)
+    return status === 'signed-in'
   }
   inflight ??= withRefreshLock(async () => {
     try {

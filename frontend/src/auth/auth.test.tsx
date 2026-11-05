@@ -146,6 +146,34 @@ test('a sign-out that cannot reach the server keeps the tab signed in and says s
   expect(getAccessToken()).toBe('t')
 })
 
+test('a logout the server rejects keeps the session and tells no other tab', async () => {
+  signedIn('t')
+  const other = new BroadcastChannel('paygenix-auth')
+  const heard = vi.fn()
+  other.onmessage = heard
+  fetchMock.mockResolvedValue(json(401, { code: 'REFRESH_ORIGIN_REJECTED' }))
+  expect(await signOut()).toBe(false)
+  expect(getAccessToken()).toBe('t')
+  await new Promise((r) => setTimeout(r, 20))
+  expect(heard).not.toHaveBeenCalled()
+  other.close()
+})
+
+test('a mid-session refresh that cannot reach the server returns the 401 and offers a retry', async () => {
+  signedIn('old')
+  fetchMock.mockImplementation(async (input: RequestInfo | URL) =>
+    urlOf(input).endsWith('/api/auth/refresh-token') ? Promise.reject(new TypeError('offline')) : json(401, {}))
+  const { response } = await api.GET('/api/auth/sessions')
+  expect(response.status).toBe(401)
+  expect(getAccessToken()).toBeNull()
+  renderAt('/')
+  expect(await screen.findByRole('status')).toHaveTextContent('Paygenix is not reachable')
+
+  fetchMock.mockResolvedValue(json(401, { code: 'INVALID_REFRESH_TOKEN' }))
+  await refresh() // the retry is rejected: the live session ended, even with the outage in between
+  expect(sessionExpired()).toBe(true)
+})
+
 test('a sign-out in another tab signs this one out', async () => {
   signedIn('t')
   const other = new BroadcastChannel('paygenix-auth')
@@ -187,6 +215,11 @@ test('passwords over 72 UTF-8 bytes are rejected before sending', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
   expect(await screen.findByText(/at most 72 bytes/)).toBeInTheDocument()
   expect(fetchMock).not.toHaveBeenCalled()
+
+  fetchMock.mockResolvedValue(json(401, { code: 'UNAUTHORIZED' }))
+  fireEvent.input(screen.getByLabelText('Password'), { target: { value: 'ə'.repeat(36) } }) // exactly 72 bytes
+  fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+  await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
 })
 
 test('the Google code is exchanged once, even under StrictMode', async () => {

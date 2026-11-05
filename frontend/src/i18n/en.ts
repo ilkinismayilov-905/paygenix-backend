@@ -9,6 +9,7 @@ export const en = {
   'shell.signOut': 'Sign out',
   'shell.signOutFailed': 'Could not sign out. Check your connection and try again.',
   'auth.loading': 'Checking your session…',
+  'auth.unavailableTitle': 'Connection problem',
   'auth.unavailable': 'Paygenix is not reachable right now. Check your connection and try again.',
   'signIn.title': 'Sign in',
   'signIn.email': 'Email',
