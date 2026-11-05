@@ -1,12 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Fragment, useEffect, useState, type ReactNode } from 'react'
+import { Fragment, useState, type ReactNode } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router'
 import { z } from 'zod'
 import { api, retryAfterMinutes, type Problem } from '../api/client'
 import { signedIn } from '../auth/session'
 import { t, type MessageKey } from '../i18n'
-import { Alert, Button, Dialog, PinInput, TextField } from '../ui'
+import { Alert, Button, PinInput, TextField } from '../ui'
+import { AgreeLine } from './legal'
+import { shownVersions, useLegalDocs } from './legalDocs'
 import { Logo } from './Logo'
 
 /**
@@ -21,6 +23,7 @@ const bytes = (s: string) => new TextEncoder().encode(s).length
 const FATAL = new Set(['FLOW_EXPIRED', 'FLOW_NOT_FOUND', 'TOO_MANY_ATTEMPTS', 'INVALID_STEP', 'UNAUTHORIZED', 'FORBIDDEN', 'ALREADY_TAKEN'])
 
 type Failure = { message: string; fatal: boolean; code?: string }
+type LegalDocs = ReturnType<typeof useLegalDocs>['docs']
 
 function failure(problem: unknown, res: Response | undefined): Failure {
   const code = (problem as Problem | undefined)?.code
@@ -34,6 +37,7 @@ function failure(problem: unknown, res: Response | undefined): Failure {
     ALREADY_TAKEN: t('signUp.alreadyTaken'),
     TOO_MANY_ATTEMPTS: t('signUp.tooManyCodes'),
     VALIDATION_FAILED: t('signUp.invalid'),
+    LEGAL_VERSION_OUTDATED: t('signUp.legalChanged'),
   }
   const fatal = code !== undefined && FATAL.has(code)
   return { message: (code && messages[code]) ?? (fatal ? t('signUp.expired') : t('signUp.failed')), fatal, code }
@@ -57,6 +61,8 @@ export default function SignUp() {
   // Kept until the last step sends them together (the server takes password and PIN in one call).
   const [secret, setSecret] = useState({ password: '', pin: '' })
   const navigate = useNavigate()
+  // Loaded once: the versions shown here are the ones the account accepts (T-121).
+  const legal = useLegalDocs()
   const auth = () => ({ Authorization: `Bearer ${flow?.token ?? ''}` })
   const path = () => ({ path: { flowId: flow?.flowId ?? '' } })
 
@@ -73,7 +79,7 @@ export default function SignUp() {
   }
 
   const steps: Record<Step, ReactNode> = {
-    email: <EmailStep onSubmit={startFlow} />,
+    email: <EmailStep onSubmit={startFlow} legal={legal.docs} />,
     code: (
       <CodeStep email={flow?.email ?? ''} onBack={restart} onResend={() => startFlow(flow?.email ?? '')}
         onSubmit={async (otp) => {
@@ -109,9 +115,15 @@ export default function SignUp() {
           go('pin')
           return setError({ message: t('signUp.pinMismatch'), fatal: false })
         }
-        const r = await call(() => api.PUT('/api/onboarding/{flowId}/pin', { params: path(), headers: auth(), body: { pin, password } }))
+        const acceptedLegalDocuments = shownVersions(legal.docs)
+        if (!acceptedLegalDocuments) {
+          legal.reload()
+          return setError({ message: t('signUp.failed'), fatal: false })
+        }
+        const r = await call(() => api.PUT('/api/onboarding/{flowId}/pin', { params: path(), headers: auth(), body: { pin, password, acceptedLegalDocuments } }))
         if (r.failure) {
           if (r.failure.code === 'VALIDATION_FAILED') go('password') // the PIN was checked here, so it is the password
+          if (r.failure.code === 'LEGAL_VERSION_OUTDATED') legal.reload() // the new texts show under the alert
           return setError(r.failure)
         }
         // The account exists now; sign in with what was just typed so the user lands in the app.
@@ -143,6 +155,7 @@ export default function SignUp() {
             action={error.fatal ? <Button size="sm" variant="secondary" onClick={restart}>{t('signUp.startAgain')}</Button> : undefined} />
         )}
         {notice && <Alert tone="success" title={notice} />}
+        {error?.code === 'LEGAL_VERSION_OUTDATED' && <AgreeLine docs={legal.docs} />}
         {/* keyed, so the name and username steps (same component) do not share form state */}
         <Fragment key={step}>{steps[step]}</Fragment>
         {step === 'email' && <p className="muted">{t('signUp.haveAccount')} <Link to="/sign-in">{t('signUp.signIn')}</Link></p>}
@@ -153,41 +166,14 @@ export default function SignUp() {
 
 const emailSchema = z.object({ email: z.string().trim().max(255).pipe(z.email({ error: t('signIn.emailInvalid') })) })
 
-function EmailStep({ onSubmit }: { onSubmit: (email: string) => Promise<void> }) {
-  const [doc, setDoc] = useState<'terms' | 'privacy' | null>(null)
+function EmailStep({ onSubmit, legal }: { onSubmit: (email: string) => Promise<void>; legal: LegalDocs }) {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({ resolver: zodResolver(emailSchema) })
   return (
-    <>
-      <form className="auth-form" noValidate onSubmit={handleSubmit((f) => onSubmit(f.email))}>
-        <TextField label={t('signIn.email')} type="email" autoComplete="email" autoFocus error={errors.email?.message} {...register('email')} />
-        <p className="muted">
-          {t('signUp.agree')} <button type="button" className="link" onClick={() => setDoc('terms')}>{t('signUp.terms')}</button>
-          {' '}{t('signUp.and')}{' '}<button type="button" className="link" onClick={() => setDoc('privacy')}>{t('signUp.privacy')}</button>.
-        </p>
-        <Button type="submit" block loading={isSubmitting}>{t('signUp.continue')}</Button>
-      </form>
-      {doc && <LegalDialog type={doc} onClose={() => setDoc(null)} />}
-    </>
-  )
-}
-
-function LegalDialog({ type, onClose }: { type: 'terms' | 'privacy'; onClose: () => void }) {
-  const [text, setText] = useState<string | null>(null)
-  useEffect(() => {
-    let live = true
-    void call(() => api.GET(type === 'terms' ? '/api/legal/terms' : '/api/legal/privacy'))
-      .then((r) => {
-        if (!live) return
-        if (r.data) setText(r.data.data?.content ?? t('signUp.legalMissing'))
-        else setText(r.notFound ? t('signUp.legalMissing') : t('signUp.failed'))
-      })
-    return () => { live = false }
-  }, [type])
-  return (
-    <Dialog open onClose={onClose} title={t(type === 'terms' ? 'signUp.terms' : 'signUp.privacy')}
-      actions={<Button variant="secondary" onClick={onClose}>{t('signUp.close')}</Button>}>
-      <p className="legal-text">{text ?? t('signUp.legalLoading')}</p>
-    </Dialog>
+    <form className="auth-form" noValidate onSubmit={handleSubmit((f) => onSubmit(f.email))}>
+      <TextField label={t('signIn.email')} type="email" autoComplete="email" autoFocus error={errors.email?.message} {...register('email')} />
+      <AgreeLine docs={legal} />
+      <Button type="submit" block loading={isSubmitting}>{t('signUp.continue')}</Button>
+    </form>
   )
 }
 

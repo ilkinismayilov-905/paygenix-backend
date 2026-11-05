@@ -11,7 +11,7 @@ All `/api/**` calls except the public ones need `Authorization: Bearer <access t
 | Google callback | `/oauth2/callback` | `?code=` → `POST /api/auth/oauth/exchange`; `?error=email_not_verified \| account_exists \| account_locked \| oauth_failed` → message |
 | Sign up (one route, 5 steps; a reload starts over): email | `/sign-up` | `POST /api/onboarding/email` → `flowId` |
 | Sign up: code | `/sign-up` step 2 | `POST /api/onboarding/{flowId}/otp` → onboarding token for the next steps (400 INVALID_OTP / OTP_EXPIRED, 410 FLOW_EXPIRED, 429 TOO_MANY_ATTEMPTS) |
-| Sign up: name, username, password + PIN | `/sign-up` steps 3–5 | `PUT /api/onboarding/{flowId}/full-name`, `/username` (409 USERNAME_TAKEN, 429 USERNAME_CHECK_LIMIT + Retry-After), `/pin` {pin: 6 digits, password: 8–72} completes sign-up; the screen then signs in with the same email + password. Terms/Privacy open in a dialog (`GET /api/legal/terms`, `/privacy`) |
+| Sign up: name, username, password + PIN | `/sign-up` steps 3–5 | `PUT /api/onboarding/{flowId}/full-name`, `/username` (409 USERNAME_TAKEN, 429 USERNAME_CHECK_LIMIT + Retry-After), `/pin` {pin: 6 digits, password: 8–72, acceptedLegalDocuments: the Terms/Privacy versions shown} completes sign-up (409 LEGAL_VERSION_OUTDATED: reload the texts, retry); the screen then signs in with the same email + password. Terms/Privacy open in a dialog (`GET /api/legal/terms`, `/privacy`) |
 
 ## Signed in
 
@@ -32,6 +32,7 @@ All `/api/**` calls except the public ones need `Authorization: Bearer <access t
 | Verify identity | `/settings/verify` | `POST /api/verify`, `POST /api/verify/photo` (no review flow yet, see gaps) |
 | Report a problem | `/help/report` | `POST /api/reports` |
 | Terms / Privacy | `/legal/terms`, `/legal/privacy` | `GET /api/legal/terms`, `GET /api/legal/privacy` |
+| Accept updated Terms/Privacy | shown by the app shell instead of the page while `GET /api/auth/me` lists `pendingLegalDocuments` | `POST /api/legal/acceptances` {documents} (409 LEGAL_VERSION_OUTDATED → re-read /me). Until accepted, transfers and payments answer 403 LEGAL_ACCEPTANCE_REQUIRED |
 
 ## System states
 

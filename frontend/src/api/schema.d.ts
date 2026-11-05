@@ -34,7 +34,7 @@ export interface paths {
         get?: never;
         /**
          * Set PIN and complete onboarding
-         * @description Finalizes the onboarding with the login password and the 6-digit transaction PIN. The user then signs in through /api/auth/login with email and password.
+         * @description Finalizes the onboarding with the login password, the 6-digit transaction PIN and acceptedLegalDocuments: the Terms and Privacy versions shown to the user (from GET /api/legal/terms and /api/legal/privacy). The user then signs in through /api/auth/login with email and password.
          */
         put: operations["setPin"];
         post?: never;
@@ -390,6 +390,26 @@ export interface paths {
          * @description Starts the onboarding process by submitting an email and initiating a flow.
          */
         post: operations["submitEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/legal/acceptances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept the current legal documents
+         * @description Records that the caller accepted the given Terms/Privacy versions (the ones listed in pendingLegalDocuments of GET /api/auth/me). Until every active document is accepted, transfers and payments answer 403 LEGAL_ACCEPTANCE_REQUIRED. Accepting the same version again changes nothing.
+         */
+        post: operations["accept"];
         delete?: never;
         options?: never;
         head?: never;
@@ -963,9 +983,14 @@ export interface components {
             message?: string;
             data?: unknown;
         };
+        LegalDocumentRef: {
+            type: string;
+            version: string;
+        };
         PinRequest: {
             pin: string;
             password: string;
+            acceptedLegalDocuments: components["schemas"]["LegalDocumentRef"][];
         };
         FullNameRequest: {
             fullName: string;
@@ -1104,6 +1129,9 @@ export interface components {
         };
         EmailRequest: {
             email: string;
+        };
+        LegalAcceptanceRequest: {
+            documents: components["schemas"]["LegalDocumentRef"][];
         };
         ChangePinRequest: {
             newPin: string;
@@ -1367,6 +1395,7 @@ export interface components {
             roles?: ("USER_ROLE" | "ADMIN_ROLE")[];
             /** Format: int64 */
             expiresAt?: number;
+            pendingLegalDocuments?: components["schemas"]["LegalDocumentRef"][];
         };
     };
     responses: never;
@@ -1463,7 +1492,7 @@ export interface operations {
                     "*/*": components["schemas"]["ApiResponseDataVoid"];
                 };
             };
-            /** @description Flow not at this step (INVALID_STEP), or email/username taken by another sign-up meanwhile (ALREADY_TAKEN) */
+            /** @description Flow not at this step (INVALID_STEP), or email/username taken by another sign-up meanwhile (ALREADY_TAKEN), or acceptedLegalDocuments are not the active Terms/Privacy versions (LEGAL_VERSION_OUTDATED; nothing was saved, reload the texts and retry) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1743,7 +1772,7 @@ export interface operations {
                     "*/*": components["schemas"]["ApiResponseDataTransferResponse"];
                 };
             };
-            /** @description Wrong PIN (INVALID_PIN) */
+            /** @description Wrong PIN (INVALID_PIN), or current Terms/Privacy not accepted (LEGAL_ACCEPTANCE_REQUIRED) */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2204,6 +2233,15 @@ export interface operations {
                     "*/*": components["schemas"]["ApiResponseDataString"];
                 };
             };
+            /** @description Current Terms/Privacy not accepted (LEGAL_ACCEPTANCE_REQUIRED) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataString"];
+                };
+            };
             /** @description Card not found or not owned by the caller */
             404: {
                 headers: {
@@ -2267,7 +2305,7 @@ export interface operations {
                     "*/*": components["schemas"]["ApiResponseDataPaymentResponse"];
                 };
             };
-            /** @description Wrong PIN (INVALID_PIN) */
+            /** @description Wrong PIN (INVALID_PIN), or current Terms/Privacy not accepted (LEGAL_ACCEPTANCE_REQUIRED) */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2415,6 +2453,48 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseDataString"];
+                };
+            };
+        };
+    };
+    accept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LegalAcceptanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Recorded */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataVoid"];
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataVoid"];
+                };
+            };
+            /** @description A version is not the active one, or an active document is missing (LEGAL_VERSION_OUTDATED); nothing was recorded, load the documents again */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataVoid"];
                 };
             };
         };

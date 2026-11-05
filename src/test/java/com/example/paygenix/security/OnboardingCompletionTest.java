@@ -37,6 +37,35 @@ class OnboardingCompletionTest extends IntegrationTest {
         assertThat(authService.login(new LoginRequest(flow.getEmail(), PASSWORD), "test").token()).isNotBlank();
     }
 
+    // T-121: sign-up records the accepted versions; an outdated one rolls the whole step back
+    @Test
+    void signUpRecordsTheAcceptedLegalVersions() throws Exception {
+        OnboardingFlow flow = newFlow();
+        setPin(flow).andExpect(status().isOk());
+
+        Long userId = userRepository.findByEmail(flow.getEmail()).orElseThrow().getId();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM user_legal_acceptances WHERE user_id = ?", Integer.class, userId))
+                .isEqualTo(jdbc.queryForObject("SELECT count(*) FROM legal_documents WHERE is_active", Integer.class))
+                .isPositive();
+    }
+
+    @Test
+    void outdatedLegalVersionCreatesNoUser() throws Exception {
+        OnboardingFlow flow = newFlow();
+
+        mockMvc.perform(put("/api/onboarding/" + flow.getId() + "/pin")
+                        .header("Authorization", "Bearer " + jwtService.generateOnboardingToken(flow))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"pin\":\"" + PIN + "\",\"password\":\"" + PASSWORD
+                                + "\",\"acceptedLegalDocuments\":[{\"type\":\"TERMS\",\"version\":\"old\"}]}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("LEGAL_VERSION_OUTDATED"));
+
+        assertThat(userRepository.findByEmail(flow.getEmail())).isEmpty();
+        assertThat(flowRepository.findById(flow.getId()).orElseThrow().getStep())
+                .isEqualTo(OnboardingFlow.Step.USERNAME_SET);
+    }
+
     // 40 chars but 80 UTF-8 bytes: bcrypt rejects more than 72 bytes, so this must be a 400, not a 500
     @Test
     void passwordOverBcryptByteLimitIsRejected() throws Exception {
@@ -68,6 +97,6 @@ class OnboardingCompletionTest extends IntegrationTest {
         return mockMvc.perform(put("/api/onboarding/" + flow.getId() + "/pin")
                 .header("Authorization", "Bearer " + jwtService.generateOnboardingToken(flow))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"pin\":\"" + PIN + "\",\"password\":\"" + password + "\"}"));
+                .content("{\"pin\":\"" + PIN + "\",\"password\":\"" + password + "\",\"acceptedLegalDocuments\":" + activeLegalDocumentsJson() + "}"));
     }
 }

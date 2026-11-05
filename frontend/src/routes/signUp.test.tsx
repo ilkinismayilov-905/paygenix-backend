@@ -9,7 +9,15 @@ const json = (status: number, body: unknown, headers: Record<string, string> = {
 const ok = (data: unknown = null) => json(200, { data })
 
 let fetchMock: ReturnType<typeof vi.fn>
-beforeEach(() => { signedOut(); fetchMock = vi.fn(); vi.stubGlobal('fetch', fetchMock) })
+// The active Terms/Privacy (T-121) are answered here, so each test's mock sees only the onboarding calls.
+let termsVersion = '1'
+const legal = (url: string) => url.endsWith('/api/legal/terms') ? ok({ type: 'TERMS', version: termsVersion, content: 'Demo terms' })
+  : url.endsWith('/api/legal/privacy') ? ok({ type: 'PRIVACY', version: '1', content: 'Demo privacy' }) : null
+const shown = (terms = '1') => [{ type: 'TERMS', version: terms }, { type: 'PRIVACY', version: '1' }]
+beforeEach(() => {
+  signedOut(); termsVersion = '1'; fetchMock = vi.fn()
+  vi.stubGlobal('fetch', (req: Request) => legal(req.url) ?? (fetchMock as (r: Request) => Promise<Response>)(req))
+})
 afterEach(() => { vi.unstubAllGlobals(); signedOut() })
 
 const type = (label: string, value: string) => fireEvent.input(screen.getByLabelText(label), { target: { value } })
@@ -72,7 +80,7 @@ test('the whole sign-up sends each step in order with the onboarding token, then
     '/api/onboarding/flow-1/username', '/api/onboarding/flow-1/pin', '/api/auth/login',
   ])
   expect(calls.slice(2, 5).every((c) => c.auth === 'Bearer onb-token')).toBe(true)
-  expect(calls[4]!.body).toEqual({ pin: '482913', password: 'long-enough-pass' })
+  expect(calls[4]!.body).toEqual({ pin: '482913', password: 'long-enough-pass', acceptedLegalDocuments: shown() })
   expect(getAccessToken()).toBe('session')
 })
 
@@ -141,7 +149,7 @@ test('a repeated PIN that differs goes back to creating it, without sending', as
   fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
   await vi.waitFor(async () => {
     const sent = fetchMock.mock.calls.map(([r]) => r as Request).find((r) => r.url.endsWith('/pin'))
-    expect(sent && await sent.clone().json()).toEqual({ pin: '333333', password: 'long-enough-pass' })
+    expect(sent && await sent.clone().json()).toEqual({ pin: '333333', password: 'long-enough-pass', acceptedLegalDocuments: shown() })
   })
 })
 
@@ -188,4 +196,34 @@ test('the username check limit shows the Retry-After minutes', async () => {
   type('Username', 'nigar')
   next()
   expect(await screen.findByRole('alert')).toHaveTextContent('Try again in 7 min.')
+})
+
+test('the legal texts open from the first step', async () => {
+  render(<RouterProvider router={createMemoryRouter(routes, { initialEntries: ['/sign-up'] })} />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Terms' }))
+  expect(await screen.findByText('Demo terms')).toBeInTheDocument()
+})
+
+test('a Terms version published during sign-up is shown and sent on the retry', async () => {
+  let pins = 0
+  fetchMock.mockImplementation(async (req: Request) => {
+    const url = new URL(req.url).pathname
+    if (url.endsWith('/pin')) return ++pins === 1 ? json(409, { code: 'LEGAL_VERSION_OUTDATED' }) : ok()
+    if (url === '/api/auth/login') return ok({ token: 'session' })
+    return ok(url.endsWith('/email') ? 'flow-1' : 'tok')
+  })
+  await reachPassword()
+  termsVersion = '2' // published after the texts were loaded
+  await finish('long-enough-pass', '482913', '482913')
+  expect(await screen.findByRole('alert')).toHaveTextContent('changed while you were signing up')
+  expect(screen.getByRole('heading', { name: 'Repeat your PIN' })).toBeInTheDocument()
+
+  fireEvent.click(screen.getByRole('button', { name: 'Terms' }))
+  await screen.findByText('Demo terms')
+  fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
+  await vi.waitFor(async () => {
+    const sent = fetchMock.mock.calls.map(([r]) => r as Request).filter((r) => r.url.endsWith('/pin'))
+    expect(sent).toHaveLength(2)
+    expect((await sent[1]!.clone().json()).acceptedLegalDocuments).toEqual(shown('2'))
+  })
 })

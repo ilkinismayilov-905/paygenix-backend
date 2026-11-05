@@ -120,7 +120,7 @@
       "put" : {
         "tags" : [ "Onboarding" ],
         "summary" : "Set PIN and complete onboarding",
-        "description" : "Finalizes the onboarding with the login password and the 6-digit transaction PIN. The user then signs in through /api/auth/login with email and password.",
+        "description" : "Finalizes the onboarding with the login password, the 6-digit transaction PIN and acceptedLegalDocuments: the Terms and Privacy versions shown to the user (from GET /api/legal/terms and /api/legal/privacy). The user then signs in through /api/auth/login with email and password.",
         "operationId" : "setPin",
         "parameters" : [ {
           "name" : "flowId",
@@ -172,7 +172,7 @@
             }
           },
           "409" : {
-            "description" : "Flow not at this step (INVALID_STEP), or email/username taken by another sign-up meanwhile (ALREADY_TAKEN)",
+            "description" : "Flow not at this step (INVALID_STEP), or email/username taken by another sign-up meanwhile (ALREADY_TAKEN), or acceptedLegalDocuments are not the active Terms/Privacy versions (LEGAL_VERSION_OUTDATED; nothing was saved, reload the texts and retry)",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -532,7 +532,7 @@
             }
           },
           "403" : {
-            "description" : "Wrong PIN (INVALID_PIN)",
+            "description" : "Wrong PIN (INVALID_PIN), or current Terms/Privacy not accepted (LEGAL_ACCEPTANCE_REQUIRED)",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -1106,6 +1106,16 @@
               }
             }
           },
+          "403" : {
+            "description" : "Current Terms/Privacy not accepted (LEGAL_ACCEPTANCE_REQUIRED)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataString"
+                }
+              }
+            }
+          },
           "404" : {
             "description" : "Card not found or not owned by the caller",
             "content" : {
@@ -1199,7 +1209,7 @@
             }
           },
           "403" : {
-            "description" : "Wrong PIN (INVALID_PIN)",
+            "description" : "Wrong PIN (INVALID_PIN), or current Terms/Privacy not accepted (LEGAL_ACCEPTANCE_REQUIRED)",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -1381,6 +1391,59 @@
             }
           }
         }
+      }
+    },
+    "/api/legal/acceptances" : {
+      "post" : {
+        "tags" : [ "Legal Documents" ],
+        "summary" : "Accept the current legal documents",
+        "description" : "Records that the caller accepted the given Terms/Privacy versions (the ones listed in pendingLegalDocuments of GET /api/auth/me). Until every active document is accepted, transfers and payments answer 403 LEGAL_ACCEPTANCE_REQUIRED. Accepting the same version again changes nothing.",
+        "operationId" : "accept",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LegalAcceptanceRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Recorded",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Validation failed",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "A version is not the active one, or an active document is missing (LEGAL_VERSION_OUTDATED); nothing was recorded, load the documents again",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
       }
     },
     "/api/change-pin" : {
@@ -2585,6 +2648,22 @@
           "data" : { }
         }
       },
+      "LegalDocumentRef" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "maxLength" : 32,
+            "minLength" : 0
+          },
+          "version" : {
+            "type" : "string",
+            "maxLength" : 64,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "type", "version" ]
+      },
       "PinRequest" : {
         "type" : "object",
         "properties" : {
@@ -2597,9 +2676,17 @@
             "type" : "string",
             "maxLength" : 72,
             "minLength" : 8
+          },
+          "acceptedLegalDocuments" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LegalDocumentRef"
+            },
+            "maxItems" : 10,
+            "minItems" : 0
           }
         },
-        "required" : [ "password", "pin" ]
+        "required" : [ "acceptedLegalDocuments", "password", "pin" ]
       },
       "FullNameRequest" : {
         "type" : "object",
@@ -2997,6 +3084,20 @@
           }
         },
         "required" : [ "email" ]
+      },
+      "LegalAcceptanceRequest" : {
+        "type" : "object",
+        "properties" : {
+          "documents" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LegalDocumentRef"
+            },
+            "maxItems" : 10,
+            "minItems" : 0
+          }
+        },
+        "required" : [ "documents" ]
       },
       "ChangePinRequest" : {
         "type" : "object",
@@ -3688,6 +3789,12 @@
           "expiresAt" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "pendingLegalDocuments" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LegalDocumentRef"
+            }
           }
         }
       }

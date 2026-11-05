@@ -35,9 +35,6 @@ test('danger alerts interrupt, other alerts are polite', () => {
 })
 
 test('dialog follows the open prop and reports a close once', () => {
-  // jsdom has no <dialog> behaviour; mimic the browser
-  HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', '') }
-  HTMLDialogElement.prototype.close = function () { this.removeAttribute('open'); this.dispatchEvent(new Event('close')) }
   const onClose = vi.fn()
   const { rerender } = render(<Dialog open title="Block card?" onClose={onClose}>Body</Dialog>)
   const dialog = screen.getByRole('dialog', { hidden: true })

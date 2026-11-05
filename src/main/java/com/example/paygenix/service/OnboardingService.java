@@ -1,5 +1,6 @@
 package com.example.paygenix.service;
 
+import com.example.paygenix.dto.LegalDocumentRef;
 import com.example.paygenix.entity.OnboardingFlow;
 import com.example.paygenix.entity.User;
 import com.example.paygenix.enums.Role;
@@ -49,6 +50,7 @@ public class OnboardingService {
     private final EmailService emailService;
     private final RedisTemplate<String, Object> redisTemplate;
     private final StringRedisTemplate stringRedis;
+    private final LegalAcceptanceService legalAcceptanceService;
 
     @Transactional
     public String submitEmail(String email) {
@@ -135,7 +137,7 @@ public class OnboardingService {
     }
 
     @Transactional
-    public void setPin(String flowId, String pin, String password) {
+    public void setPin(String flowId, String pin, String password, List<LegalDocumentRef> acceptedLegalDocuments) {
         OnboardingFlow flow = getFlow(flowId, OnboardingFlow.Step.USERNAME_SET);
         // both were free when the flow checked them, but another sign-up may have taken them since
         if (userRepo.existsByEmail(flow.getEmail()) || userRepo.existsByUsername(flow.getUsernameCandidate())) {
@@ -158,6 +160,8 @@ public class OnboardingService {
             // a parallel sign-up took the email or username between the check and the insert
             throw new ApiException(HttpStatus.CONFLICT, "ALREADY_TAKEN", "Email or username is already taken");
         }
+        // an outdated version rolls the whole sign-up back, so the user can reload the texts and retry this step
+        legalAcceptanceService.accept(user.getId(), acceptedLegalDocuments);
 
         flow.setStep(OnboardingFlow.Step.COMPLETED);
     }
