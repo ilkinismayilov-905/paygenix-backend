@@ -102,7 +102,20 @@ test('a card with money cannot be closed, and its balance is reloaded', async ()
   const dialog = await screen.findByRole('dialog', { name: 'Close this card?' })
   fireEvent.click(within(dialog).getByRole('button', { name: 'Close card' }))
   expect(await within(dialog).findByText(/Move the money to another card first/)).toBeInTheDocument()
+  expect(document.querySelector('[aria-busy="true"]')).toBeNull() // quiet: no skeleton
   expect(await screen.findByText(/120\.00/)).toBeInTheDocument()
+})
+
+test('a failed quiet reload keeps the card shown', async () => {
+  close = () => { one = () => json(500, {}); return json(409, { code: 'CARD_HAS_BALANCE' }) }
+  open('/cards/7')
+  fireEvent.click(await screen.findByRole('button', { name: 'Close card' }))
+  const dialog = await screen.findByRole('dialog', { name: 'Close this card?' })
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Close card' }))
+  expect(await within(dialog).findByText(/Move the money to another card first/)).toBeInTheDocument()
+  await new Promise((r) => setTimeout(r, 20))
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('2207')
+  expect(document.querySelector('[aria-busy="true"]')).toBeNull()
 })
 
 test('closing an empty card goes back to the list', async () => {
