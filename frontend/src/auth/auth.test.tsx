@@ -5,7 +5,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { api } from '../api/client'
 import { routes } from '../router'
 import { safeReturnPath } from './returnPath'
-import { getAccessToken, refresh, signedIn, signedOut } from './session'
+import { getAccessToken, refresh, sessionExpired, signedIn, signedOut } from './session'
 import { signOut } from './signOut'
 
 const json = (status: number, body: unknown, headers: Record<string, string> = {}) =>
@@ -125,17 +125,68 @@ test('a refresh that finishes after a newer sign-in does not overwrite it', asyn
   expect(getAccessToken()).toBe('google-session')
 })
 
-test('sign-out posts the cookie logout, and signs out even if that fails', async () => {
+test('sign-out posts the cookie logout and tells the other tabs', async () => {
   signedIn('t')
+  const other = new BroadcastChannel('paygenix-auth')
+  const heard = new Promise((r) => { other.onmessage = (e) => r(e.data) })
   fetchMock.mockResolvedValue(json(200, {}))
-  await signOut()
+  expect(await signOut()).toBe(true)
   expect(fetchMock).toHaveBeenCalledExactlyOnceWith('/api/auth/logout', expect.objectContaining({ method: 'POST', credentials: 'same-origin' }))
   expect(getAccessToken()).toBeNull()
+  expect(await heard).toBe('signed-out')
+  other.close()
+})
 
+test('a sign-out that cannot reach the server keeps the tab signed in and says so', async () => {
   signedIn('t')
   fetchMock.mockRejectedValue(new TypeError('offline'))
-  await signOut()
-  expect(getAccessToken()).toBeNull()
+  renderAt('/')
+  fireEvent.click(await screen.findByRole('button', { name: 'Sign out' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Could not sign out')
+  expect(getAccessToken()).toBe('t')
+})
+
+test('a sign-out in another tab signs this one out', async () => {
+  signedIn('t')
+  const other = new BroadcastChannel('paygenix-auth')
+  other.postMessage('signed-out')
+  await vi.waitFor(() => expect(getAccessToken()).toBeNull())
+  other.close()
+})
+
+test.each([
+  ['offline', () => Promise.reject(new TypeError('offline'))],
+  ['503', () => Promise.resolve(json(503, { code: 'SERVICE_UNAVAILABLE' }))],
+])('a refresh that fails %s offers a retry instead of signing out', async (_, fail) => {
+  fetchMock.mockImplementationOnce(fail)
+  await refresh()
+  renderAt('/')
+  expect(await screen.findByRole('status')).toHaveTextContent('Paygenix is not reachable')
+  fetchMock.mockResolvedValue(json(200, { data: { token: 'back' } }))
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+  expect(await screen.findByRole('heading', { name: 'Welcome to Paygenix' })).toBeInTheDocument()
+})
+
+test('"session ended" shows only when a live session ends', async () => {
+  fetchMock.mockResolvedValue(json(401, { code: 'INVALID_REFRESH_TOKEN' }))
+  await refresh() // cold start without a cookie
+  expect(sessionExpired()).toBe(false)
+
+  signedIn('old')
+  await refresh() // the server rejects a live session
+  expect(sessionExpired()).toBe(true)
+  renderAt('/')
+  expect(await screen.findByRole('status')).toHaveTextContent('Your session ended')
+})
+
+test('passwords over 72 UTF-8 bytes are rejected before sending', async () => {
+  signedOut()
+  renderAt('/sign-in')
+  fireEvent.input(await screen.findByLabelText('Email'), { target: { value: 'aysel@example.test' } })
+  fireEvent.input(screen.getByLabelText('Password'), { target: { value: 'ə'.repeat(37) } }) // 37 chars, 74 bytes
+  fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+  expect(await screen.findByText(/at most 72 bytes/)).toBeInTheDocument()
+  expect(fetchMock).not.toHaveBeenCalled()
 })
 
 test('the Google code is exchanged once, even under StrictMode', async () => {

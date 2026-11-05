@@ -1,10 +1,24 @@
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { safeReturnPath } from '../auth/returnPath'
-import { useAuthStatus } from '../auth/session'
+import { useState } from 'react'
+import { refresh, sessionExpired, useAuthStatus } from '../auth/session'
 import { t } from '../i18n'
+import { Alert, Button } from '../ui'
 
 function Checking() {
   return <main className="center-screen" aria-busy="true"><p className="muted" role="status">{t('auth.loading')}</p></main>
+}
+
+/** The session check could not reach the server: nothing is decided yet, so offer a retry instead of signing out. */
+function Unavailable() {
+  const [busy, setBusy] = useState(false)
+  const retry = () => { setBusy(true); void refresh().finally(() => setBusy(false)) }
+  return (
+    <main className="center-screen">
+      <Alert tone="warning" title={t('auth.unavailable')}
+        action={<Button size="sm" variant="secondary" loading={busy} onClick={retry}>{t('error.retry')}</Button>} />
+    </main>
+  )
 }
 
 /** Signed-in area: waits for the startup refresh, then sends signed-out users to sign-in and back afterwards. */
@@ -12,8 +26,9 @@ export function RequireAuth() {
   const status = useAuthStatus()
   const location = useLocation()
   if (status === 'unknown') return <Checking />
+  if (status === 'unavailable') return <Unavailable />
   if (status === 'signed-out') {
-    return <Navigate to="/sign-in" replace state={{ from: location.pathname + location.search, expired: true }} />
+    return <Navigate to="/sign-in" replace state={{ from: location.pathname + location.search, expired: sessionExpired() }} />
   }
   return <Outlet />
 }
@@ -23,6 +38,7 @@ export function PublicOnly() {
   const status = useAuthStatus()
   const state = useLocation().state as { from?: string } | null
   if (status === 'unknown') return <Checking />
+  if (status === 'unavailable') return <Unavailable />
   if (status === 'signed-in') return <Navigate to={safeReturnPath(state?.from)} replace />
   return <Outlet />
 }
