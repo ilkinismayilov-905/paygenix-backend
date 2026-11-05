@@ -4,9 +4,9 @@ import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { api, retryAfterMinutes } from '../api/client'
 import { t } from '../i18n'
-import { Alert, Button, formatMoney, PinInput, TextField, type Currency } from '../ui'
+import { Button, formatMoney, PinInput, TextField, type Currency } from '../ui'
 import { amountSchema, cardLabel, pickCard, problemCode, pinSchema, useOwnCards } from './money'
-import { CardsGate, MoneyDone } from './MoneyViews'
+import { CardsGate, MoneyDone, MoneyError } from './MoneyViews'
 import { toPhone } from './phone'
 
 // Mirrors PaymentRequest: +994 and 9 digits, own card id, amount.
@@ -113,7 +113,7 @@ export default function Pay() {
       <main className="page">
         <h1>{t('pay.confirmTitle')}</h1>
         <form className="auth-form" onSubmit={(e) => { e.preventDefault(); void confirm() }} noValidate>
-          {error && <Alert tone="danger" title={error} />}
+          {error && <MoneyError error={error} from="/pay" />}
           <dl className="summary">
             <dt>{t('money.amount')}</dt><dd>{formatMoney(d.amount, d.currency)}</dd>
             <dt>{t('pay.phone')}</dt><dd>{d.phoneNumber}</dd>
@@ -133,7 +133,7 @@ export default function Pay() {
       <h1>{t('pay.title')}</h1>
       <CardsGate cards={cards} retry={retry}>{(list) => (
         <form className="auth-form" onSubmit={(e) => void handleSubmit(initiate)(e)} noValidate>
-          {error && <Alert tone="danger" title={error} />}
+          {error && <MoneyError error={error} from="/pay" />}
           <div className="field">
             <label htmlFor="from" className="field-label">{t('money.from')}</label>
             <div className="field-control">

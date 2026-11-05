@@ -4,9 +4,9 @@ import { Controller, useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { api, retryAfterMinutes } from '../api/client'
 import { t } from '../i18n'
-import { Alert, Button, PinInput, TextField, type Currency } from '../ui'
+import { Button, PinInput, TextField, type Currency } from '../ui'
 import { amountSchema, cardLabel, pickCard, problemCode, pinSchema, useOwnCards } from './money'
-import { CardsGate, MoneyDone } from './MoneyViews'
+import { CardsGate, MoneyDone, MoneyError } from './MoneyViews'
 
 type Done = { amount: string; currency: Currency; last4: string }
 
@@ -84,7 +84,7 @@ export default function Transfer() {
       <h1>{t('transfer.title')}</h1>
       <CardsGate cards={cards} retry={retry}>{(list) => (
         <form className="auth-form" onSubmit={(e) => void handleSubmit(send)(e)} noValidate>
-          {error && <Alert tone="danger" title={error} />}
+          {error && <MoneyError error={error} from="/transfer" />}
           <div className="field">
             <label htmlFor="from" className="field-label">{t('money.from')}</label>
             <div className="field-control">
@@ -99,7 +99,7 @@ export default function Transfer() {
           <TextField label={t('money.amount')} inputMode="decimal" autoComplete="off" placeholder="0.00"
             suffix={from?.currency} hint={t('transfer.feeHint')} error={errors.amount?.message} {...register('amount')} />
           <Controller name="pin" control={control} render={({ field }) => (
-            <PinInput label={t('money.pin')} value={field.value} onChange={field.onChange} error={errors.pin?.message} />
+            <PinInput ref={field.ref} label={t('money.pin')} value={field.value} onChange={field.onChange} error={errors.pin?.message} />
           )} />
           <Button type="submit" block loading={isSubmitting}>{t('transfer.submit')}</Button>
         </form>

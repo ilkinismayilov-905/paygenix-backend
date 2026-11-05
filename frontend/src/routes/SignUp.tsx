@@ -1,13 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Fragment, useState, type ReactNode } from 'react'
-import { Controller, useForm, useWatch } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router'
 import { z } from 'zod'
 import { api, retryAfterMinutes, type Problem } from '../api/client'
 import { signedIn } from '../auth/session'
 import { t, type MessageKey } from '../i18n'
-import { Alert, Button, PinInput, TextField } from '../ui'
+import { Alert, Button, TextField } from '../ui'
 import { AgreeLine } from './legal'
+import { PinStep } from './PinStep'
 import { shownVersions, useLegalDocs } from './legalDocs'
 import { Logo } from './Logo'
 
@@ -257,18 +258,3 @@ function PasswordStep({ onSubmit }: { onSubmit: (password: string) => void }) {
   )
 }
 
-const pinSchema = z.object({ pin: z.string().regex(/^\d{6}$/, t('signUp.pinInvalid')) })
-
-/** PinInput is masked, numeric and autocomplete="off"; no show/hide by design (owner, T-122). */
-function PinStep({ label, submit, onSubmit }: { label: MessageKey; submit: MessageKey; onSubmit: (pin: string) => void | Promise<void> }) {
-  const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm({ resolver: zodResolver(pinSchema), defaultValues: { pin: '' } })
-  return (
-    <form className="auth-form" noValidate onSubmit={handleSubmit((f) => onSubmit(f.pin))}>
-      <Controller control={control} name="pin" render={({ field }) => (
-        <PinInput label={t(label)} value={field.value} onChange={field.onChange} error={errors.pin?.message} autoFocus />
-      )} />
-      <p className="muted">{t('signUp.pinHint')}</p>
-      <Button type="submit" block loading={isSubmitting}>{t(submit)}</Button>
-    </form>
-  )
-}

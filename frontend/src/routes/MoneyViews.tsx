@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { t } from '../i18n'
-import { Button, EmptyState, ErrorState, Money, Skeleton, type Currency } from '../ui'
+import { Alert, Button, EmptyState, ErrorState, Money, Skeleton, type Currency } from '../ui'
 import type { Card } from './money'
 
 /** Loading, error and no-card states; renders `children` only when there is at least one card. */
@@ -12,6 +12,14 @@ export function CardsGate({ cards, retry, children }: { cards: Card[] | null | '
   }
   if (cards.length === 0) return <EmptyState title={t('home.noCards')} body={t('home.noCardsBody')} />
   return children(cards)
+}
+
+/** A money screen's error; PIN_NOT_SET gets a link to set the first PIN, which comes back to `from`. */
+export function MoneyError({ error, from }: { error: string; from: string }) {
+  const action = error === t('money.pinNotSet')
+    ? <Link className="btn btn-secondary btn-sm" to="/pin/setup" state={{ from }}>{t('pinSetup.link')}</Link>
+    : undefined
+  return <Alert tone="danger" title={error} action={action} />
 }
 
 /** Result view. Focus moves to the heading because the form it replaces is gone, so screen readers read the result. */

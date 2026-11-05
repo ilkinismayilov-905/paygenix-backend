@@ -18,7 +18,7 @@ All `/api/**` calls except the public ones need `Authorization: Bearer <access t
 | Screen | Route | API |
 |---|---|---|
 | App shell (header, nav, sign-out) | — | `GET /api/auth/me`; sign-out: `GET /api/auth/sessions` → `DELETE /api/auth/sessions/{id}` of the `current` one |
-| Set first PIN (Google users) | `/pin/setup` | `POST /api/user/pin`; shown on any 403 PIN_NOT_SET (transfer, payment, email change) |
+| Set first PIN (Google users) | `/pin/setup` | `POST /api/user/pin` {pin} (409 PIN_ALREADY_SET); transfer/pay link here on 403 PIN_NOT_SET and come back (router state `from`); email change will too |
 | Dashboard | `/` | `GET /api/cards/me` (masked number, `displayAmount` + `currency`), `GET /api/cards/me/activity?page=&size=` (newest first, `hasNext`), `GET /api/stories/feed` |
 | Cards list | `/cards` | `GET /api/cards/me`, `POST /api/cards` (issue virtual card; the full number is shown only in this response) |
 | Card detail | `/cards/:id` | `GET /api/cards/{id}`, `GET /api/cards/me/activity?cardId=`, `DELETE /api/cards/{id}` (409 CARD_HAS_BALANCE) |

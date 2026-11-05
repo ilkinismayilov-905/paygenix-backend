@@ -1,4 +1,4 @@
-import { useId, useRef, type ClipboardEvent, type KeyboardEvent } from 'react'
+import { useId, useRef, type ClipboardEvent, type KeyboardEvent, type Ref } from 'react'
 
 type Props = {
   label: string
@@ -7,10 +7,12 @@ type Props = {
   length?: number
   error?: string
   autoFocus?: boolean
+  /** Lands on the first box, so a form library can focus the PIN on a validation error. */
+  ref?: Ref<HTMLInputElement>
 }
 
 /** One box per digit. Digits are masked, typing moves forward, Backspace moves back, paste fills all boxes. */
-export function PinInput({ label, value, onChange, length = 6, error, autoFocus }: Props) {
+export function PinInput({ label, value, onChange, length = 6, error, autoFocus, ref }: Props) {
   const id = useId()
   const refs = useRef<(HTMLInputElement | null)[]>([])
   const focus = (i: number) => refs.current[Math.max(0, Math.min(length - 1, i))]?.focus()
@@ -43,7 +45,12 @@ export function PinInput({ label, value, onChange, length = 6, error, autoFocus 
         {Array.from({ length }, (_, i) => (
           <input
             key={i}
-            ref={(el) => { refs.current[i] = el }}
+            ref={(el) => {
+              refs.current[i] = el
+              if (i > 0 || !ref) return
+              if (typeof ref === 'function') ref(el)
+              else ref.current = el
+            }}
             type="password"
             inputMode="numeric"
             autoComplete="off"
