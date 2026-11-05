@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Fragment, useEffect, useState, type ReactNode } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router'
 import { z } from 'zod'
 import { api, retryAfterMinutes, type Problem } from '../api/client'
@@ -13,7 +13,7 @@ import { Logo } from './Logo'
  * Sign-up runs the backend onboarding flow one step at a time; the server accepts the steps only in this order.
  * shortcut: the flow lives in component state, so a reload starts over (the server flow expires in 30 min anyway).
  */
-type Step = 'email' | 'code' | 'name' | 'username' | 'secure'
+type Step = 'email' | 'code' | 'name' | 'username' | 'password' | 'pin' | 'pinRepeat'
 type Flow = { email: string; flowId: string; token?: string }
 
 const bytes = (s: string) => new TextEncoder().encode(s).length
@@ -54,6 +54,8 @@ export default function SignUp() {
   const [flow, setFlow] = useState<Flow | null>(null)
   const [error, setError] = useState<Failure | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  // Kept until the last step sends them together (the server takes password and PIN in one call).
+  const [secret, setSecret] = useState({ password: '', pin: '' })
   const navigate = useNavigate()
   const auth = () => ({ Authorization: `Bearer ${flow?.token ?? ''}` })
   const path = () => ({ path: { flowId: flow?.flowId ?? '' } })
@@ -95,11 +97,18 @@ export default function SignUp() {
         onSubmit={async (username) => {
           const r = await call(() => api.PUT('/api/onboarding/{flowId}/username', { params: path(), headers: auth(), body: { username } }))
           if (r.failure) return setError(r.failure)
-          go('secure')
+          go('password')
         }} />
     ),
-    secure: (
-      <SecureStep onSubmit={async ({ password, pin }) => {
+    password: <PasswordStep onSubmit={(password) => { setSecret((x) => ({ ...x, password })); go('pin') }} />,
+    pin: <PinStep label="signUp.pin" submit="signUp.continue" onSubmit={(pin) => { setSecret((x) => ({ ...x, pin })); go('pinRepeat') }} />,
+    pinRepeat: (
+      <PinStep label="signUp.pinRepeat" submit="signUp.create" onSubmit={async (repeat) => {
+        const { password, pin } = secret
+        if (repeat !== pin) {
+          go('pin')
+          return setError({ message: t('signUp.pinMismatch'), fatal: false })
+        }
         const r = await call(() => api.PUT('/api/onboarding/{flowId}/pin', { params: path(), headers: auth(), body: { pin, password } }))
         if (r.failure) return setError(r.failure)
         // The account exists now; sign in with what was just typed so the user lands in the app.
@@ -112,16 +121,18 @@ export default function SignUp() {
   }
 
   const titles: Record<Step, MessageKey> = {
-    email: 'signUp.title', code: 'signUp.codeTitle', name: 'signUp.nameTitle', username: 'signUp.usernameTitle', secure: 'signUp.secureTitle',
+    email: 'signUp.title', code: 'signUp.codeTitle', name: 'signUp.nameTitle', username: 'signUp.usernameTitle',
+    password: 'signUp.passwordTitle', pin: 'signUp.pinTitle', pinRepeat: 'signUp.pinRepeatTitle',
   }
-  const index = Object.keys(titles).indexOf(step) + 1
+  const order = Object.keys(titles)
+  const index = order.indexOf(step) + 1
 
   return (
     <main className="auth">
       <div className="auth-panel">
         <Logo size={40} />
         <div>
-          <p className="muted">{t('signUp.progress', { step: index, total: 5 })}</p>
+          <p className="muted">{t('signUp.progress', { step: index, total: order.length })}</p>
           <h1>{t(titles[step])}</h1>
         </div>
         {error && (
@@ -215,34 +226,59 @@ function TextStep({ field, label, hint, autoComplete, max, pattern, onSubmit }: 
   )
 }
 
-// Mirrors PinRequest: password 8–72 characters and at most 72 UTF-8 bytes (bcrypt), PIN 6 digits.
-const secureSchema = z.object({
-  password: z.string().min(8, t('signUp.passwordShort')).refine((p) => p.trim() !== '', t('signUp.passwordShort'))
-    .refine((p) => bytes(p) <= 72, t('signIn.passwordTooLong')),
-  confirm: z.string(),
-  pin: z.string().regex(/^\d{6}$/, t('signUp.pinInvalid')),
-  pinConfirm: z.string(),
-}).refine((f) => f.password === f.confirm, { path: ['confirm'], message: t('signUp.passwordMismatch') })
-  .refine((f) => f.pin === f.pinConfirm, { path: ['pinConfirm'], message: t('signUp.pinMismatch') })
+// Mirrors PinRequest: password 8+ characters, not blank, and at most 72 UTF-8 bytes (bcrypt).
+const passwordRules = [
+  { key: 'signUp.ruleLength', ok: (p: string) => p.length >= 8 && p.trim() !== '' },
+  { key: 'signUp.ruleBytes', ok: (p: string) => p.length > 0 && bytes(p) <= 72 },
+] as const
 
-function SecureStep({ onSubmit }: { onSubmit: (f: { password: string; pin: string }) => Promise<void> }) {
-  const { register, control, handleSubmit, formState: { errors, isSubmitting } } = useForm({
-    resolver: zodResolver(secureSchema), defaultValues: { password: '', confirm: '', pin: '', pinConfirm: '' },
-  })
+function PasswordStep({ onSubmit }: { onSubmit: (password: string) => void }) {
+  const [shown, setShown] = useState(false)
+  const [tried, setTried] = useState(false)
+  const { register, handleSubmit, control, setFocus } = useForm({ defaultValues: { password: '' } })
+  const password = useWatch({ control, name: 'password' })
+  const valid = passwordRules.every((r) => r.ok(password))
+  const toggle = (
+    <button type="button" className="link" aria-pressed={shown} onClick={() => setShown((v) => !v)}>
+      {t(shown ? 'signUp.hide' : 'signUp.show')}
+    </button>
+  )
+  // The checklist is the hint, so screen readers hear it with the field; it updates as the user types.
+  const rules = (
+    <ul className="rules">
+      {passwordRules.map((r) => (
+        <li key={r.key} className={r.ok(password) ? 'rule-ok' : tried ? 'rule-bad' : undefined}>
+          <span aria-hidden="true">{r.ok(password) ? '✓' : '•'}</span> {t(r.key)}{' '}
+          <span className="sr-only">{r.ok(password) ? t('signUp.ruleMet') : t('signUp.ruleNotMet')}</span>
+        </li>
+      ))}
+    </ul>
+  )
   return (
-    <form className="auth-form" noValidate onSubmit={handleSubmit(onSubmit)}>
-      <TextField label={t('signUp.password')} type="password" autoComplete="new-password" autoFocus hint={t('signUp.passwordHint')}
-        error={errors.password?.message} {...register('password')} />
-      <TextField label={t('signUp.passwordConfirm')} type="password" autoComplete="new-password"
-        error={errors.confirm?.message} {...register('confirm')} />
+    <form className="auth-form" noValidate onSubmit={handleSubmit((f) => {
+      setTried(true)
+      if (valid) onSubmit(f.password)
+      else setFocus('password') // re-reads the field with its checklist
+    })}>
+      <TextField label={t('signUp.password')} type={shown ? 'text' : 'password'} autoComplete="new-password" autoFocus
+        suffix={toggle} hint={rules} aria-invalid={tried && !valid ? true : undefined} {...register('password')} />
+      <Button type="submit" block>{t('signUp.continue')}</Button>
+    </form>
+  )
+}
+
+const pinSchema = z.object({ pin: z.string().regex(/^\d{6}$/, t('signUp.pinInvalid')) })
+
+/** PinInput is masked, numeric and autocomplete="off"; no show/hide by design (owner, T-122). */
+function PinStep({ label, submit, onSubmit }: { label: MessageKey; submit: MessageKey; onSubmit: (pin: string) => void | Promise<void> }) {
+  const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm({ resolver: zodResolver(pinSchema), defaultValues: { pin: '' } })
+  return (
+    <form className="auth-form" noValidate onSubmit={handleSubmit((f) => onSubmit(f.pin))}>
       <Controller control={control} name="pin" render={({ field }) => (
-        <PinInput label={t('signUp.pin')} value={field.value} onChange={field.onChange} error={errors.pin?.message} />
-      )} />
-      <Controller control={control} name="pinConfirm" render={({ field }) => (
-        <PinInput label={t('signUp.pinConfirm')} value={field.value} onChange={field.onChange} error={errors.pinConfirm?.message} />
+        <PinInput label={t(label)} value={field.value} onChange={field.onChange} error={errors.pin?.message} autoFocus />
       )} />
       <p className="muted">{t('signUp.pinHint')}</p>
-      <Button type="submit" block loading={isSubmitting}>{t('signUp.create')}</Button>
+      <Button type="submit" block loading={isSubmitting}>{t(submit)}</Button>
     </form>
   )
 }
