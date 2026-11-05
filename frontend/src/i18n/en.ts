@@ -177,6 +177,7 @@ export const en = {
   'cards.issue': 'Issue a card',
   'cards.issueFailed': 'The card was not issued. Check your connection and try again.',
   'cards.issued': 'Your new card',
+  'cards.issuedEarlier': 'Your card was issued on the earlier try. Its full number can no longer be shown; the card is in your list.',
   'cards.issuedBody': 'Write the full number down now. For your safety it is shown only this once.',
   'cards.done': 'Done',
   'card.title': 'Card ending in {last4}',

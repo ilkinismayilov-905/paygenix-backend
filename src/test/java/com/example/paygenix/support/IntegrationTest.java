@@ -109,6 +109,7 @@ public abstract class IntegrationTest {
     /** Issues a card through the API and returns the full number (only ever visible in that response). */
     protected String issueCard(User owner, String currency) throws Exception {
         String body = mockMvc.perform(post("/api/cards").header("Authorization", bearer(owner))
+                        .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"currency\":\"" + currency + "\"}"))
                 .andExpect(status().isCreated())

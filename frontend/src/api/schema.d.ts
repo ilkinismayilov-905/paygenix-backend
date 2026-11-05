@@ -491,7 +491,7 @@ export interface paths {
         put?: never;
         /**
          * Issue a new virtual card
-         * @description Issues a card in the chosen currency for the logged-in user. The full card number is in this response only; afterwards just the last four digits are shown.
+         * @description Issues a card in the chosen currency for the logged-in user. The full card number is in this response only; afterwards just the last four digits are shown. A retry with the same Idempotency-Key returns the same card without its number (cardNumber null).
          */
         post: operations["issueCard"];
         delete?: never;
@@ -2791,7 +2791,10 @@ export interface operations {
     issueCard: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description Client-generated unique key (e.g. UUID); a retry with the same key returns the first card */
+                "Idempotency-Key": string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -2810,7 +2813,7 @@ export interface operations {
                     "*/*": components["schemas"]["ApiResponseDataIssuedCardResponse"];
                 };
             };
-            /** @description Invalid request payload */
+            /** @description Invalid request payload, or Idempotency-Key header blank or over 255 characters (INVALID_IDEMPOTENCY_KEY) */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -2821,6 +2824,15 @@ export interface operations {
             };
             /** @description Unauthorized access */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataIssuedCardResponse"];
+                };
+            };
+            /** @description Idempotency-Key already used for a different request */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
