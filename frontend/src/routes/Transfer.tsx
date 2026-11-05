@@ -1,41 +1,30 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useRef, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
-import { Link } from 'react-router'
 import { z } from 'zod'
 import { api, retryAfterMinutes, type Problem } from '../api/client'
-import type { components } from '../api/schema'
 import { t } from '../i18n'
-import { Alert, Button, EmptyState, ErrorState, formatMoney, Money, PinInput, Skeleton, TextField, type Currency } from '../ui'
+import { Alert, Button, PinInput, TextField, type Currency } from '../ui'
+import { amountSchema, cardLabel, pinSchema, useOwnCards } from './money'
+import { CardsGate, MoneyDone } from './MoneyViews'
 
-type Card = components['schemas']['CardResponse']
 type Done = { amount: string; currency: Currency; last4: string }
 
-// Mirrors TransferRequest: 16-digit card, 0.01+ with at most 2 decimals, 6-digit PIN.
+// Mirrors TransferRequest: own card id, 16-digit card number, amount, 6-digit PIN.
 const schema = z.object({
   fromCardId: z.string().min(1),
   toCardNumber: z.string().transform((s) => s.replace(/[\s-]/g, ''))
     .pipe(z.string().regex(/^\d{16}$/, t('transfer.toInvalid'))),
-  amount: z.string().transform((s) => s.trim().replace(',', '.'))
-    .pipe(z.string().regex(/^\d{1,15}(\.\d{1,2})?$/, t('transfer.amountInvalid')).refine((s) => /[1-9]/.test(s), t('transfer.amountInvalid')))
-    .transform(canonical),
-  pin: z.string().regex(/^\d{6}$/, t('transfer.pinInvalid')),
+  amount: amountSchema,
+  pin: pinSchema,
 })
-/** "010,5" and "10.50" are the same money: one spelling, so the idempotency key below sees them as one request. */
-function canonical(amount: string): string {
-  const [int = '', frac = ''] = amount.split('.')
-  return `${int.replace(/^0+(?=\d)/, '')}.${frac.padEnd(2, '0')}`
-}
 type Input = z.input<typeof schema>
 type Form = z.output<typeof schema>
 
 export default function Transfer() {
-  const [cards, setCards] = useState<Card[] | null | 'failed'>(null)
-  const [round, setRound] = useState(0)
+  const { cards, reload, retry } = useOwnCards()
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState<Done | null>(null)
-  const doneHeading = useRef<HTMLHeadingElement>(null)
-  useEffect(() => { if (done) doneHeading.current?.focus() }, [done]) // the form is gone: move focus so the result is read out
   // One key per (card, recipient, amount), PIN left out like the server does: a resend of the same transfer (network error,
   // RESOURCE_BUSY, retyped PIN) reuses it, so it cannot move money twice. The server keeps a key only on success.
   const attempt = useRef<{ body: string; key: string } | null>(null)
@@ -43,17 +32,8 @@ export default function Transfer() {
     useForm<Input, unknown, Form>({ resolver: zodResolver(schema), defaultValues: { fromCardId: '', toCardNumber: '', amount: '', pin: '' } })
 
   useEffect(() => {
-    let live = true
-    void api.GET('/api/cards/me')
-      .then(({ data, response }) => {
-        if (!live) return
-        const list = response.ok && Array.isArray(data?.data) && data.data.every((c) => c.id && c.currency) ? data.data : null
-        setCards(list ?? 'failed')
-        if (list?.[0]) setValue('fromCardId', String(list[0].id))
-      })
-      .catch(() => { if (live) setCards('failed') })
-    return () => { live = false }
-  }, [round, setValue])
+    if (Array.isArray(cards) && cards[0] && !getValues('fromCardId')) setValue('fromCardId', String(cards[0].id))
+  }, [cards, getValues, setValue])
 
   const fromCardId = useWatch({ control, name: 'fromCardId' })
   const from = Array.isArray(cards) ? cards.find((c) => String(c.id) === fromCardId) : undefined
@@ -75,15 +55,15 @@ export default function Transfer() {
       }
       const code = (problem as Problem | undefined)?.code
       switch (code) {
-        case 'INVALID_PIN': setValue('pin', ''); setFieldError('pin', { message: t('transfer.pinWrong') }); return
+        case 'INVALID_PIN': setValue('pin', ''); setFieldError('pin', { message: t('money.pinWrong') }); return
         case 'NOT_FOUND': setError(t('transfer.notFound')); return // the recipient, or the source card if it was just closed
         case 'SAME_CARD': setFieldError('toCardNumber', { message: t('transfer.sameCard') }, { shouldFocus: true }); return
         case 'CURRENCY_MISMATCH': setFieldError('toCardNumber', { message: t('transfer.currencyMismatch') }, { shouldFocus: true }); return
         case 'INSUFFICIENT_BALANCE': setFieldError('amount', { message: t('transfer.insufficient') }, { shouldFocus: true }); return
-        case 'PIN_LOCKED': setError(t('transfer.pinLocked', { minutes: retryAfterMinutes(response) ?? 15 })); return
-        case 'PIN_NOT_SET': setError(t('transfer.pinNotSet')); return
-        case 'LEGAL_ACCEPTANCE_REQUIRED': setError(t('transfer.legal')); return
-        case 'RESOURCE_BUSY': setError(t('transfer.busy')); return
+        case 'PIN_LOCKED': setError(t('money.pinLocked', { minutes: retryAfterMinutes(response) ?? 15 })); return
+        case 'PIN_NOT_SET': setError(t('money.pinNotSet')); return
+        case 'LEGAL_ACCEPTANCE_REQUIRED': setError(t('money.legal')); return
+        case 'RESOURCE_BUSY': setError(t('money.busy')); return
         default: setError(t('transfer.rejected'))
       }
     } catch {
@@ -94,59 +74,39 @@ export default function Transfer() {
   const again = () => {
     setDone(null)
     reset({ fromCardId: getValues('fromCardId'), toCardNumber: '', amount: '', pin: '' })
-    setRound((r) => r + 1) // balances changed
+    reload() // balances changed
   }
 
   if (done) {
-    return (
-      <main className="page">
-        <section className="transfer-done" aria-labelledby="sent">
-          <h1 id="sent" ref={doneHeading} tabIndex={-1}>{t('transfer.sent')}</h1>
-          <Money amount={done.amount} currency={done.currency} size="xl" />
-          <p className="muted">{t('transfer.sentTo', { last4: done.last4 })}</p>
-          <div className="transfer-actions">
-            <Link className="btn btn-primary" to="/">{t('transfer.home')}</Link>
-            <Button variant="secondary" onClick={again}>{t('transfer.another')}</Button>
-          </div>
-        </section>
-      </main>
-    )
+    return <MoneyDone title={t('transfer.sent')} amount={done.amount} currency={done.currency}
+      detail={t('transfer.sentTo', { last4: done.last4 })} again={again} againLabel={t('transfer.another')} />
   }
 
   return (
     <main className="page">
       <h1>{t('transfer.title')}</h1>
-      {cards === null ? (
-        <div aria-busy="true"><Skeleton height="20rem" /></div>
-      ) : cards === 'failed' ? (
-        <ErrorState title={t('transfer.cardsFailed')}
-          action={<Button variant="secondary" onClick={() => { setCards(null); setRound((r) => r + 1) }}>{t('error.retry')}</Button>} />
-      ) : cards.length === 0 ? (
-        <EmptyState title={t('home.noCards')} body={t('home.noCardsBody')} />
-      ) : (
+      <CardsGate cards={cards} retry={retry}>{(list) => (
         <form className="auth-form" onSubmit={(e) => void handleSubmit(send)(e)} noValidate>
           {error && <Alert tone="danger" title={error} />}
           <div className="field">
-            <label htmlFor="from" className="field-label">{t('transfer.from')}</label>
+            <label htmlFor="from" className="field-label">{t('money.from')}</label>
             <div className="field-control">
               <select id="from" {...register('fromCardId')}>
-                {cards.map((c) => (
-                  <option key={c.id} value={String(c.id)}>•••• {c.maskedNumber?.slice(-4)} · {c.amount ? formatMoney(c.amount, c.currency as Currency) : ''}</option>
-                ))}
+                {list.map((c) => <option key={c.id} value={String(c.id)}>{cardLabel(c)}</option>)}
               </select>
             </div>
           </div>
           <TextField label={t('transfer.to')} inputMode="numeric" autoComplete="off" placeholder="0000 0000 0000 0000"
             error={errors.toCardNumber?.message} {...register('toCardNumber')} />
-          {/* shortcut: the fee rate is server config (FEE_COMMISSION_PERCENT) with no endpoint; show the number once one exists */}
-          <TextField label={t('transfer.amount')} inputMode="decimal" autoComplete="off" placeholder="0.00"
+          {/* shortcut: the fee rate is server config (FEE_COMMISSION_PERCENT) with no endpoint; show the number with T-129 */}
+          <TextField label={t('money.amount')} inputMode="decimal" autoComplete="off" placeholder="0.00"
             suffix={from?.currency} hint={t('transfer.feeHint')} error={errors.amount?.message} {...register('amount')} />
           <Controller name="pin" control={control} render={({ field }) => (
-            <PinInput label={t('transfer.pin')} value={field.value} onChange={field.onChange} error={errors.pin?.message} />
+            <PinInput label={t('money.pin')} value={field.value} onChange={field.onChange} error={errors.pin?.message} />
           )} />
           <Button type="submit" block loading={isSubmitting}>{t('transfer.submit')}</Button>
         </form>
-      )}
+      )}</CardsGate>
     </main>
   )
 }
