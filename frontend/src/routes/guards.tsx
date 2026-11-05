@@ -1,6 +1,6 @@
+import { useState } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { safeReturnPath } from '../auth/returnPath'
-import { useState } from 'react'
 import { refresh, sessionExpired, useAuthStatus } from '../auth/session'
 import { t } from '../i18n'
 import { Alert, Button } from '../ui'
@@ -15,6 +15,7 @@ function Unavailable() {
   const retry = () => { setBusy(true); void refresh().finally(() => setBusy(false)) }
   return (
     <main className="center-screen">
+      <h1 className="sr-only">{t('auth.unavailableTitle')}</h1>
       <Alert tone="warning" title={t('auth.unavailable')}
         action={<Button size="sm" variant="secondary" loading={busy} onClick={retry}>{t('error.retry')}</Button>} />
     </main>
