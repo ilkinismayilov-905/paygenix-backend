@@ -17,6 +17,7 @@ export default function Cards() {
   const [issued, setIssued] = useState<string | null>(null) // the full number, shown once
   const [replayed, setReplayed] = useState(false)
   // A retry after a lost answer reuses the key, so the server returns that card instead of issuing a second one.
+  // shortcut: only the last currency's key is kept; switching away and back mints a new key (the list reload shows the first card)
   const attempt = useRef<{ currency: Currency; key: string } | null>(null)
 
   const issue = async () => {
