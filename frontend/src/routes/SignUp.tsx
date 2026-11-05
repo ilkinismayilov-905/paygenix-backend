@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Fragment, useEffect, useState, type ReactNode } from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { z } from 'zod'
 import { api, retryAfterMinutes, type Problem } from '../api/client'
 import { signedIn } from '../auth/session'
@@ -18,7 +18,7 @@ type Flow = { email: string; flowId: string; token?: string }
 
 const bytes = (s: string) => new TextEncoder().encode(s).length
 // Codes after which this flow cannot continue: the user has to start again.
-const FATAL = new Set(['FLOW_EXPIRED', 'FLOW_NOT_FOUND', 'TOO_MANY_ATTEMPTS', 'INVALID_STEP', 'UNAUTHORIZED', 'ALREADY_TAKEN'])
+const FATAL = new Set(['FLOW_EXPIRED', 'FLOW_NOT_FOUND', 'TOO_MANY_ATTEMPTS', 'INVALID_STEP', 'UNAUTHORIZED', 'FORBIDDEN', 'ALREADY_TAKEN'])
 
 type Failure = { message: string; fatal: boolean }
 
@@ -33,6 +33,7 @@ function failure(problem: unknown, res: Response | undefined): Failure {
     USERNAME_CHECK_LIMIT: t('signUp.usernameLimit', { minutes: minutes ?? 15 }),
     ALREADY_TAKEN: t('signUp.alreadyTaken'),
     TOO_MANY_ATTEMPTS: t('signUp.tooManyCodes'),
+    VALIDATION_FAILED: t('signUp.invalid'),
   }
   const fatal = code !== undefined && FATAL.has(code)
   return { message: (code && messages[code]) ?? (fatal ? t('signUp.expired') : t('signUp.failed')), fatal }
@@ -42,7 +43,7 @@ function failure(problem: unknown, res: Response | undefined): Failure {
 async function call<T>(run: () => Promise<{ data?: T; error?: unknown; response: Response }>) {
   try {
     const { data, error, response } = await run()
-    return data !== undefined && response.ok ? { data } : { failure: failure(error, response) }
+    return data !== undefined && response.ok ? { data } : { failure: failure(error, response), notFound: response.status === 404 }
   } catch {
     return { failure: failure(undefined, undefined) }
   }
@@ -52,17 +53,21 @@ export default function SignUp() {
   const [step, setStep] = useState<Step>('email')
   const [flow, setFlow] = useState<Flow | null>(null)
   const [error, setError] = useState<Failure | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const navigate = useNavigate()
   const auth = () => ({ Authorization: `Bearer ${flow?.token ?? ''}` })
   const path = () => ({ path: { flowId: flow?.flowId ?? '' } })
 
-  const go = (next: Step) => { setError(null); setStep(next) }
+  const go = (next: Step) => { setError(null); setNotice(null); setStep(next) }
   const restart = () => { setFlow(null); go('email') }
 
   const startFlow = async (email: string) => {
     const r = await call(() => api.POST('/api/onboarding/email', { body: { email } }))
     if (r.failure) return setError(r.failure)
+    const resent = step === 'code'
     setFlow({ email, flowId: r.data.data ?? '' })
     go('code')
+    if (resent) setNotice(t('signUp.resent'))
   }
 
   const steps: Record<Step, ReactNode> = {
@@ -100,7 +105,8 @@ export default function SignUp() {
         // The account exists now; sign in with what was just typed so the user lands in the app.
         const login = await call(() => api.POST('/api/auth/login', { body: { email: flow?.email ?? '', password } }))
         if (login.data?.data?.token) signedIn(login.data.data.token) // PublicOnly then opens the app
-        else setError({ message: t('signUp.createdSignIn'), fatal: false })
+        // The flow is finished on the server, so this screen cannot retry: sign-in takes over.
+        else void navigate('/sign-in', { replace: true, state: { created: true } })
       }} />
     ),
   }
@@ -122,6 +128,7 @@ export default function SignUp() {
           <Alert tone="danger" title={error.message}
             action={error.fatal ? <Button size="sm" variant="secondary" onClick={restart}>{t('signUp.startAgain')}</Button> : undefined} />
         )}
+        {notice && <Alert tone="success" title={notice} />}
         {/* keyed, so the name and username steps (same component) do not share form state */}
         <Fragment key={step}>{steps[step]}</Fragment>
         {step === 'email' && <p className="muted">{t('signUp.haveAccount')} <Link to="/sign-in">{t('signUp.signIn')}</Link></p>}
@@ -155,18 +162,22 @@ function LegalDialog({ type, onClose }: { type: 'terms' | 'privacy'; onClose: ()
   useEffect(() => {
     let live = true
     void call(() => api.GET(type === 'terms' ? '/api/legal/terms' : '/api/legal/privacy'))
-      .then((r) => { if (live) setText(r.data?.data?.content ?? t('signUp.legalMissing')) })
+      .then((r) => {
+        if (!live) return
+        if (r.data) setText(r.data.data?.content ?? t('signUp.legalMissing'))
+        else setText(r.notFound ? t('signUp.legalMissing') : t('signUp.failed'))
+      })
     return () => { live = false }
   }, [type])
   return (
     <Dialog open onClose={onClose} title={t(type === 'terms' ? 'signUp.terms' : 'signUp.privacy')}
       actions={<Button variant="secondary" onClick={onClose}>{t('signUp.close')}</Button>}>
-      <p className="legal-text">{text ?? t('auth.loading')}</p>
+      <p className="legal-text">{text ?? t('signUp.legalLoading')}</p>
     </Dialog>
   )
 }
 
-const codeSchema = z.object({ otp: z.string().trim().regex(/^\d{6}$/, t('signUp.codeInvalid')) })
+const codeSchema = z.object({ otp: z.string().transform((v) => v.replace(/\s/g, '')).pipe(z.string().regex(/^\d{6}$/, t('signUp.codeInvalid'))) })
 
 function CodeStep({ email, onSubmit, onResend, onBack }:
   { email: string; onSubmit: (otp: string) => Promise<void>; onResend: () => Promise<void>; onBack: () => void }) {
@@ -176,7 +187,7 @@ function CodeStep({ email, onSubmit, onResend, onBack }:
     <form className="auth-form" noValidate onSubmit={handleSubmit((f) => onSubmit(f.otp))}>
       {/* SEC-23: an email that already has an account gets a reminder instead of a code, and the page must not tell. */}
       <p className="muted">{t('signUp.codeSent', { email })}</p>
-      <TextField label={t('signUp.code')} inputMode="numeric" autoComplete="one-time-code" maxLength={6} autoFocus
+      <TextField label={t('signUp.code')} inputMode="numeric" autoComplete="one-time-code" autoFocus
         error={errors.otp?.message} {...register('otp')} />
       <Button type="submit" block loading={isSubmitting}>{t('signUp.continue')}</Button>
       <Button variant="ghost" block loading={resending}
@@ -206,7 +217,8 @@ function TextStep({ field, label, hint, autoComplete, max, pattern, onSubmit }: 
 
 // Mirrors PinRequest: password 8–72 characters and at most 72 UTF-8 bytes (bcrypt), PIN 6 digits.
 const secureSchema = z.object({
-  password: z.string().min(8, t('signUp.passwordShort')).refine((p) => bytes(p) <= 72, t('signIn.passwordTooLong')),
+  password: z.string().min(8, t('signUp.passwordShort')).refine((p) => p.trim() !== '', t('signUp.passwordShort'))
+    .refine((p) => bytes(p) <= 72, t('signIn.passwordTooLong')),
   confirm: z.string(),
   pin: z.string().regex(/^\d{6}$/, t('signUp.pinInvalid')),
   pinConfirm: z.string(),
