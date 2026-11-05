@@ -23,7 +23,7 @@ export default function PinSetup() {
       const { error: problem, response } = await api.POST('/api/user/pin', { body: { pin } })
       if (response.ok) { setStep('done'); return }
       if (problemCode(problem) === 'PIN_ALREADY_SET') { setStep('alreadySet'); return }
-      if (problemCode(problem) === 'VALIDATION_FAILED') setStep('pin')
+      if (problemCode(problem) === 'VALIDATION_FAILED') { setStep('pin'); setError(t('signUp.pinInvalid')); return }
       setError(t('pinSetup.failed'))
     } catch {
       setError(t('pinSetup.failed')) // the repeat step stays, so pressing the button again retries

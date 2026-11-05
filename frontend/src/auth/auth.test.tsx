@@ -88,6 +88,7 @@ test('a successful sign-in stores the token and opens the app', async () => {
 test('return paths stay on this site', () => {
   expect(safeReturnPath('/cards/1')).toBe('/cards/1')
   expect(safeReturnPath('//evil.example')).toBe('/')
+  expect(safeReturnPath('/\\evil.example')).toBe('/')
   expect(safeReturnPath('https://evil.example')).toBe('/')
   expect(safeReturnPath(undefined)).toBe('/')
 })
