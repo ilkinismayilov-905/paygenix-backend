@@ -65,11 +65,33 @@ test('a wrong code stays on the code step', async () => {
   expect(screen.getByLabelText('Code')).toBeInTheDocument()
 })
 
-test('an expired flow goes back to the start', async () => {
-  otp = () => json(410, { code: 'FLOW_EXPIRED' })
+test.each([
+  [410, 'FLOW_EXPIRED', /has expired/],
+  [404, 'NOT_FOUND', /has expired/],
+  [409, 'INVALID_STEP', /has expired/],
+  [429, 'TOO_MANY_ATTEMPTS', /Request a new code/],
+])('%i %s goes back to the start', async (status, code, text) => {
+  otp = () => json(status, { code })
   await toCode()
-  expect(await screen.findByText(/has expired/)).toBeInTheDocument()
+  expect(await screen.findByText(text)).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Change your PIN' })).toHaveFocus()
   expect(screen.getByRole('button', { name: 'Email me a code' })).toBeInTheDocument()
+})
+
+test('a new code starts a new flow and says so; offline keeps the step', async () => {
+  let n = 0
+  start = () => ok(`flow-${++n}`)
+  otp = () => { throw new TypeError('offline') }
+  await toCode()
+  expect(await screen.findByText(/Check your connection/)).toBeInTheDocument()
+  click('Send a new code')
+  expect(await screen.findByText('A new code is on its way.')).toBeInTheDocument()
+  expect(screen.getByLabelText('Code')).toHaveValue('')
+  otp = () => ok(null)
+  fireEvent.change(screen.getByLabelText('Code'), { target: { value: '654321' } })
+  click('Continue')
+  await screen.findByRole('heading', { name: 'Choose a new PIN' })
+  expect(calls.at(-1)).toEqual({ path: '/api/change-pin/flow-2/otp', body: { otp: '654321' } })
 })
 
 test('a code asked for too soon shows the wait', async () => {

@@ -13,15 +13,18 @@ import { PinStep } from './PinStep'
 type Step = 'start' | 'code' | 'pin' | 'pinRepeat' | 'done'
 
 // After these the flow cannot continue: back to the start with a new code.
-const RESTART = new Set(['FLOW_EXPIRED', 'FLOW_NOT_FOUND', 'TOO_MANY_ATTEMPTS', 'INVALID_STEP'])
+// A missing or foreign flow is a plain 404 NOT_FOUND (NotFoundException), not FLOW_NOT_FOUND.
+const RESTART = new Set(['FLOW_EXPIRED', 'NOT_FOUND', 'TOO_MANY_ATTEMPTS', 'INVALID_STEP'])
 
 function message(code: string | undefined, res?: Response): string {
   switch (code) {
     case 'OTP_SEND_TOO_FREQUENT': return t('changePin.wait', { minutes: (res && retryAfterMinutes(res)) ?? 1 })
     case 'INVALID_OTP': return t('signUp.codeWrong')
     case 'OTP_EXPIRED': return t('signUp.codeExpired')
-    case 'TOO_MANY_ATTEMPTS': return t('signUp.tooManyCodes')
+    case 'TOO_MANY_ATTEMPTS': return t('changePin.tooMany')
     case 'PIN_UNCHANGED': return t('changePin.unchanged')
+    case 'PIN_MISMATCH': return t('signUp.pinMismatch')
+    case 'VALIDATION_FAILED': return t('signUp.pinInvalid')
     default: return code && RESTART.has(code) ? t('changePin.expired') : t('signUp.failed')
   }
 }
@@ -44,15 +47,18 @@ export default function ChangePin() {
   const [pin, setPin] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
+  const [resent, setResent] = useState(false)
   const path = { path: { flowId } }
 
   const send = async () => {
     setError(null)
+    setResent(false)
     setSending(true)
     const r = await call(() => api.POST('/api/change-pin'))
     setSending(false)
     const id = (r.data as { data?: string } | undefined)?.data
     if (r.error || !id) return setError(r.error ?? message(undefined))
+    setResent(step === 'code')
     setFlowId(id)
     setStep('code')
   }
@@ -74,7 +80,8 @@ export default function ChangePin() {
   const titles = { start: 'changePin.title', code: 'signUp.codeTitle', pin: 'changePin.newTitle', pinRepeat: 'signUp.pinRepeatTitle' } as const
   return (
     <main className="page">
-      <h1>{t(titles[step])}</h1>
+      {/* after a restart the pressed button is gone: the heading takes focus, not <body> */}
+      <h1 ref={step === 'start' && error ? (el) => el?.focus() : undefined} tabIndex={-1}>{t(titles[step])}</h1>
       {error && <Alert tone="danger" title={error} />}
       {step === 'start' && (
         <div className="auth-form">
@@ -82,14 +89,15 @@ export default function ChangePin() {
           <Button block loading={sending} onClick={() => void send()}>{t('changePin.send')}</Button>
         </div>
       )}
-      {step === 'code' && (
-        <CodeForm sending={sending} onResend={send} onSubmit={async (otp) => {
+      {step === 'code' && <>
+        {resent && <Alert tone="success" title={t('changePin.resent')} />}
+        <CodeForm key={flowId} sending={sending} onResend={send} onSubmit={async (otp) => {
           setError(null)
           const r = await call(() => api.POST('/api/change-pin/{flowId}/otp', { params: path, body: { otp } }))
           if (r.error) return fail(r)
           setStep('pin')
         }} />
-      )}
+      </>}
       {step === 'pin' && (
         <PinStep key="pin" label="changePin.newPin" submit="signUp.continue" onSubmit={(p) => { setError(null); setPin(p); setStep('pinRepeat') }} />
       )}
@@ -115,7 +123,7 @@ function CodeForm({ sending, onSubmit, onResend }: { sending: boolean; onSubmit:
       <TextField label={t('signUp.code')} inputMode="numeric" autoComplete="one-time-code" autoFocus
         error={errors.otp?.message} {...register('otp')} />
       <Button type="submit" block loading={isSubmitting}>{t('signUp.continue')}</Button>
-      <Button variant="ghost" block loading={sending} onClick={() => void onResend()}>{t('signUp.resend')}</Button>
+      <Button variant="ghost" block loading={sending} disabled={isSubmitting} onClick={() => void onResend()}>{t('signUp.resend')}</Button>
     </form>
   )
 }
