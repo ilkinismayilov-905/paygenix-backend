@@ -95,3 +95,21 @@ test('an unknown or closed card says so', async () => {
   open('/cards/99')
   expect(await screen.findByText('This card does not exist or was closed.')).toBeInTheDocument()
 })
+
+test('a failed close says so, and a card closed elsewhere still goes back to the list', async () => {
+  close = () => json(500, {})
+  const router = open('/cards/7')
+  fireEvent.click(await screen.findByRole('button', { name: 'Close card' }))
+  const dialog = await screen.findByRole('dialog')
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Close card' }))
+  expect(await within(dialog).findByText(/The card was not closed/)).toBeInTheDocument()
+  close = () => json(404, { code: 'NOT_FOUND' })
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Close card' }))
+  await vi.waitFor(() => expect(router.state.location.pathname).toBe('/cards'))
+})
+
+test('a non-numeric card id asks nothing and says not found', async () => {
+  open('/cards/abc')
+  expect(await screen.findByText('This card does not exist or was closed.')).toBeInTheDocument()
+  expect(activityAsked).toHaveLength(0)
+})

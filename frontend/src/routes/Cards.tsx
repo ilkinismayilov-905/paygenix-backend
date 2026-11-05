@@ -64,7 +64,7 @@ export default function Cards() {
         </ul>
       )}
 
-      <Dialog open={issued !== null} onClose={() => setIssued(null)} title={t('cards.issued')}
+      <Dialog open={issued !== null} onClose={() => setIssued(null)} title={t('cards.issued')} dismissable={false}
         actions={<Button onClick={() => setIssued(null)}>{t('cards.done')}</Button>}>
         <p className="cards-pan">{issued && groups(issued)}</p>
         <p className="muted">{t('cards.issuedBody')}</p>

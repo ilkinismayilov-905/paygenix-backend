@@ -12,7 +12,6 @@ function useCard(id: number) {
   const [card, setCard] = useState<Card | null | 'missing' | 'failed'>(null)
   const [round, setRound] = useState(0)
   useEffect(() => {
-    if (Number.isNaN(id)) return
     let live = true
     void api.GET('/api/cards/{id}', { params: { path: { id } } })
       .then(({ data, response }) => {
@@ -26,10 +25,19 @@ function useCard(id: number) {
   return { card, retry: () => { setCard(null); setRound((r) => r + 1) } }
 }
 
+function Missing() {
+  return (
+    <main className="page">
+      <EmptyState title={t('card.notFound')} />
+      <Link to="/cards">{t('card.back')}</Link>
+    </main>
+  )
+}
+
 // Remounts per card, so no state of the previous card survives /cards/1 → /cards/2.
 export default function CardDetailRoute() {
   const raw = useParams().id ?? ''
-  return <CardDetail key={raw} id={/^\d{1,18}$/.test(raw) ? Number(raw) : NaN} />
+  return /^\d{1,18}$/.test(raw) ? <CardDetail key={raw} id={Number(raw)} /> : <Missing />
 }
 
 function CardDetail({ id }: { id: number }) {
@@ -55,14 +63,7 @@ function CardDetail({ id }: { id: number }) {
     }
   }
 
-  if (Number.isNaN(id) || card === 'missing') {
-    return (
-      <main className="page">
-        <EmptyState title={t('card.notFound')} />
-        <Link to="/cards">{t('card.back')}</Link>
-      </main>
-    )
-  }
+  if (card === 'missing') return <Missing />
   if (card === 'failed') {
     return (
       <main className="page">
@@ -85,7 +86,7 @@ function CardDetail({ id }: { id: number }) {
         : <ActivitySection activity={activity} />}
 
       <Button variant="danger" onClick={() => { setCloseError(null); setAsking(true) }}>{t('card.close')}</Button>
-      <Dialog open={asking} onClose={() => setAsking(false)} title={t('card.closeTitle')}
+      <Dialog open={asking} onClose={() => setAsking(false)} title={t('card.closeTitle')} dismissable={!closing}
         actions={<>
           <Button variant="secondary" onClick={() => setAsking(false)}>{t('card.closeKeep')}</Button>
           <Button variant="danger" loading={closing} onClick={() => void close()}>{t('card.close')}</Button>
