@@ -12,7 +12,7 @@ const groups = (pan: string) => pan.replace(/(\d{4})(?=\d)/g, '$1 ')
 
 export default function Cards() {
   const { cards, reload, retry } = useOwnCards()
-  // After a close the detail page is gone; focus lands on this heading instead of <body>. Stable ref: runs once at mount.
+  // After a close the detail page is gone; focus lands on this heading instead of <body>. Stable ref: once per mount of that history entry.
   const closed = (useLocation().state as { closed?: boolean } | null)?.closed === true
   const focusOnMount = useCallback((el: HTMLElement | null) => el?.focus(), [])
   const [currency, setCurrency] = useState<Currency>('AZN')

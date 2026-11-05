@@ -19,9 +19,9 @@ function useCard(id: number) {
         const c = data?.data
         if (response.status === 404) setCard('missing')
         else if (response.ok && c?.id && c.amount && c.currency) setCard(c)
-        else setCard(keepOr('failed'))
+        else setCard(keepCard)
       })
-      .catch(() => { if (live) setCard(keepOr('failed')) })
+      .catch(() => { if (live) setCard(keepCard) })
     return () => { live = false }
   }, [id, round])
   return {
@@ -32,8 +32,7 @@ function useCard(id: number) {
 }
 
 /** A failed quiet refresh keeps the card already shown. */
-const keepOr = (fallback: 'failed') => (prev: Card | null | 'missing' | 'failed') =>
-  prev && typeof prev === 'object' ? prev : fallback
+const keepCard = (prev: Card | null | 'missing' | 'failed') => (prev && typeof prev === 'object' ? prev : 'failed')
 
 function Missing() {
   return (
