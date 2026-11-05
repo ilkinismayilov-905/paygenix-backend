@@ -31,11 +31,22 @@ async function reachUsername() {
   expect(getAccessToken()).toBeNull() // the onboarding token never becomes the session
 }
 
-async function reachSecure() {
+async function reachPassword() {
   await reachUsername()
   type('Username', 'nigar')
   next()
-  await screen.findByRole('heading', { name: 'Secure your account' })
+  await screen.findByRole('heading', { name: 'Create a password' })
+}
+
+async function finish(password: string, first: string, repeat: string) {
+  type('Password', password)
+  next()
+  await screen.findByRole('heading', { name: 'Create a PIN' })
+  pin('PIN', first)
+  next()
+  await screen.findByRole('heading', { name: 'Repeat your PIN' })
+  pin('PIN again', repeat)
+  fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
 }
 
 test('the whole sign-up sends each step in order with the onboarding token, then signs in', async () => {
@@ -52,12 +63,8 @@ test('the whole sign-up sends each step in order with the onboarding token, then
   expect(screen.getByLabelText('Username')).toHaveValue('') // not carried over from the name step
   type('Username', 'nigar.a')
   next()
-  await screen.findByRole('heading', { name: 'Secure your account' })
-  type('Password', 'long-enough-pass')
-  type('Repeat password', 'long-enough-pass')
-  pin('PIN', '482913')
-  pin('Repeat PIN', '482913')
-  fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
+  await screen.findByRole('heading', { name: 'Create a password' })
+  await finish('long-enough-pass', '482913', '482913')
   expect(await screen.findByRole('heading', { name: 'Welcome to Paygenix' })).toBeInTheDocument()
 
   expect(calls.map((c) => c.url)).toEqual([
@@ -96,17 +103,28 @@ test('an expired flow offers to start again', async () => {
   expect(await screen.findByRole('heading', { name: 'Create your account' })).toBeInTheDocument()
 })
 
-test('mismatched password and PIN are caught before sending', async () => {
+test('the password checklist blocks a short password; show reveals it', async () => {
   fetchMock.mockImplementation(async (req: Request) => ok(new URL(req.url).pathname.endsWith('/email') ? 'flow-1' : 'tok'))
-  await reachSecure()
-  const before = fetchMock.mock.calls.length
+  await reachPassword()
+  const field = screen.getByLabelText('Password')
+  expect(field).toHaveAttribute('autocomplete', 'new-password')
+  type('Password', 'short')
+  next()
+  expect(screen.getByRole('heading', { name: 'Create a password' })).toBeInTheDocument()
+  expect(field).toHaveAccessibleDescription(/At least 8 characters \(not yet\)/)
+  fireEvent.click(screen.getByRole('button', { name: 'Show' }))
+  expect(field).toHaveAttribute('type', 'text')
   type('Password', 'long-enough-pass')
-  type('Repeat password', 'different-pass')
-  pin('PIN', '111111')
-  pin('Repeat PIN', '222222')
-  fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
-  expect(await screen.findByText('The passwords do not match.')).toBeInTheDocument()
-  expect(screen.getByText('The PINs do not match.')).toBeInTheDocument()
+  expect(field).toHaveAccessibleDescription(/At least 8 characters \(done\)/)
+})
+
+test('a repeated PIN that differs goes back to creating it, without sending', async () => {
+  fetchMock.mockImplementation(async (req: Request) => ok(new URL(req.url).pathname.endsWith('/email') ? 'flow-1' : 'tok'))
+  await reachPassword()
+  const before = fetchMock.mock.calls.length
+  await finish('long-enough-pass', '111111', '222222')
+  expect(await screen.findByRole('alert')).toHaveTextContent('The PINs did not match')
+  expect(screen.getByRole('heading', { name: 'Create a PIN' })).toBeInTheDocument()
   expect(fetchMock.mock.calls.length).toBe(before)
 })
 
@@ -116,12 +134,8 @@ test('if sign-in fails after the account is created, the sign-in page takes over
     if (url === '/api/auth/login') return Promise.reject(new TypeError('offline'))
     return ok(url.endsWith('/email') ? 'flow-1' : 'tok')
   })
-  await reachSecure()
-  type('Password', 'long-enough-pass')
-  type('Repeat password', 'long-enough-pass')
-  pin('PIN', '482913')
-  pin('Repeat PIN', '482913')
-  fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
+  await reachPassword()
+  await finish('long-enough-pass', '482913', '482913')
   expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
   expect(screen.getByRole('status')).toHaveTextContent('Your account is ready')
 })

@@ -22,3 +22,6 @@ a.btn { text-decoration: none; }
 .shell-brand { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--text); font-weight: var(--weight-semibold); text-decoration: none; }
 .page { max-width: 40rem; margin: 0 auto; padding: var(--space-5) var(--space-4); display: grid; gap: var(--space-5); }
 .legal-text { white-space: pre-wrap; max-height: 60dvh; overflow-y: auto; }
+.rules { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); }
+.rules .rule-ok { color: var(--success); }
+.rules .rule-bad { color: var(--danger); }
