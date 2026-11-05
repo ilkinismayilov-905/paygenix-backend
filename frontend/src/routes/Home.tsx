@@ -72,7 +72,12 @@ export default function Home() {
     <main className="page">
       {/* shortcut: no name in the greeting — /api/auth/me "username" is the email; add it with T-113 (own profile) */}
       <h1>{t('home.title')}</h1>
-      {Array.isArray(cards) && cards.length > 0 && <Link className="btn btn-primary" to="/transfer">{t('home.send')}</Link>}
+      {Array.isArray(cards) && cards.length > 0 && (
+        <div className="home-actions">
+          <Link className="btn btn-primary" to="/transfer">{t('home.send')}</Link>
+          <Link className="btn btn-secondary" to="/pay">{t('home.pay')}</Link>
+        </div>
+      )}
 
       {failed ? (
         <ErrorState title={t('home.failed')} action={<Button variant="secondary" onClick={retry}>{t('error.retry')}</Button>} />

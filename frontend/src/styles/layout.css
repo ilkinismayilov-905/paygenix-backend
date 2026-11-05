@@ -34,6 +34,10 @@ a.btn { text-decoration: none; }
 .home-section h2 { font-size: var(--text-lg); }
 .home-section > button { justify-self: center; }
 
-/* transfer */
+/* money screens */
+.home-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.summary { display: grid; grid-template-columns: auto 1fr; gap: var(--space-2) var(--space-4); margin: 0; padding: var(--space-4); background: var(--surface); border-radius: var(--radius-lg); }
+.summary dt { color: var(--text-muted); }
+.summary dd { margin: 0; text-align: end; font-weight: var(--weight-medium); font-variant-numeric: tabular-nums; }
 .transfer-done { display: grid; justify-items: center; gap: var(--space-3); text-align: center; padding: var(--space-6) var(--space-4); background: var(--surface); border-radius: var(--radius-lg); }
 .transfer-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-3); }
