@@ -1016,7 +1016,11 @@ export interface components {
         TransferRequest: {
             fromCardNumber: string;
             toCardNumber: string;
-            amount: number;
+            /**
+             * @description Decimal string; a JSON number is also accepted
+             * @example 10
+             */
+            amount: string;
             pin: string;
         };
         ApiResponseDataTransferResponse: {
@@ -1030,7 +1034,11 @@ export interface components {
         TransferResponse: {
             fromCardNumber?: string;
             toCardNumber?: string;
-            amount?: number;
+            /**
+             * @description Decimal string (ADR 0001 money rule)
+             * @example 10
+             */
+            amount?: string;
         };
         ApiResponseDataStoryUploadResponse: {
             /** Format: date-time */
@@ -1103,7 +1111,11 @@ export interface components {
         PaymentRequest: {
             phoneNumber: string;
             fromCardNumber: string;
-            amount: number;
+            /**
+             * @description Decimal string; a JSON number is also accepted
+             * @example 10
+             */
+            amount: string;
         };
         ConfirmPaymentRequest: {
             flowId: string;
@@ -1120,7 +1132,11 @@ export interface components {
         PaymentResponse: {
             phoneNumber?: string;
             fromCardNumber?: string;
-            amount?: number;
+            /**
+             * @description Decimal string (ADR 0001 money rule)
+             * @example 10
+             */
+            amount?: string;
             /** @enum {string} */
             currency?: "AZN" | "USD" | "EUR";
         };
@@ -1163,6 +1179,11 @@ export interface components {
             cardNetwork?: "VISA" | "MASTERCARD" | "AMEX" | "DISCO" | "DINERS";
             /** @enum {string} */
             currency?: "AZN" | "USD" | "EUR";
+            /**
+             * @description Balance as a decimal string, two decimals
+             * @example 1300
+             */
+            amount?: string;
             displayAmount?: string;
         };
         IssuedCardResponse: {

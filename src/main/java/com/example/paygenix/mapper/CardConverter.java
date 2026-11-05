@@ -6,6 +6,7 @@ import com.example.paygenix.enums.Currency;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -25,11 +26,13 @@ public class CardConverter {
                 card.getCardHolderName(),
                 card.getCardNetwork(),
                 card.getCurrency(),
-                formatAmount(
-                        card.getAmount() != null ? card.getAmount() : BigDecimal.ZERO,
-                        card.getCurrency()
-                ) // $1,300.00
+                balance(card).toPlainString(),
+                formatAmount(balance(card), card.getCurrency()) // $1,300.00
         );
+    }
+
+    private static BigDecimal balance(Cards card) {
+        return (card.getAmount() != null ? card.getAmount() : BigDecimal.ZERO).setScale(2, RoundingMode.UNNECESSARY);
     }
 
     public List<CardResponse> toResponse(List<Cards> cards) {

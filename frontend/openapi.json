@@ -2762,8 +2762,9 @@
             "pattern" : "\\d{16}"
           },
           "amount" : {
-            "type" : "number",
-            "minimum" : 0.01
+            "type" : "string",
+            "description" : "Decimal string; a JSON number is also accepted",
+            "example" : 10.0
           },
           "pin" : {
             "type" : "string",
@@ -2802,7 +2803,9 @@
             "type" : "string"
           },
           "amount" : {
-            "type" : "number"
+            "type" : "string",
+            "description" : "Decimal string (ADR 0001 money rule)",
+            "example" : 10.0
           }
         }
       },
@@ -3005,8 +3008,9 @@
             "pattern" : "^\\d{16}$"
           },
           "amount" : {
-            "type" : "number",
-            "minimum" : 0.01
+            "type" : "string",
+            "description" : "Decimal string; a JSON number is also accepted",
+            "example" : 10.0
           }
         },
         "required" : [ "amount", "fromCardNumber", "phoneNumber" ]
@@ -3055,7 +3059,9 @@
             "type" : "string"
           },
           "amount" : {
-            "type" : "number"
+            "type" : "string",
+            "description" : "Decimal string (ADR 0001 money rule)",
+            "example" : 10.0
           },
           "currency" : {
             "type" : "string",
@@ -3176,6 +3182,11 @@
           "currency" : {
             "type" : "string",
             "enum" : [ "AZN", "USD", "EUR" ]
+          },
+          "amount" : {
+            "type" : "string",
+            "description" : "Balance as a decimal string, two decimals",
+            "example" : 1300.0
           },
           "displayAmount" : {
             "type" : "string"
