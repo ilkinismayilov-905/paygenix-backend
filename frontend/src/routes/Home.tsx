@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
 import type { components } from '../api/schema'
 import { t, type MessageKey } from '../i18n'
@@ -22,18 +22,21 @@ function useHome() {
   const [moreBusy, setMoreBusy] = useState(false)
   const [moreFailed, setMoreFailed] = useState(false)
   const [round, setRound] = useState(0)
+  const busy = useRef(false)
+  const roundRef = useRef(0) // a "show more" answer from before a retry is dropped
 
   const page = useCallback(async (n: number) => {
     const { data, response } = await api.GET('/api/cards/me/activity', { params: { query: { page: n, size: PAGE_SIZE } } })
     const p = data?.data
-    if (!response.ok || !p || !Array.isArray(p.items)) throw new Error('activity')
+    // a row without amount or currency would render as zero or crash Intl: treat the page as failed
+    if (!response.ok || !p || !Array.isArray(p.items) || !p.items.every((a) => a.amount && a.currency)) throw new Error('activity')
     return { items: p.items, hasNext: p.hasNext === true }
   }, [])
 
   useEffect(() => {
     let live = true
     void api.GET('/api/cards/me')
-      .then(({ data, response }) => { if (live) setCards(response.ok && Array.isArray(data?.data) ? data.data : 'failed') })
+      .then(({ data, response }) => { if (live) setCards(response.ok && Array.isArray(data?.data) && data.data.every((c) => c.amount && c.currency) ? data.data : 'failed') })
       .catch(() => { if (live) setCards('failed') })
     page(0)
       .then((p) => { if (live) { setItems(p.items); setNext(p.hasNext ? 1 : null) } })
@@ -42,19 +45,22 @@ function useHome() {
   }, [round, page])
 
   const loadMore = async () => {
-    if (next === null || !Array.isArray(items)) return
-    setMoreBusy(true); setMoreFailed(false)
+    if (next === null || busy.current) return
+    const started = roundRef.current
+    busy.current = true; setMoreBusy(true); setMoreFailed(false)
     try {
       const p = await page(next)
-      setItems([...items, ...p.items])
+      if (roundRef.current !== started) return
+      // offset paging: an entry booked since page 0 shifts rows, so page `next` can repeat one already shown
+      setItems((cur) => Array.isArray(cur) ? [...cur, ...p.items.filter((a) => !cur.some((c) => c.id === a.id))] : cur)
       setNext(p.hasNext ? next + 1 : null)
     } catch {
-      setMoreFailed(true)
+      if (roundRef.current === started) setMoreFailed(true)
     } finally {
-      setMoreBusy(false)
+      busy.current = false; setMoreBusy(false)
     }
   }
-  const retry = () => { setCards(null); setItems(null); setRound((r) => r + 1) }
+  const retry = () => { roundRef.current++; setCards(null); setItems(null); setNext(null); setMoreFailed(false); setRound((r) => r + 1) }
   return { cards, items, hasMore: next !== null, moreBusy, moreFailed, loadMore, retry }
 }
 
@@ -71,19 +77,19 @@ export default function Home() {
       ) : (
         <>
           {cards === null ? (
-            <Skeleton height="10rem" radius="var(--radius-lg)" />
+            <div aria-busy="true" aria-label={t('home.cards')}><Skeleton height="10rem" radius="var(--radius-lg)" /></div>
           ) : cards.length === 0 ? (
             <EmptyState title={t('home.noCards')} body={t('home.noCardsBody')} />
           ) : (
             <div className="home-cards" role="group" aria-label={t('home.cards')}>
               {cards.map((c) => (
                 <CardTile key={c.id} maskedNumber={c.maskedNumber ?? ''} holder={c.cardHolderName ?? ''} expires={c.expirationDate}
-                  network={c.cardNetwork ?? ''} currency={c.currency as Currency} balance={c.amount ?? '0.00'} />
+                  network={c.cardNetwork ?? ''} currency={c.currency as Currency} balance={c.amount!} />
               ))}
             </div>
           )}
 
-          <section className="home-section" aria-labelledby="recent">
+          <section className="home-section" aria-labelledby="recent" aria-busy={items === null}>
             <h2 id="recent">{t('home.recent')}</h2>
             {items === null ? (
               <Skeleton height="3rem" />
@@ -93,8 +99,12 @@ export default function Home() {
               <List>
                 {items.map((a) => (
                   <ListRow key={a.id} title={t(kindLabel[a.kind ?? ''] ?? 'home.kind.OTHER')}
-                    subtitle={`•••• ${a.last4} · ${a.createdAt ? when.format(new Date(a.createdAt)) : ''}`}
-                    trailing={<Money amount={a.amount ?? '0'} currency={a.currency as Currency} signed />} />
+                    subtitle={<>
+                      <span aria-hidden="true">•••• {a.last4}</span>
+                      <span className="sr-only">{t('home.cardEnding', { last4: a.last4 ?? '' })}</span>
+                      {a.createdAt && ` · ${when.format(new Date(a.createdAt))}`}
+                    </>}
+                    trailing={<Money amount={a.amount!} currency={a.currency as Currency} signed />} />
                 ))}
               </List>
             )}

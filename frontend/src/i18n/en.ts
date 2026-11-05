@@ -5,6 +5,7 @@ export const en = {
   'home.noCards': 'No cards yet',
   'home.noCardsBody': 'Your virtual cards will show up here.',
   'home.recent': 'Recent activity',
+  'home.cardEnding': 'Card ending in {last4}',
   'home.noActivity': 'No activity yet',
   'home.more': 'Show more',
   'home.moreFailed': 'Could not load more. Try again.',
