@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 /**
  * Runs a money-moving action at most once per (user, Idempotency-Key). The key is claimed in the same
@@ -33,6 +34,16 @@ public class IdempotencyService {
      */
     @Transactional
     public <T> T execute(User user, String key, String fingerprint, Class<T> responseType, Supplier<T> action) {
+        return execute(user, key, fingerprint, responseType, action, UnaryOperator.identity());
+    }
+
+    /**
+     * @param redact applied to the response before it is stored, so a replay returns the redacted form
+     *               (e.g. a card number that may be shown only once must not be kept)
+     */
+    @Transactional
+    public <T> T execute(User user, String key, String fingerprint, Class<T> responseType, Supplier<T> action,
+                         UnaryOperator<T> redact) {
         if (key == null || key.isBlank() || key.length() > MAX_KEY_LENGTH) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_IDEMPOTENCY_KEY",
                     "Idempotency-Key header must be 1-" + MAX_KEY_LENGTH + " characters");
@@ -48,7 +59,7 @@ public class IdempotencyService {
         }
 
         T response = action.get();
-        repository.saveResponse(user.getId(), key, jsonMapper.writeValueAsString(response));
+        repository.saveResponse(user.getId(), key, jsonMapper.writeValueAsString(redact.apply(response)));
         return response;
     }
 }

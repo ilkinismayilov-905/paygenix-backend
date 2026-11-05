@@ -207,6 +207,29 @@ class IdempotencyTest extends IntegrationTest {
                 .content("{\"flowId\":\"" + flowId + "\",\"pin\":\"" + PIN + "\"}"));
     }
 
+    @Test
+    void cardIssueRetryReturnsTheSameCardWithoutItsNumber() throws Exception {
+        User owner = createUser();
+        String key = UUID.randomUUID().toString();
+        String first = issueWithKey(owner, key, "USD").andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String replay = issueWithKey(owner, key, "USD").andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.cardNumber").doesNotExist())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat((Integer) JsonPath.read(replay, "$.data.card.id")).isEqualTo(JsonPath.read(first, "$.data.card.id"));
+        assertThat(cardRepository.findByOwnerId(owner.getId())).hasSize(1);
+        assertThat(JsonPath.<String>read(first, "$.data.cardNumber")).hasSize(16);
+        issueWithKey(owner, key, "EUR").andExpect(status().isUnprocessableContent());
+    }
+
+    private ResultActions issueWithKey(User owner, String key, String currency) throws Exception {
+        return mockMvc.perform(post("/api/cards").header("Authorization", bearer(owner))
+                .header("Idempotency-Key", key)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"currency\":\"" + currency + "\"}"));
+    }
+
     private String body(String from, String to, String amount) {
         return "{\"fromCardId\":" + cardOf(from).getId() + ",\"toCardNumber\":\"" + to
                 + "\",\"amount\":" + amount + ",\"pin\":\"" + PIN + "\"}";

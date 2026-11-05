@@ -1678,8 +1678,17 @@
       "post" : {
         "tags" : [ "Card Management" ],
         "summary" : "Issue a new virtual card",
-        "description" : "Issues a card in the chosen currency for the logged-in user. The full card number is in this response only; afterwards just the last four digits are shown.",
+        "description" : "Issues a card in the chosen currency for the logged-in user. The full card number is in this response only; afterwards just the last four digits are shown. A retry with the same Idempotency-Key returns the same card without its number (cardNumber null).",
         "operationId" : "issueCard",
+        "parameters" : [ {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "description" : "Client-generated unique key (e.g. UUID); a retry with the same key returns the first card",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -1702,7 +1711,7 @@
             }
           },
           "400" : {
-            "description" : "Invalid request payload",
+            "description" : "Invalid request payload, or Idempotency-Key header blank or over 255 characters (INVALID_IDEMPOTENCY_KEY)",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -1713,6 +1722,16 @@
           },
           "401" : {
             "description" : "Unauthorized access",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataIssuedCardResponse"
+                }
+              }
+            }
+          },
+          "422" : {
+            "description" : "Idempotency-Key already used for a different request",
             "content" : {
               "*/*" : {
                 "schema" : {

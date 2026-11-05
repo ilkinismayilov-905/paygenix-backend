@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { api } from '../api/client'
 import { t } from '../i18n'
 import { Alert, Button, CardTile, Dialog, EmptyState, ErrorState, Skeleton, type Currency } from '../ui'
@@ -15,13 +15,21 @@ export default function Cards() {
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
   const [issued, setIssued] = useState<string | null>(null) // the full number, shown once
+  const [replayed, setReplayed] = useState(false)
+  // A retry after a lost answer reuses the key, so the server returns that card instead of issuing a second one.
+  const attempt = useRef<{ currency: Currency; key: string } | null>(null)
 
   const issue = async () => {
-    setBusy(true); setFailed(false)
+    setBusy(true); setFailed(false); setReplayed(false)
+    const key = attempt.current?.currency === currency ? attempt.current.key : crypto.randomUUID()
+    attempt.current = { currency, key }
     try {
-      const { data, response } = await api.POST('/api/cards', { body: { currency } })
+      const { data, response } = await api.POST('/api/cards',
+        { body: { currency }, params: { header: { 'Idempotency-Key': key } } })
+      if (response.ok) attempt.current = null // the next click is a new card
       const pan = data?.data?.cardNumber
       if (response.ok && pan) setIssued(pan)
+      else if (response.ok) setReplayed(true) // the earlier try had issued it; its number is not kept
       else setFailed(true)
     } catch {
       setFailed(true)
@@ -36,6 +44,7 @@ export default function Cards() {
       <h1>{t('cards.title')}</h1>
       <section className="home-section cards-issue" aria-label={t('cards.issue')}>
         {failed && <Alert tone="danger" title={t('cards.issueFailed')} />}
+        {replayed && <Alert tone="info" title={t('cards.issuedEarlier')} />}
         <div className="field">
           <label htmlFor="currency" className="field-label">{t('cards.currency')}</label>
           <div className="field-control">

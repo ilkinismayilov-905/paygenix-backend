@@ -15,8 +15,10 @@ let issue: (body: { currency: string }) => Response
 let one: (id: string) => Response
 let close: () => Response
 const activityAsked: (string | null)[] = []
+const issueKeys: (string | null)[] = []
 beforeEach(() => {
   activityAsked.length = 0
+  issueKeys.length = 0
   signedIn('session')
   mine = [card(7, '2207', '89.80')]
   issue = ({ currency }) => { const c = card(8, '8778', '0.00', currency); mine = [...mine, c]; return json(201, { data: { cardNumber: '4000001984948778', card: c } }) }
@@ -26,6 +28,7 @@ beforeEach(() => {
     const url = new URL(req.url)
     if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
     if (url.pathname === '/api/cards/me') return ok(mine)
+    if (url.pathname === '/api/cards' && req.method === 'POST') issueKeys.push(req.headers.get('Idempotency-Key'))
     if (url.pathname === '/api/cards' && req.method === 'POST') return issue(await req.clone().json())
     if (url.pathname === '/api/cards/me/activity') {
       activityAsked.push(url.searchParams.get('cardId'))
@@ -44,6 +47,26 @@ const open = (path: string) => {
   render(<RouterProvider router={router} />)
   return router
 }
+
+test('a retry after a lost answer reuses the key and gets the same card without its number', async () => {
+  const first = issue
+  issue = (body) => { first(body); throw new TypeError('network') } // issued, but the answer is lost
+  open('/cards')
+  await screen.findByRole('list', { name: 'Your cards' })
+  fireEvent.click(screen.getByRole('button', { name: 'Issue a card' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('The card was not issued')
+  issue = () => json(201, { data: { card: mine[1] } })
+  fireEvent.click(screen.getByRole('button', { name: 'Issue a card' }))
+  expect(await screen.findByText(/issued on the earlier try/)).toBeInTheDocument()
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(issueKeys).toHaveLength(2)
+  expect(issueKeys[0]).toBeTruthy()
+  expect(issueKeys[1]).toBe(issueKeys[0])
+  issue = first
+  fireEvent.click(screen.getByRole('button', { name: 'Issue a card' }))
+  await screen.findByRole('dialog', { name: 'Your new card' })
+  expect(issueKeys[2]).not.toBe(issueKeys[0]) // after a success the next click is a new card
+})
 
 test('issuing a card shows its full number once and adds it to the list', async () => {
   open('/cards')
