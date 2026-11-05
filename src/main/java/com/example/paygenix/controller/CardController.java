@@ -2,6 +2,7 @@ package com.example.paygenix.controller;
 
 import com.example.paygenix.dto.ApiResponseData;
 import com.example.paygenix.dto.request.CardRequest;
+import com.example.paygenix.dto.response.ActivityPage;
 import com.example.paygenix.dto.response.CardResponse;
 import com.example.paygenix.dto.response.IssuedCardResponse;
 import com.example.paygenix.entity.User;
@@ -12,6 +13,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -57,6 +60,21 @@ public class CardController {
     @GetMapping("/me")
     public ResponseEntity<ApiResponseData<List<CardResponse>>> getMyCards(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(ApiResponseData.success(cardService.getMyCards(user)));
+    }
+
+    @Operation(summary = "My activity", description = "Money movements on the logged-in user's cards (closed cards included), "
+            + "newest first. Optional cardId narrows it to one card.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Activity page"),
+            @ApiResponse(responseCode = "400", description = "page < 0 or size outside 1..100")
+    })
+    @GetMapping("/me/activity")
+    public ResponseEntity<ApiResponseData<ActivityPage>> getMyActivity(
+            @AuthenticationPrincipal User user,
+            @RequestParam(required = false) Long cardId,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+        return ResponseEntity.ok(ApiResponseData.success(cardService.getMyActivity(user, cardId, page, size)));
     }
 
     @Operation(summary = "Get one of my cards", description = "Returns a card owned by the logged-in user.")

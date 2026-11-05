@@ -1,20 +1,27 @@
 package com.example.paygenix.service;
 
 import com.example.paygenix.dto.request.CardRequest;
+import com.example.paygenix.dto.response.ActivityItem;
+import com.example.paygenix.dto.response.ActivityPage;
 import com.example.paygenix.dto.response.CardResponse;
 import com.example.paygenix.dto.response.IssuedCardResponse;
 import com.example.paygenix.entity.Cards;
 import com.example.paygenix.entity.User;
 import com.example.paygenix.enums.CardNetwork;
+import com.example.paygenix.enums.Currency;
+import com.example.paygenix.enums.LedgerKind;
 import com.example.paygenix.exceptions.CardHasBalanceException;
 import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.mapper.CardConverter;
 import com.example.paygenix.repository.CardRepository;
+import com.example.paygenix.repository.LedgerEntryRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.LockModeType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +48,7 @@ public class CardService {
     private final PanService panService;
     private final EntityManager entityManager;
     private final LedgerService ledgerService;
+    private final LedgerEntryRepository ledgerEntryRepository;
 
     @Transactional
     public IssuedCardResponse issueCard(User owner, CardRequest request) {
@@ -79,6 +87,17 @@ public class CardService {
     @Transactional(readOnly = true)
     public CardResponse getMyCard(User owner, Long id) {
         return converter.toResponse(ownedCard(owner, id));
+    }
+
+    // cardId == null: every card of the owner; someone else's cardId just matches nothing.
+    @Transactional(readOnly = true)
+    public ActivityPage getMyActivity(User owner, Long cardId, int page, int size) {
+        Slice<LedgerEntryRepository.ActivityRow> rows =
+                ledgerEntryRepository.findActivity(owner.getId(), cardId, PageRequest.of(page, size));
+        List<ActivityItem> items = rows.map(r -> new ActivityItem(r.getId(), r.getCardId(), r.getLast4(),
+                LedgerKind.valueOf(r.getKind()), r.getAmount().toPlainString(),
+                Currency.valueOf(r.getCurrency()), r.getCreatedAt())).getContent();
+        return new ActivityPage(items, page, size, rows.hasNext());
     }
 
     @Transactional(readOnly = true)

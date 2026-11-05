@@ -19,9 +19,9 @@ All `/api/**` calls except the public ones need `Authorization: Bearer <access t
 |---|---|---|
 | App shell (header, nav, sign-out) | — | `GET /api/auth/me`; sign-out: `GET /api/auth/sessions` → `DELETE /api/auth/sessions/{id}` of the `current` one |
 | Set first PIN (Google users) | `/pin/setup` | `POST /api/user/pin`; shown on any 403 PIN_NOT_SET (transfer, payment, email change) |
-| Dashboard | `/` | `GET /api/cards/me` (masked number, `displayAmount` + `currency`), `GET /api/stories/feed` |
+| Dashboard | `/` | `GET /api/cards/me` (masked number, `displayAmount` + `currency`), `GET /api/cards/me/activity?page=&size=` (newest first, `hasNext`), `GET /api/stories/feed` |
 | Cards list | `/cards` | `GET /api/cards/me`, `POST /api/cards` (issue virtual card; the full number is shown only in this response) |
-| Card detail | `/cards/:id` | `GET /api/cards/{id}`, `DELETE /api/cards/{id}` (409 CARD_HAS_BALANCE) |
+| Card detail | `/cards/:id` | `GET /api/cards/{id}`, `GET /api/cards/me/activity?cardId=`, `DELETE /api/cards/{id}` (409 CARD_HAS_BALANCE) |
 | Transfer (blocked: T-112) | `/transfer` | `POST /api/transfer` with `Idempotency-Key`; 403 INVALID_PIN, 429 PIN_LOCKED + Retry-After, 409 INSUFFICIENT_BALANCE / RESOURCE_BUSY (retry with the same key), 422 IDEMPOTENCY_KEY_REUSED |
 | Payment (blocked: T-112) | `/pay` | `POST /api/payment/initiate` → `POST /api/payment/confirm` (both with `Idempotency-Key`); confirm: same PIN errors, 409 PAYMENT_ALREADY_PROCESSED / INSUFFICIENT_BALANCE, 422 IDEMPOTENCY_KEY_REUSED |
 | Stories viewer | overlay on dashboard | `GET /api/stories/feed`, `POST /api/stories/{id}/view`, `GET /api/stories/media-download` |
@@ -48,7 +48,7 @@ All `/api/**` calls except the public ones need `Authorization: Bearer <access t
 
 | Gap | Effect | Task |
 |---|---|---|
-| A user cannot list their own transfers, payments or transactions: `GET /api/transfer`, `/api/transaction`, `/api/payment/history` are admin-only | no activity list on dashboard or card detail | T-073 |
+| A user cannot list their own transfers, payments or transactions: `GET /api/transfer`, `/api/transaction`, `/api/payment/history` are admin-only | no activity list on dashboard or card detail | closed by T-073: `GET /api/cards/me/activity` (ledger entries, no counterparty yet) |
 | No way to fund a card | balances stay 0 outside seeded data | T-064 Stripe top-up (owner) |
 | Transfer and payment take the full 16-digit `fromCardNumber`, but `GET /api/cards/me` gives only the masked number | the client cannot pick the source card | T-112 (`fromCardId`) |
 | No endpoint to read one's own profile (`GET /api/profile` is admin-only, `/api/auth/me` has only id, username, roles) | profile form cannot be prefilled | T-113 |
