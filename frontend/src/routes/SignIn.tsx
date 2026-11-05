@@ -27,7 +27,7 @@ function errorMessage(code: string | undefined, res: Response): string {
 }
 
 export default function SignIn() {
-  const state = useLocation().state as { from?: string; expired?: boolean } | null
+  const state = useLocation().state as { from?: string; expired?: boolean; created?: boolean } | null
   const [error, setError] = useState<string | null>(null)
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<Form>({ resolver: zodResolver(schema) })
 
@@ -50,7 +50,9 @@ export default function SignIn() {
       <div className="auth-panel">
         <Logo size={40} />
         <h1>{t('signIn.title')}</h1>
-        {error ? <Alert tone="danger" title={error} /> : state?.expired && <Alert title={t('signIn.expired')} />}
+        {error ? <Alert tone="danger" title={error} />
+          : state?.created ? <Alert tone="success" title={t('signUp.created')} />
+          : state?.expired && <Alert title={t('signIn.expired')} />}
         <form className="auth-form" onSubmit={onSubmit} noValidate>
           <TextField label={t('signIn.email')} type="email" autoComplete="email" autoFocus
             error={errors.email?.message} {...register('email')} />
