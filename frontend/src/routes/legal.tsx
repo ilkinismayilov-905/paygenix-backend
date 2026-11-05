@@ -43,6 +43,9 @@ export function AcceptLegal({ pending, onDone }: { pending: LegalRef[]; onDone: 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const accept = async () => {
+    // accept only what the dialogs show: a stale text (server cache) must not be recorded as read
+    const stale = pending.some((d) => { const doc = docs[legalTypeOf(d.type)]; return typeof doc !== 'object' || doc.version !== d.version })
+    if (stale) { reload(); return setError(t('legal.reload')) }
     setBusy(true)
     setError(null)
     try {

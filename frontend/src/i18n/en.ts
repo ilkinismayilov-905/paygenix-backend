@@ -11,6 +11,7 @@ export const en = {
   'legal.body': 'Please read and accept the current versions. Until then you cannot send or pay.',
   'legal.version': 'version {version}',
   'legal.accept': 'Accept and continue',
+  'legal.reload': 'The texts are still loading or out of date. Open them again, then accept.',
   'legal.changed': 'A newer version was just published. Read it, then accept again.',
   'shell.signOutFailed': 'Could not sign out. Check your connection and try again.',
   'auth.loading': 'Checking your session…',
