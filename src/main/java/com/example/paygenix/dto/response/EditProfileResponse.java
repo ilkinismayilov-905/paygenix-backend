@@ -13,6 +13,11 @@ public record EditProfileResponse(
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy")
         LocalDate dateOfBirth,
         Gender gender,
-        String objectName
+        String objectName,
+        // presigned link to the photo (10 minutes); only on the owner's own reads
+        String photoUrl
 ) {
+    public EditProfileResponse withPhotoUrl(String url) {
+        return new EditProfileResponse(fullName, email, phoneNumber, dateOfBirth, gender, objectName, url);
+    }
 }

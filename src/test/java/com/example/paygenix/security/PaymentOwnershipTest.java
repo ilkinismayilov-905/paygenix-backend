@@ -32,6 +32,7 @@ class PaymentOwnershipTest extends IntegrationTest {
     private static final String PHONE = "+994501234567";
 
     @Autowired PaymentService paymentService;
+    @Autowired com.example.paygenix.service.Housekeeping housekeeping;
 
     @Test
     void ownerCanInitiateAndConfirm() throws Exception {
@@ -190,6 +191,24 @@ class PaymentOwnershipTest extends IntegrationTest {
             pool.shutdownNow();
         }
         assertThat(balanceOf(card)).isEqualByComparingTo("90.05");
+    }
+
+    // T-132: a payment not confirmed within 15 minutes cannot be confirmed any more; housekeeping marks it EXPIRED
+    @Test
+    void anUnconfirmedPaymentExpires() throws Exception {
+        User payer = createUser();
+        String card = issueCard(payer, "AZN");
+        setBalance(card, "100.00");
+        String flow = initiate(payer, card, "10.00");
+        jdbc.update("UPDATE payment_onboarding SET creation_date = now() - interval '16 minutes' WHERE id = ?", flow);
+
+        confirm(payer, flow, PIN).andExpect(status().isGone()).andExpect(jsonPath("$.code").value("PAYMENT_EXPIRED"));
+        assertThat(balanceOf(card)).isEqualByComparingTo("100.00");
+
+        assertThat(housekeeping.expireStalePayments()).isPositive();
+        assertThat(jdbc.queryForObject("SELECT payment_status FROM payment_onboarding WHERE id = ?", String.class, flow))
+                .isEqualTo("EXPIRED");
+        confirm(payer, flow, PIN).andExpect(status().isGone());
     }
 
     private String initiate(User payer, String card, String amount) throws Exception {

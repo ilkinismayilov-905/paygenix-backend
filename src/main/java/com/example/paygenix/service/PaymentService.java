@@ -11,6 +11,7 @@ import com.example.paygenix.entity.User;
 import com.example.paygenix.enums.LedgerKind;
 import com.example.paygenix.enums.PaymentStatus;
 import com.example.paygenix.enums.SystemAccount;
+import com.example.paygenix.exceptions.ApiException;
 import com.example.paygenix.exceptions.InsufficientBalanceException;
 import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.exceptions.PaymentAlreadyProcessedException;
@@ -23,10 +24,12 @@ import com.example.paygenix.repository.PaymentTransactionRepository;
 import com.example.paygenix.service.LedgerService.Leg;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -35,6 +38,13 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class PaymentService {
+
+    /** A started payment must be confirmed within this time (T-132); after it the flow answers 410 PAYMENT_EXPIRED. */
+    public static final Duration FLOW_TTL = Duration.ofMinutes(15);
+
+    static boolean isExpired(PaymentOnboarding flow, Instant now) {
+        return flow.getCreationDate() != null && flow.getCreationDate().plus(FLOW_TTL).isBefore(now);
+    }
 
     private final PaymentRepository paymentRepository;
     private final PaymentTransactionRepository ptRepository;
@@ -81,6 +91,9 @@ public class PaymentService {
         // someone else's flow gets the same 404 as an unknown id
         PaymentOnboarding onboarding = poRepository.findByIdAndUserId(flowId, payer.getId())
                 .orElseThrow(() -> new NotFoundException("Payment not found"));
+        if (onboarding.getPaymentStatus() == PaymentStatus.EXPIRED || isExpired(onboarding, Instant.now())) {
+            throw new ApiException(HttpStatus.GONE, "PAYMENT_EXPIRED", "This payment was not confirmed in time; start again");
+        }
         if (onboarding.getPaymentStatus() != PaymentStatus.PENDING) {
             throw new PaymentAlreadyProcessedException();
         }

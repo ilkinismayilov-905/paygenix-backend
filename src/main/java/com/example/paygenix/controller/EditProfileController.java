@@ -99,7 +99,7 @@ public class EditProfileController {
     }
 
     @Operation(summary = "Get my profile", description = "The caller's own profile. Before the first save only fullName and email are set; "
-            + "objectName is the photo key for GET /api/user/media-download.")
+            + "photoUrl is a 10-minute link to the photo, if there is one.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Profile of the authenticated user"),
             @ApiResponse(responseCode = "401", description = "Unauthorized access")
@@ -123,32 +123,27 @@ public class EditProfileController {
         ));
     }
 
-    @Operation(
-            summary = "Upload profile photo",
-            description = "Uploads or updates the profile picture for the authenticated user."
-    )
+    @Operation(summary = "Upload profile photo", description = "JPEG, PNG, WebP or GIF, at most 5 MB. Replaces the current "
+            + "photo. Needs a saved profile. The response's photoUrl works for 10 minutes; GET /api/profile/me gives a fresh one.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Profile photo uploaded successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid file format or size"),
-            @ApiResponse(responseCode = "500", description = "Internal server error during file upload")
+            @ApiResponse(responseCode = "200", description = "Photo saved"),
+            @ApiResponse(responseCode = "400", description = "No file or not an image (VALIDATION_FAILED)"),
+            @ApiResponse(responseCode = "409", description = "No saved profile yet (PROFILE_REQUIRED)"),
+            @ApiResponse(responseCode = "413", description = "Larger than 5 MB (PHOTO_TOO_LARGE)"),
+            @ApiResponse(responseCode = "503", description = "Storage unavailable (MEDIA_UPLOAD_FAILED), with Retry-After")
     })
     @PostMapping(value = "/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponseData<EditProfileResponse>> uploadProfileImage(
-            @Parameter(description = "The image file to upload (PNG, JPG, etc.)")
-            @RequestPart("file") MultipartFile file,
+            @Parameter(description = "The image file to upload") @RequestPart("file") MultipartFile file,
             @AuthenticationPrincipal User user) {
+        EditProfileResponse response = editProfileService.editProfilePhoto(user.getId(), file);
+        return ResponseEntity.ok(ApiResponseData.build(HttpStatus.OK, "Profile photo uploaded successfully", response));
+    }
 
-        Long userId = user.getId();
-        log.info("Uploading profile photo for user ID: {}", userId);
-
-        // Note: UserService call is here for fetching user if needed,
-        // but passing userId directly to service is usually cleaner.
-        EditProfileResponse response = editProfileService.editProfilePhoto(userId, file);
-
-        return ResponseEntity.ok(ApiResponseData.build(
-                HttpStatus.OK,
-                "Profile photo uploaded successfully",
-                response
-        ));
+    @Operation(summary = "Remove profile photo", description = "Idempotent.")
+    @DeleteMapping("/photo")
+    public ResponseEntity<ApiResponseData<Void>> removeProfileImage(@AuthenticationPrincipal User user) {
+        editProfileService.removeProfilePhoto(user.getId());
+        return ResponseEntity.ok(ApiResponseData.success(null));
     }
 }

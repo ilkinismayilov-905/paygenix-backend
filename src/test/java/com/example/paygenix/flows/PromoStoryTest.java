@@ -43,7 +43,7 @@ class PromoStoryTest extends IntegrationTest {
     }
 
     private ResultActions publish(User admin, String type, String hours) throws Exception {
-        var req = multipart("/api/admin/stories").file(new MockMultipartFile("file", "promo", type, new byte[]{1, 2, 3}))
+        var req = multipart("/api/admin/stories").file(com.example.paygenix.support.TestFiles.file("file", type, 16))
                 .header("Authorization", bearer(admin));
         return mockMvc.perform(hours == null ? req : req.param("hours", hours));
     }

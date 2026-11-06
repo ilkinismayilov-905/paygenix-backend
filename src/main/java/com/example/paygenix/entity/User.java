@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
@@ -24,6 +25,9 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 
+// Dynamic: an UPDATE writes only the columns that changed, so two flows saving the same user (a KYC approval and an
+// email change, say) do not undo each other's column with a stale copy.
+@DynamicUpdate
 @Entity
 @Data
 @ToString(onlyExplicitlyIncluded = true) // Spring Security logs the principal; keep email and password hash out

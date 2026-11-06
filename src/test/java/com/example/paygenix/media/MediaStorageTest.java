@@ -1,7 +1,6 @@
 package com.example.paygenix.media;
 
 import com.example.paygenix.exceptions.ApiException;
-import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.service.MediaService;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
@@ -32,7 +31,7 @@ class MediaStorageTest {
     private final MinioClient minio = mock(MinioClient.class);
 
     private static MockMultipartFile file(String name) {
-        return new MockMultipartFile("file", name, "image/jpeg", new byte[]{1, 2, 3});
+        return new MockMultipartFile("file", name, "image/jpeg", com.example.paygenix.support.TestFiles.content("image/jpeg", 8));
     }
 
     private <T> T withBucket(T storage) {
@@ -49,8 +48,8 @@ class MediaStorageTest {
         ArgumentCaptor<PutObjectArgs> sent = ArgumentCaptor.forClass(PutObjectArgs.class);
         verify(minio).putObject(sent.capture());
         assertThat(sent.getValue().object()).isEqualTo(key);
-        assertThat(withBucket(new MediaService(minio)).upload(file("photo.png"), 7L)) // declared image/jpeg wins over the name
-                .matches("uploads/7/[0-9a-f-]{36}\\.jpg");
+        assertThat(withBucket(new ProfileMediaStorage(minio)).uploadProfileImage(file("photo.png"), 7L)) // declared image/jpeg wins over the name
+                .matches("profiles/7/[0-9a-f-]{36}\\.jpg");
     }
 
     // T-098: the extension comes from the whitelisted content type, never from the client's file name.
@@ -65,13 +64,21 @@ class MediaStorageTest {
     // T-098: a profile photo must be an image; videos are only accepted for stories and generic uploads.
     @Test
     void profilePhotoRejectsVideo() throws Exception {
-        MockMultipartFile video = new MockMultipartFile("file", "clip.mp4", "video/mp4", new byte[]{1});
+        MockMultipartFile video = new MockMultipartFile("file", "clip.mp4", "video/mp4", com.example.paygenix.support.TestFiles.content("video/mp4", 16));
         assertThatThrownBy(() -> withBucket(new ProfileMediaStorage(minio)).uploadProfileImage(video, 1L))
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST));
         verify(minio, never()).putObject(any());
         assertThat(withBucket(new StoryMediaStorage(minio)).uploadStoryMedia(video, 1L)).endsWith(".mp4");
-        MockMultipartFile withParams = new MockMultipartFile("file", "a", "Image/PNG; charset=binary", new byte[]{1});
+        MockMultipartFile withParams = new MockMultipartFile("file", "a", "Image/PNG; charset=binary", com.example.paygenix.support.TestFiles.content("image/png", 16));
         assertThat(withBucket(new ProfileMediaStorage(minio)).uploadProfileImage(withParams, 1L)).endsWith(".png");
+    }
+
+    // the first bytes must match the declared type: a script sent as image/jpeg is refused
+    @Test
+    void contentThatDoesNotMatchItsTypeIsRejected() {
+        MockMultipartFile fake = new MockMultipartFile("file", "a.jpg", "image/jpeg", "<script>".getBytes());
+        assertThatThrownBy(() -> withBucket(new StoryMediaStorage(minio)).uploadStoryMedia(fake, 1L))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST));
     }
 
     // T-096: only image/video types the app serves are stored.
@@ -80,36 +87,11 @@ class MediaStorageTest {
     @ValueSource(strings = {"text/html", "image/svg+xml", "application/octet-stream"})
     void unsupportedContentTypeIsRejected(String type) throws Exception {
         MockMultipartFile html = new MockMultipartFile("file", "page.jpg", type, new byte[]{1});
-        assertThatThrownBy(() -> withBucket(new MediaService(minio)).upload(html, 1L))
+        assertThatThrownBy(() -> withBucket(new StoryMediaStorage(minio)).uploadStoryMedia(html, 1L))
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST));
         verify(minio, never()).putObject(any());
     }
 
-    // T-096: a user may presign only their own keys; anything else looks like a missing object.
-    @ParameterizedTest
-    @NullAndEmptySource
-    @ValueSource(strings = {
-            "stories/2/3f2b9c1e-7a4d-4e8a-9b1c-2d5e6f7a8b9c.jpg",
-            "uploads/12/3f2b9c1e-7a4d-4e8a-9b1c-2d5e6f7a8b9c.jpg",
-            "stories/1/../2/3f2b9c1e-7a4d-4e8a-9b1c-2d5e6f7a8b9c.jpg",
-            "profiles/1/3f2b9c1e-7a4d-4e8a-9b1c-2d5e6f7a8b9c.jpg",
-            "centralBaku.jpeg"})
-    void foreignKeyIsNotFound(String key) throws Exception {
-        assertThatThrownBy(() -> withBucket(new MediaService(minio)).getOwnDownloadUrl(1L, key))
-                .isInstanceOf(NotFoundException.class);
-        verify(minio, never()).getPresignedObjectUrl(any());
-    }
-
-    @Test
-    void ownKeyIsPresigned() throws Exception {
-        when(minio.getPresignedObjectUrl(any(GetPresignedObjectUrlArgs.class))).thenReturn("https://signed");
-
-        MediaService media = withBucket(new MediaService(minio));
-        ReflectionTestUtils.setField(media, "presignSeconds", 60);
-
-        assertThat(media.getOwnDownloadUrl(1L, "stories/1/3f2b9c1e-7a4d-4e8a-9b1c-2d5e6f7a8b9c.jpg"))
-                .isEqualTo("https://signed");
-    }
 
     // T-083: a storage outage is reported as a retryable 503, not a generic 500.
     @Test
@@ -117,14 +99,14 @@ class MediaStorageTest {
         when(minio.putObject(any(PutObjectArgs.class))).thenThrow(new IOException("connection refused"));
 
         assertUnavailable(() -> withBucket(new ProfileMediaStorage(minio)).uploadProfileImage(file("photo.jpg"), 1L));
-        assertUnavailable(() -> withBucket(new MediaService(minio)).upload(file("photo.jpg"), 1L));
+        assertUnavailable(() -> withBucket(new StoryMediaStorage(minio)).uploadStoryMedia(file("photo.jpg"), 1L));
     }
 
     @Test
     void presignFailureIsServiceUnavailable() throws Exception {
         when(minio.getPresignedObjectUrl(any(GetPresignedObjectUrlArgs.class))).thenThrow(new IOException("connection refused"));
 
-        assertUnavailable(() -> withBucket(new MediaService(minio)).getDownloadUrl("uploads/1/x.jpg"), "MEDIA_UNAVAILABLE");
+        assertUnavailable(() -> withBucket(new MediaService(minio)).getDownloadUrl("stories/1/x.jpg"), "MEDIA_UNAVAILABLE");
     }
 
     private static void assertUnavailable(ThrowingCallable call) {

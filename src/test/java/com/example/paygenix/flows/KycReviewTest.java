@@ -49,7 +49,7 @@ class KycReviewTest extends IntegrationTest {
     }
 
     private static MockMultipartFile photo(String type, int bytes) {
-        return new MockMultipartFile("document", "id.jpg", type, new byte[bytes]);
+        return com.example.paygenix.support.TestFiles.file("document", type, bytes);
     }
 
     private ResultActions submit(User user, MockMultipartFile photo) throws Exception {
@@ -185,6 +185,24 @@ class KycReviewTest extends IntegrationTest {
         submit(user, photo("image/jpeg", 100)).andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.code").value("MEDIA_UPLOAD_FAILED")).andExpect(header().exists("Retry-After"));
         kycOf(user).andExpect(jsonPath("$.data.status").value("NOT_SUBMITTED"));
+    }
+
+    @Test
+    void contentMustMatchTheDeclaredType() throws Exception {
+        User user = createUser();
+        submit(user, new MockMultipartFile("document", "id.jpg", "image/jpeg", "<html>".getBytes()))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        verify(minio, never()).putObject(any());
+    }
+
+    @Test
+    void refusedOrFailedSubmitsDoNotUseUpTheDailyLimit() throws Exception {
+        User user = createUser();
+        for (int i = 0; i < 6; i++) submit(user, photo("application/pdf", 10)).andExpect(status().isBadRequest());
+        when(minio.putObject(any())).thenThrow(new RuntimeException("connection refused"));
+        for (int i = 0; i < 6; i++) submit(user, photo("image/jpeg", 100)).andExpect(status().isServiceUnavailable());
+        reset(minio);
+        submit(user, photo("image/jpeg", 100)).andExpect(status().isCreated());
     }
 
     @Test

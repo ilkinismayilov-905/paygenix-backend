@@ -3,6 +3,7 @@ package com.example.paygenix.media;
 import com.example.paygenix.exceptions.ApiException;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
+import io.minio.RemoveObjectArgs;
 import io.minio.http.Method;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +32,20 @@ public class KycDocumentStorage extends AbstractMediaStorage {
 
     public String upload(MultipartFile file, Long userId) {
         return uploadForUser(file, bucket, "kyc", userId, DOCUMENT_TYPES);
+    }
+
+    /** Type and content check only, so a wrong file is refused before anything counts or is stored. */
+    public void check(MultipartFile file) {
+        checkedExtension(file, DOCUMENT_TYPES);
+    }
+
+    // Best effort: a document no submission references (the insert failed); a failure only leaves it behind.
+    public void deleteQuietly(String objectKey) {
+        try {
+            minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(objectKey).build());
+        } catch (Exception e) {
+            log.warn("Removing object {} from bucket {} failed; it stays in storage", objectKey, bucket, e);
+        }
     }
 
     public String presign(String objectKey) {
