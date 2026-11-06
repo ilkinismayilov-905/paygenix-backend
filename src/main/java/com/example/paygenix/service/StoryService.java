@@ -1,196 +1,128 @@
 package com.example.paygenix.service;
 
+import com.example.paygenix.dto.response.PromoStoryResponse;
 import com.example.paygenix.dto.response.StoryFeedResponse;
 import com.example.paygenix.dto.response.StoryGroupResponse;
 import com.example.paygenix.dto.response.StoryResponse;
-import com.example.paygenix.dto.response.StoryUploadResponse;
-import com.example.paygenix.exceptions.NotFoundException;
-import com.example.paygenix.media.StoryMediaStorage;
 import com.example.paygenix.entity.Story;
-import com.example.paygenix.entity.StoryView;
 import com.example.paygenix.entity.User;
 import com.example.paygenix.enums.MediaType;
 import com.example.paygenix.enums.StoryVisibility;
+import com.example.paygenix.exceptions.ApiException;
+import com.example.paygenix.exceptions.NotFoundException;
+import com.example.paygenix.media.StoryMediaStorage;
 import com.example.paygenix.repository.StoryRepository;
 import com.example.paygenix.repository.StoryViewRepository;
-import com.example.paygenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Promo stories: admins publish an image or a short video for a while (1 hour to 7 days); every signed-in user sees
+ * them in one "Paygenix" row on the dashboard, oldest first, and which ones they already viewed. There is no follow
+ * graph (out of scope), so users do not publish stories themselves.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class StoryService {
 
+    static final Duration MIN_DURATION = Duration.ofHours(1);
+    static final Duration MAX_DURATION = Duration.ofDays(7);
+
     private final StoryRepository storyRepo;
     private final StoryViewRepository svRepo;
     private final MediaService mediaService;
     private final StoryMediaStorage storyMediaStorage;
-    private final UserRepository userRepo;
 
-    @Value("${story.expiry-seconds}")
-    private long expirySeconds;
+    @Value("${app.name}")
+    private String appName;
 
-    public List<Long> resolveFeedUserIds(Long currentUserId) {
-        return List.of(currentUserId);
-    }
-
-    // Not @Transactional: the MinIO upload must not run inside a DB transaction; if the save fails the object is removed.
-    public StoryUploadResponse uploadStory(
-            User currentUser,
-            MultipartFile file,
-            MediaType mediaType,
-            StoryVisibility visibility
-    ) {
-        String objectName = storyMediaStorage.uploadStoryMedia(file, currentUser.getId());
+    // Not @Transactional: the upload must not run inside a DB transaction; if the save fails the object is removed.
+    public PromoStoryResponse publish(User admin, MultipartFile file, Duration duration) {
+        if (file == null || file.isEmpty()) {
+            throw ApiException.validation("file: is required");
+        }
+        if (duration.compareTo(MIN_DURATION) < 0 || duration.compareTo(MAX_DURATION) > 0) {
+            throw ApiException.validation("hours: must be between 1 and 168");
+        }
+        // the kind follows the stored file, never a separate client claim (StoryMediaStorage refuses other types)
+        String type = file.getContentType() == null ? "" : file.getContentType().toLowerCase(Locale.ROOT);
+        MediaType mediaType = type.startsWith("video/") ? MediaType.VIDEO : MediaType.IMAGE;
+        String objectName = storyMediaStorage.uploadStoryMedia(file, admin.getId());
         Instant now = Instant.now();
-
         Story saved;
         try {
             saved = storyRepo.save(Story.builder()
-                    .user(currentUser)
+                    .user(admin)
                     .objectName(objectName)
                     .mediaType(mediaType)
-                    .visibility(visibility)
+                    .visibility(StoryVisibility.PUBLIC)
                     .createdAt(now)
-                    .expiresAt(now.plusSeconds(expirySeconds))
+                    .expiresAt(now.plus(duration))
                     .deleted(false)
                     .build());
         } catch (RuntimeException e) {
             storyMediaStorage.deleteQuietly(objectName);
             throw e;
         }
-
-        return new StoryUploadResponse(saved.getId(), saved.getObjectName());
+        log.info("Promo story {} published by user {}", saved.getId(), admin.getId());
+        return new PromoStoryResponse(saved.getId(), saved.getMediaType(), mediaService.getDownloadUrl(objectName),
+                saved.getCreatedAt(), saved.getExpiresAt(), 0);
     }
 
-    // =========================
-    // FEED (STORY PANEL)
-    // =========================
+    /** Live promos for the admin screen, newest first, with how many users viewed each. */
     @Transactional(readOnly = true)
-    public StoryFeedResponse getFeed(User currentUser) {
-        Instant now = Instant.now();
+    public List<PromoStoryResponse> livePromos() {
+        List<Story> stories = storyRepo.findLivePromos(Instant.now());
+        Map<Long, Long> views = stories.isEmpty() ? Map.of()
+                : svRepo.countViews(stories.stream().map(Story::getId).toList()).stream()
+                        .collect(Collectors.toMap(r -> (Long) r[0], r -> (Long) r[1]));
+        return stories.reversed().stream()
+                .map(s -> new PromoStoryResponse(s.getId(), s.getMediaType(), mediaService.getDownloadUrl(s.getObjectName()),
+                        s.getCreatedAt(), s.getExpiresAt(), views.getOrDefault(s.getId(), 0L)))
+                .toList();
+    }
 
-        List<Long> feedUserIds = resolveFeedUserIds(currentUser.getId());
-        if (feedUserIds.isEmpty()) {
-            return new StoryFeedResponse(List.of());
-        }
-
-        // JOIN FETCH ilə User da eyni query-də gəlir (N+1 YOX)
-        List<Story> stories =
-                storyRepo.findActiveStoriesWithUser(feedUserIds, now);
-
+    @Transactional(readOnly = true)
+    public StoryFeedResponse getFeed(User viewer) {
+        List<Story> stories = storyRepo.findLivePromos(Instant.now());
         if (stories.isEmpty()) {
             return new StoryFeedResponse(List.of());
         }
-
-        // Seen story-ləri tap
-        List<Long> storyIds = stories.stream()
-                .map(Story::getId)
+        Set<Long> viewed = new HashSet<>(svRepo.findViewedStoryIds(viewer.getId(), stories.stream().map(Story::getId).toList()));
+        List<StoryResponse> items = stories.stream()
+                .map(s -> new StoryResponse(s.getId(), s.getMediaType(), mediaService.getDownloadUrl(s.getObjectName()),
+                        s.getExpiresAt(), viewed.contains(s.getId())))
                 .toList();
-
-        Set<Long> viewedStoryIds = new HashSet<>(
-                svRepo.findViewedStoryIds(currentUser.getId(), storyIds)
-        );
-
-        // group by user
-        Map<User, List<Story>> byUser = stories.stream()
-                .collect(Collectors.groupingBy(
-                        Story::getUser,
-                        LinkedHashMap::new,
-                        Collectors.toList()
-                ));
-
-        List<StoryGroupResponse> groups = new ArrayList<>();
-
-        for (Map.Entry<User, List<Story>> entry : byUser.entrySet()) {
-            User user = entry.getKey();
-            List<Story> userStories = entry.getValue();
-
-            Instant latestStoryAt = userStories.stream()
-                    .map(Story::getCreatedAt)
-                    .max(Comparator.naturalOrder())
-                    .orElse(now);
-
-            List<StoryResponse> items = userStories.stream()
-                    .map(s -> new StoryResponse(
-                            s.getId(),
-                            s.getMediaType(),
-                            mediaService.getDownloadUrl(s.getObjectName()),
-                            s.getExpiresAt(),
-                            viewedStoryIds.contains(s.getId())
-                    ))
-                    .toList();
-            boolean hasUnseen = items.stream().anyMatch(i -> !i.viewed());
-
-            groups.add(new StoryGroupResponse(
-                    user.getId(),
-                    user.getPublicUsername(),   // JOIN FETCH sayəsində hazırdır
-                    hasUnseen,
-                    latestStoryAt,
-                    items
-            ));
-        }
-
-        // Sıralama: unseen olanlar yuxarı, sonra ən yeni story
-        groups.sort(
-                Comparator.comparing(StoryGroupResponse::hasUnseen).reversed()
-                        .thenComparing(
-                                StoryGroupResponse::latestStoryAt,
-                                Comparator.reverseOrder()
-                        )
-        );
-
-        return new StoryFeedResponse(groups);
+        // one brand row: which admin published a promo is internal
+        return new StoryFeedResponse(List.of(new StoryGroupResponse(null, appName,
+                items.stream().anyMatch(i -> !i.viewed()), stories.getLast().getCreatedAt(), items)));
     }
 
-    // =========================
-    // VIEW (SEEN)
-    // =========================
-    @Transactional
-    public void markViewed(User currentUser, Long storyId) {
-        if (svRepo.existsByStoryIdAndViewerId(storyId, currentUser.getId())) {
-            return;
-        }
-
-        svRepo.save(StoryView.builder()
-                .storyId(storyId)
-                .viewerId(currentUser.getId())
-                .viewedAt(Instant.now())
-                .build());
-    }
-
-    // =========================
-    // DELETE (ONLY OWNER)
-    // =========================
     // Not @Transactional: the row is marked deleted first, then the object is removed outside any DB transaction.
-    public void deleteStory(User currentUser, Long storyId) {
-        Story story = storyRepo.findById(storyId)
+    // Any admin may take any promo down: promos belong to the team, not to whoever published them.
+    public void delete(Long storyId) {
+        Story story = storyRepo.findById(storyId).filter(s -> !s.isDeleted() && s.getVisibility() == StoryVisibility.PUBLIC)
                 .orElseThrow(() -> new NotFoundException("Story not found"));
-
-        if (!story.getUser().getId().equals(currentUser.getId())) {
-            throw new AccessDeniedException("Only the author can delete this story");
-        }
-
         story.setDeleted(true);
         storyRepo.save(story);
         // Keys before T-095 were raw file names that other stories may share, so only generated keys are removed.
-        if (story.getObjectName().startsWith("stories/" + currentUser.getId() + "/")) {
+        if (story.getObjectName().startsWith("stories/" + story.getUser().getId() + "/")) {
             storyMediaStorage.deleteQuietly(story.getObjectName());
         }
-    }
-
-    @Transactional(readOnly = true)
-    public String getMediaDownloadUrl(User currentUser, String objectName) {
-        return mediaService.getOwnDownloadUrl(currentUser.getId(), objectName);
+        log.info("Promo story {} taken down", storyId);
     }
 }

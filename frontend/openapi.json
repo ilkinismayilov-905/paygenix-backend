@@ -21,6 +21,9 @@
     "name" : "PIN Management",
     "description" : "APIs for secure PIN change workflow including OTP verification"
   }, {
+    "name" : "Stories",
+    "description" : "Promo stories on the dashboard"
+  }, {
     "name" : "Payment Management",
     "description" : "APIs for initiating, confirming, and viewing payment transactions"
   }, {
@@ -42,8 +45,8 @@
     "name" : "Admin: identity verification",
     "description" : "Review identity documents (admins only)"
   }, {
-    "name" : "Stories",
-    "description" : "APIs for uploading, viewing, and managing temporary stories"
+    "name" : "Admin: promo stories",
+    "description" : "Publish and take down promo stories (admins only)"
   }, {
     "name" : "Identity verification",
     "description" : "Send an identity document for manual review"
@@ -487,88 +490,11 @@
         } ]
       }
     },
-    "/api/stories" : {
-      "post" : {
-        "tags" : [ "Stories" ],
-        "summary" : "Upload a story",
-        "description" : "Uploads an image or video story with specified visibility settings.",
-        "operationId" : "uploadStory",
-        "parameters" : [ {
-          "name" : "mediaType",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "enum" : [ "IMAGE", "VIDEO" ]
-          }
-        }, {
-          "name" : "visibility",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "string",
-            "default" : "FOLLOWERS",
-            "enum" : [ "PUBLIC", "FOLLOWERS", "CLOSE_FRIENDS" ]
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "multipart/form-data" : {
-              "schema" : {
-                "type" : "object",
-                "properties" : {
-                  "file" : {
-                    "type" : "string",
-                    "format" : "binary"
-                  }
-                },
-                "required" : [ "file" ]
-              }
-            }
-          }
-        },
-        "responses" : {
-          "201" : {
-            "description" : "Story uploaded successfully",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseDataStoryUploadResponse"
-                }
-              }
-            }
-          },
-          "400" : {
-            "description" : "Unsupported file format or size",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseDataStoryUploadResponse"
-                }
-              }
-            }
-          },
-          "401" : {
-            "description" : "Unauthorized access",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseDataStoryUploadResponse"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "bearerAuth" : [ ]
-        } ]
-      }
-    },
     "/api/stories/{storyId}/view" : {
       "post" : {
         "tags" : [ "Stories" ],
-        "summary" : "Mark story as viewed",
-        "description" : "Records that the user has seen a specific story.",
+        "summary" : "Mark a story as viewed",
+        "description" : "Idempotent.",
         "operationId" : "markStoryAsViewed",
         "parameters" : [ {
           "name" : "storyId",
@@ -591,7 +517,7 @@
             }
           },
           "404" : {
-            "description" : "Story not found",
+            "description" : "No live promo story with this id (NOT_FOUND)",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -1911,6 +1837,108 @@
         }
       }
     },
+    "/api/admin/stories" : {
+      "get" : {
+        "tags" : [ "Admin: promo stories" ],
+        "summary" : "Live promo stories",
+        "description" : "Newest first, with how many users viewed each.",
+        "operationId" : "live",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataListPromoStoryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      },
+      "post" : {
+        "tags" : [ "Admin: promo stories" ],
+        "summary" : "Publish a promo story",
+        "description" : "multipart/form-data: file (JPEG, PNG, WebP, GIF, MP4, MOV or WebM, at most 10 MB); hours it stays up, 1 to 168 (default 24). Every user sees it on the dashboard.",
+        "operationId" : "publish",
+        "parameters" : [ {
+          "name" : "hours",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 24,
+            "maximum" : 168,
+            "minimum" : 1
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  }
+                },
+                "required" : [ "file" ]
+              }
+            }
+          }
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Published",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataPromoStoryResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "No file, unsupported type or hours out of range (VALIDATION_FAILED)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataPromoStoryResponse"
+                }
+              }
+            }
+          },
+          "413" : {
+            "description" : "File larger than 10 MB",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataPromoStoryResponse"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "Storage unavailable (MEDIA_UPLOAD_FAILED), with Retry-After",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataPromoStoryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
     "/api/admin/kyc/{id}/reject" : {
       "post" : {
         "tags" : [ "Admin: identity verification" ],
@@ -2304,67 +2332,15 @@
         } ]
       }
     },
-    "/api/stories/media-download" : {
-      "get" : {
-        "tags" : [ "Stories" ],
-        "summary" : "Get media download URL",
-        "description" : "Generates a temporary download link for story media (Cloud Storage).",
-        "operationId" : "getMediaDownloadUrl",
-        "parameters" : [ {
-          "name" : "objectName",
-          "in" : "query",
-          "description" : "Storage object name/key",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "Presigned download URL",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseDataString"
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Not one of the caller's own media keys (NOT_FOUND)",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseDataString"
-                }
-              }
-            }
-          },
-          "503" : {
-            "description" : "Storage could not sign the URL; retry after Retry-After (MEDIA_UNAVAILABLE)",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseDataString"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "bearerAuth" : [ ]
-        } ]
-      }
-    },
     "/api/stories/feed" : {
       "get" : {
         "tags" : [ "Stories" ],
-        "summary" : "Get story feed",
-        "description" : "Retrieves the stories of users that the current user follows.",
+        "summary" : "Promo stories",
+        "description" : "At most one group (the app's own row) with the live promos, oldest first. mediaUrl is a presigned link (STORY_PRESIGN_SECONDS); viewed tells whether the caller has seen it.",
         "operationId" : "getStoryFeed",
         "responses" : {
           "200" : {
-            "description" : "Story feed retrieved successfully",
+            "description" : "OK",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -2909,58 +2885,6 @@
         } ]
       }
     },
-    "/api/stories/{storyId}" : {
-      "delete" : {
-        "tags" : [ "Stories" ],
-        "summary" : "Delete a story",
-        "description" : "Permanently removes a story if the current user is the owner.",
-        "operationId" : "deleteStory",
-        "parameters" : [ {
-          "name" : "storyId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "Story deleted successfully",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
-                }
-              }
-            }
-          },
-          "403" : {
-            "description" : "Forbidden - Not the owner of the story",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Story not found",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "bearerAuth" : [ ]
-        } ]
-      }
-    },
     "/api/auth/sessions/{id}" : {
       "delete" : {
         "tags" : [ "Sessions" ],
@@ -2989,6 +2913,48 @@
           },
           "404" : {
             "description" : "No active session with this id for this user",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/admin/stories/{storyId}" : {
+      "delete" : {
+        "tags" : [ "Admin: promo stories" ],
+        "summary" : "Take a promo story down",
+        "description" : "It disappears from every dashboard; its file is removed.",
+        "operationId" : "delete",
+        "parameters" : [ {
+          "name" : "storyId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Taken down",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such promo story, or already taken down (NOT_FOUND)",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -3178,37 +3144,6 @@
           "currency" : {
             "type" : "string",
             "enum" : [ "AZN", "USD", "EUR" ]
-          }
-        }
-      },
-      "ApiResponseDataStoryUploadResponse" : {
-        "type" : "object",
-        "properties" : {
-          "timestamp" : {
-            "type" : "string",
-            "format" : "date-time"
-          },
-          "status" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "data" : {
-            "$ref" : "#/components/schemas/StoryUploadResponse"
-          }
-        }
-      },
-      "StoryUploadResponse" : {
-        "type" : "object",
-        "properties" : {
-          "storyId" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "objectName" : {
-            "type" : "string"
           }
         }
       },
@@ -3707,6 +3642,53 @@
           }
         },
         "required" : [ "email", "password" ]
+      },
+      "ApiResponseDataPromoStoryResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/PromoStoryResponse"
+          }
+        }
+      },
+      "PromoStoryResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "mediaType" : {
+            "type" : "string",
+            "enum" : [ "IMAGE", "VIDEO" ]
+          },
+          "mediaUrl" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "views" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
       },
       "KycRejectRequest" : {
         "type" : "object",
@@ -4371,6 +4353,28 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/LegalDocumentRef"
+            }
+          }
+        }
+      },
+      "ApiResponseDataListPromoStoryResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PromoStoryResponse"
             }
           }
         }

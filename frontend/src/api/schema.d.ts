@@ -128,26 +128,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/stories": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Upload a story
-         * @description Uploads an image or video story with specified visibility settings.
-         */
-        post: operations["uploadStory"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/stories/{storyId}/view": {
         parameters: {
             query?: never;
@@ -158,8 +138,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Mark story as viewed
-         * @description Records that the user has seen a specific story.
+         * Mark a story as viewed
+         * @description Idempotent.
          */
         post: operations["markStoryAsViewed"];
         delete?: never;
@@ -560,6 +540,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/stories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Live promo stories
+         * @description Newest first, with how many users viewed each.
+         */
+        get: operations["live"];
+        put?: never;
+        /**
+         * Publish a promo story
+         * @description multipart/form-data: file (JPEG, PNG, WebP, GIF, MP4, MOV or WebM, at most 10 MB); hours it stays up, 1 to 168 (default 24). Every user sees it on the dashboard.
+         */
+        post: operations["publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/kyc/{id}/reject": {
         parameters: {
             query?: never;
@@ -720,26 +724,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/stories/media-download": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get media download URL
-         * @description Generates a temporary download link for story media (Cloud Storage).
-         */
-        get: operations["getMediaDownloadUrl"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/stories/feed": {
         parameters: {
             query?: never;
@@ -748,8 +732,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get story feed
-         * @description Retrieves the stories of users that the current user follows.
+         * Promo stories
+         * @description At most one group (the app's own row) with the live promos, oldest first. mediaUrl is a presigned link (STORY_PRESIGN_SECONDS); viewed tells whether the caller has seen it.
          */
         get: operations["getStoryFeed"];
         put?: never;
@@ -1048,26 +1032,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/stories/{storyId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete a story
-         * @description Permanently removes a story if the current user is the owner.
-         */
-        delete: operations["deleteStory"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/auth/sessions/{id}": {
         parameters: {
             query?: never;
@@ -1083,6 +1047,26 @@ export interface paths {
          * @description Signs that device out: its refresh and access tokens stop working at once. Revoking the current session is a logout.
          */
         delete: operations["revoke"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/stories/{storyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Take a promo story down
+         * @description It disappears from every dashboard; its file is removed.
+         */
+        delete: operations["delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1158,19 +1142,6 @@ export interface components {
             amount?: string;
             /** @enum {string} */
             currency?: "AZN" | "USD" | "EUR";
-        };
-        ApiResponseDataStoryUploadResponse: {
-            /** Format: date-time */
-            timestamp?: string;
-            /** Format: int32 */
-            status?: number;
-            message?: string;
-            data?: components["schemas"]["StoryUploadResponse"];
-        };
-        StoryUploadResponse: {
-            /** Format: int64 */
-            storyId?: number;
-            objectName?: string;
         };
         CreateProblemReportRequest: {
             /** @enum {string} */
@@ -1360,6 +1331,27 @@ export interface components {
         LoginRequest: {
             email: string;
             password: string;
+        };
+        ApiResponseDataPromoStoryResponse: {
+            /** Format: date-time */
+            timestamp?: string;
+            /** Format: int32 */
+            status?: number;
+            message?: string;
+            data?: components["schemas"]["PromoStoryResponse"];
+        };
+        PromoStoryResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** @enum {string} */
+            mediaType?: "IMAGE" | "VIDEO";
+            mediaUrl?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: int64 */
+            views?: number;
         };
         KycRejectRequest: {
             reason: string;
@@ -1623,6 +1615,14 @@ export interface components {
             /** Format: int64 */
             expiresAt?: number;
             pendingLegalDocuments?: components["schemas"]["LegalDocumentRef"][];
+        };
+        ApiResponseDataListPromoStoryResponse: {
+            /** Format: date-time */
+            timestamp?: string;
+            /** Format: int32 */
+            status?: number;
+            message?: string;
+            data?: components["schemas"]["PromoStoryResponse"][];
         };
         ApiResponseDataKycReviewPage: {
             /** Format: date-time */
@@ -1981,54 +1981,6 @@ export interface operations {
             };
         };
     };
-    uploadStory: {
-        parameters: {
-            query: {
-                mediaType: "IMAGE" | "VIDEO";
-                visibility?: "PUBLIC" | "FOLLOWERS" | "CLOSE_FRIENDS";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "multipart/form-data": {
-                    /** Format: binary */
-                    file: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Story uploaded successfully */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseDataStoryUploadResponse"];
-                };
-            };
-            /** @description Unsupported file format or size */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseDataStoryUploadResponse"];
-                };
-            };
-            /** @description Unauthorized access */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseDataStoryUploadResponse"];
-                };
-            };
-        };
-    };
     markStoryAsViewed: {
         parameters: {
             query?: never;
@@ -2049,7 +2001,7 @@ export interface operations {
                     "*/*": components["schemas"]["ApiResponseDataVoid"];
                 };
             };
-            /** @description Story not found */
+            /** @description No live promo story with this id (NOT_FOUND) */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -3122,6 +3074,82 @@ export interface operations {
             };
         };
     };
+    live: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataListPromoStoryResponse"];
+                };
+            };
+        };
+    };
+    publish: {
+        parameters: {
+            query?: {
+                hours?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Published */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataPromoStoryResponse"];
+                };
+            };
+            /** @description No file, unsupported type or hours out of range (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataPromoStoryResponse"];
+                };
+            };
+            /** @description File larger than 10 MB */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataPromoStoryResponse"];
+                };
+            };
+            /** @description Storage unavailable (MEDIA_UPLOAD_FAILED), with Retry-After */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataPromoStoryResponse"];
+                };
+            };
+        };
+    };
     reject: {
         parameters: {
             query?: never;
@@ -3432,47 +3460,6 @@ export interface operations {
             };
         };
     };
-    getMediaDownloadUrl: {
-        parameters: {
-            query: {
-                /** @description Storage object name/key */
-                objectName: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Presigned download URL */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseDataString"];
-                };
-            };
-            /** @description Not one of the caller's own media keys (NOT_FOUND) */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseDataString"];
-                };
-            };
-            /** @description Storage could not sign the URL; retry after Retry-After (MEDIA_UNAVAILABLE) */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseDataString"];
-                };
-            };
-        };
-    };
     getStoryFeed: {
         parameters: {
             query?: never;
@@ -3482,7 +3469,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Story feed retrieved successfully */
+            /** @description OK */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -3908,46 +3895,6 @@ export interface operations {
             };
         };
     };
-    deleteStory: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                storyId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Story deleted successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseDataVoid"];
-                };
-            };
-            /** @description Forbidden - Not the owner of the story */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseDataVoid"];
-                };
-            };
-            /** @description Story not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseDataVoid"];
-                };
-            };
-        };
-    };
     revoke: {
         parameters: {
             query?: never;
@@ -3969,6 +3916,37 @@ export interface operations {
                 };
             };
             /** @description No active session with this id for this user */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataVoid"];
+                };
+            };
+        };
+    };
+    delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                storyId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Taken down */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataVoid"];
+                };
+            };
+            /** @description No such promo story, or already taken down (NOT_FOUND) */
             404: {
                 headers: {
                     [name: string]: unknown;

@@ -18,4 +18,8 @@ public interface StoryViewRepository extends JpaRepository<StoryView, Long> {
            """)
     List<Long> findViewedStoryIds(@Param("viewerId") Long viewerId,
                                   @Param("storyIds") Collection<Long> storyIds);
+
+    // [storyId, distinct viewers] per story
+    @Query("select sv.storyId, count(sv) from StoryView sv where sv.storyId in :storyIds group by sv.storyId")
+    List<Object[]> countViews(@Param("storyIds") Collection<Long> storyIds);
 }

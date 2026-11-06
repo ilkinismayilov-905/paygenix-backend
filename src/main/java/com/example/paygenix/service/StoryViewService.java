@@ -1,5 +1,6 @@
 package com.example.paygenix.service;
 
+import com.example.paygenix.enums.StoryVisibility;
 import com.example.paygenix.entity.StoryView;
 import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.repository.StoryRepository;
@@ -20,7 +21,7 @@ public class StoryViewService {
 
     @Transactional
     public void markViewed(Long storyId, Long viewerId) {
-        if (!storyRepo.existsByIdAndDeletedFalseAndExpiresAtAfter(storyId, Instant.now())) {
+        if (!storyRepo.existsByIdAndDeletedFalseAndVisibilityAndExpiresAtAfter(storyId, StoryVisibility.PUBLIC, Instant.now())) {
             throw new NotFoundException("Story not found");
         }
         // Unique constraint var, təkrar insert olmamalıdır

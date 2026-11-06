@@ -2,135 +2,48 @@ package com.example.paygenix.controller;
 
 import com.example.paygenix.dto.ApiResponseData;
 import com.example.paygenix.dto.response.StoryFeedResponse;
-import com.example.paygenix.dto.response.StoryUploadResponse;
 import com.example.paygenix.entity.User;
-import com.example.paygenix.enums.MediaType;
-import com.example.paygenix.enums.StoryVisibility;
 import com.example.paygenix.service.StoryService;
 import com.example.paygenix.service.StoryViewService;
-import com.example.paygenix.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/stories")
 @RequiredArgsConstructor
-@Slf4j
-@Tag(name = "Stories", description = "APIs for uploading, viewing, and managing temporary stories")
+@Tag(name = "Stories", description = "Promo stories on the dashboard")
 @SecurityRequirement(name = "bearerAuth")
 public class StoryController {
 
     private final StoryService storyService;
     private final StoryViewService storyViewService;
-    private final UserService userService;
 
-    @Operation(summary = "Upload a story", description = "Uploads an image or video story with specified visibility settings.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Story uploaded successfully"),
-            @ApiResponse(responseCode = "400", description = "Unsupported file format or size"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized access")
-    })
-    @PostMapping(consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
-    // shortcut: still takes a Jwt, which is always null here (SEC-27), so upload stays a 500. User story upload is
-    // being replaced by admin-only promo stories; it is rebuilt there, together with SEC-15 (client-chosen object keys).
-    public ResponseEntity<ApiResponseData<StoryUploadResponse>> uploadStory(
-            @AuthenticationPrincipal Jwt jwt,
-            @RequestPart("file") MultipartFile file,
-            @RequestParam MediaType mediaType,
-            @RequestParam(defaultValue = "FOLLOWERS") StoryVisibility visibility
-    ) {
-        Long userId = jwt.getClaim("userId");
-        log.info("User {} is uploading a {} story", userId, mediaType);
-
-        User user = userService.getById(userId);
-        StoryUploadResponse response = storyService.uploadStory(user, file, mediaType, visibility);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponseData.build(
-                HttpStatus.CREATED,
-                "Story uploaded successfully",
-                response
-        ));
-    }
-
-    @Operation(summary = "Get story feed", description = "Retrieves the stories of users that the current user follows.")
-    @ApiResponse(responseCode = "200", description = "Story feed retrieved successfully")
+    @Operation(summary = "Promo stories", description = "At most one group (the app's own row) with the live promos, oldest "
+            + "first. mediaUrl is a presigned link (STORY_PRESIGN_SECONDS); viewed tells whether the caller has seen it.")
     @GetMapping("/feed")
-    public ResponseEntity<ApiResponseData<StoryFeedResponse>> getStoryFeed(
-            @AuthenticationPrincipal User principal
-    ) {
-        Long userId = principal.getId();
-        log.info("Fetching story feed for user ID: {}", userId);
-
-        User user = userService.getById(userId);
-        StoryFeedResponse response = storyService.getFeed(user);
-
-        return ResponseEntity.ok(ApiResponseData.success(response));
+    public ResponseEntity<ApiResponseData<StoryFeedResponse>> getStoryFeed(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(ApiResponseData.success(storyService.getFeed(user)));
     }
 
-    @Operation(summary = "Mark story as viewed", description = "Records that the user has seen a specific story.")
+    @Operation(summary = "Mark a story as viewed", description = "Idempotent.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Story view recorded"),
-            @ApiResponse(responseCode = "404", description = "Story not found")
+            @ApiResponse(responseCode = "404", description = "No live promo story with this id (NOT_FOUND)")
     })
     @PostMapping("/{storyId}/view")
-    public ResponseEntity<ApiResponseData<Void>> markStoryAsViewed(
-            @PathVariable Long storyId,
-            @AuthenticationPrincipal User principal
-    ) {
-        Long userId = principal.getId();
-        log.info("User {} viewed story {}", userId, storyId);
-
-        storyViewService.markViewed(storyId, userId);
+    public ResponseEntity<ApiResponseData<Void>> markStoryAsViewed(@PathVariable Long storyId, @AuthenticationPrincipal User user) {
+        storyViewService.markViewed(storyId, user.getId());
         return ResponseEntity.ok(ApiResponseData.success(null));
-    }
-
-    @Operation(summary = "Delete a story", description = "Permanently removes a story if the current user is the owner.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Story deleted successfully"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Not the owner of the story"),
-            @ApiResponse(responseCode = "404", description = "Story not found")
-    })
-    @DeleteMapping("/{storyId}")
-    public ResponseEntity<ApiResponseData<Void>> deleteStory(
-            @PathVariable Long storyId,
-            @AuthenticationPrincipal User principal
-    ) {
-        Long userId = principal.getId();
-        log.warn("User {} is deleting story {}", userId, storyId);
-
-        User user = userService.getById(userId);
-        storyService.deleteStory(user, storyId);
-
-        return ResponseEntity.ok(ApiResponseData.success(null));
-    }
-
-    @Operation(summary = "Get media download URL", description = "Generates a temporary download link for story media (Cloud Storage).")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Presigned download URL"),
-            @ApiResponse(responseCode = "404", description = "Not one of the caller's own media keys (NOT_FOUND)"),
-            @ApiResponse(responseCode = "503", description = "Storage could not sign the URL; retry after Retry-After (MEDIA_UNAVAILABLE)")
-    })
-    @GetMapping("/media-download")
-    public ResponseEntity<ApiResponseData<String>> getMediaDownloadUrl(
-            @Parameter(description = "Storage object name/key") @RequestParam String objectName,
-            @AuthenticationPrincipal User principal
-    ) {
-        Long userId = principal.getId();
-        User user = userService.getById(userId);
-
-        String url = storyService.getMediaDownloadUrl(user, objectName);
-        return ResponseEntity.ok(ApiResponseData.success(url));
     }
 }

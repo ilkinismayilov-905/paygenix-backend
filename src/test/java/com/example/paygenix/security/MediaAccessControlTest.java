@@ -11,7 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class MediaAccessControlTest extends IntegrationTest {
 
     @ParameterizedTest
-    @ValueSource(strings = {"/api/user/media-download", "/api/stories/media-download"})
+    @ValueSource(strings = {"/api/user/media-download"})
     void otherUsersObjectIsNotFound(String path) throws Exception {
         Long victimId = createUser().getId();
         String foreignKey = "stories/" + victimId + "/3f2b9c1e-7a4d-4e8a-9b1c-2d5e6f7a8b9c.jpg";
