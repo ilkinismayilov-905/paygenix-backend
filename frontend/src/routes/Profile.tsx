@@ -8,6 +8,7 @@ import { t } from '../i18n'
 import { Alert, Button, ErrorState, Skeleton, TextField } from '../ui'
 import { problemCode } from './money'
 import { toPhone } from './phone'
+import { LanguageSwitch } from './LanguageSwitch'
 import { ProfilePhoto } from './ProfilePhoto'
 
 /** Today as yyyy-mm-dd in the user's own time zone (toISOString would give the UTC date: wrong in Baku 00:00–04:00). */
@@ -116,6 +117,7 @@ export default function Profile() {
           <li><Link to="/legal/terms">{t('signUp.terms')}</Link></li>
           <li><Link to="/legal/privacy">{t('signUp.privacy')}</Link></li>
         </ul>
+        <LanguageSwitch />
       </nav>
     </main>
   )

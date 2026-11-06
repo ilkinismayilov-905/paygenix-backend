@@ -7,6 +7,7 @@ import { api, retryAfterMinutes } from '../api/client'
 import { signedIn } from '../auth/session'
 import { t } from '../i18n'
 import { Alert, Button, TextField } from '../ui'
+import { LanguageSwitch } from './LanguageSwitch'
 import { Logo } from './Logo'
 
 // Mirrors LoginRequest: valid email up to 255. Password up to 72 UTF-8 bytes, bcrypt's real limit (letters like ə take 2).
@@ -65,6 +66,7 @@ export default function SignIn() {
         <a className="btn btn-secondary btn-block" href="/oauth2/authorization/google">{t('signIn.google')}</a>
         <p className="muted">{t('signIn.noAccount')} <Link to="/sign-up">{t('signIn.createAccount')}</Link></p>
         <p className="muted auth-legal"><Link to="/legal/terms">{t('signUp.terms')}</Link> · <Link to="/legal/privacy">{t('signUp.privacy')}</Link></p>
+        <LanguageSwitch />
       </div>
     </main>
   )

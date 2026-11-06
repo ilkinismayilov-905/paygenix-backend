@@ -120,3 +120,6 @@ fieldset.field { border: 0; margin: 0; padding: 0; min-width: 0; }
 .profile-photo-actions label.btn { cursor: pointer; }
 .profile-photo-actions label.is-disabled { opacity: 0.5; cursor: not-allowed; }
 .profile-photo-actions input:focus-visible + label { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* language */
+.language-switch { font-size: var(--text-sm); color: var(--text-muted); }

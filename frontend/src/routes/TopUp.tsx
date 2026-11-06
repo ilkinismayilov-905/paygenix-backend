@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRef, useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useSearchParams } from 'react-router'
 import { z } from 'zod'
 import { api, retryAfterMinutes } from '../api/client'
@@ -63,9 +63,13 @@ export default function TopUp() {
           <div className="field">
             <label htmlFor="to" className="field-label">{t('topUp.card')}</label>
             <div className="field-control">
-              <select id="to" {...register('fromCardId')}>
-                {list.map((c) => <option key={c.id} value={String(c.id)}>{cardLabel(c)}</option>)}
-              </select>
+              {/* shows the card really used (pickCard): an unset or closed choice still shows a card */}
+              <Controller name="fromCardId" control={control} render={({ field }) => (
+                <select id="to" ref={field.ref} name={field.name} onBlur={field.onBlur} onChange={field.onChange}
+                  value={from ? String(from.id) : ''}>
+                  {list.map((c) => <option key={c.id} value={String(c.id)}>{cardLabel(c)}</option>)}
+                </select>
+              )} />
             </div>
           </div>
           <TextField label={t('money.amount')} inputMode="decimal" autoComplete="off" placeholder="0.00" suffix={from?.currency}

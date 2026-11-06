@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRef, useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { api, retryAfterMinutes } from '../api/client'
 import { t } from '../i18n'
@@ -140,9 +140,13 @@ export default function Pay() {
           <div className="field">
             <label htmlFor="from" className="field-label">{t('money.from')}</label>
             <div className="field-control">
-              <select id="from" {...register('fromCardId')}>
-                {list.map((c) => <option key={c.id} value={String(c.id)}>{cardLabel(c)}</option>)}
-              </select>
+              {/* shows the card really used (pickCard): an unset or closed choice still shows a card */}
+              <Controller name="fromCardId" control={control} render={({ field }) => (
+                <select id="from" ref={field.ref} name={field.name} onBlur={field.onBlur} onChange={field.onChange}
+                  value={from ? String(from.id) : ''}>
+                  {list.map((c) => <option key={c.id} value={String(c.id)}>{cardLabel(c)}</option>)}
+                </select>
+              )} />
             </div>
           </div>
           <TextField label={t('pay.phone')} type="tel" inputMode="tel" autoComplete="off" placeholder="+994 50 123 45 67"

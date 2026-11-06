@@ -92,9 +92,13 @@ export default function Transfer() {
           <div className="field">
             <label htmlFor="from" className="field-label">{t('money.from')}</label>
             <div className="field-control">
-              <select id="from" {...register('fromCardId')}>
-                {list.map((c) => <option key={c.id} value={String(c.id)}>{cardLabel(c)}</option>)}
-              </select>
+              {/* shows the card really used (pickCard): an unset or closed choice still shows a card */}
+              <Controller name="fromCardId" control={control} render={({ field }) => (
+                <select id="from" ref={field.ref} name={field.name} onBlur={field.onBlur} onChange={field.onChange}
+                  value={from ? String(from.id) : ''}>
+                  {list.map((c) => <option key={c.id} value={String(c.id)}>{cardLabel(c)}</option>)}
+                </select>
+              )} />
             </div>
           </div>
           <TextField label={t('transfer.to')} inputMode="numeric" autoComplete="off" placeholder="0000 0000 0000 0000"
