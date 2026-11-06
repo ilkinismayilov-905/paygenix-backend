@@ -30,6 +30,9 @@
     "name" : "Sessions",
     "description" : "Signed-in devices of the current user"
   }, {
+    "name" : "Fees",
+    "description" : "Current fee rates"
+  }, {
     "name" : "Card Management",
     "description" : "Virtual cards: issue, list and close"
   }, {
@@ -287,66 +290,6 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ApiResponseDataVoid"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "bearerAuth" : [ ]
-        } ]
-      }
-    },
-    "/api/user/media" : {
-      "post" : {
-        "tags" : [ "User Management" ],
-        "summary" : "Upload media file",
-        "description" : "Uploads a generic media file (e.g., document, image) to the cloud storage and returns its generated object key (uploads/{userId}/{uuid}.{ext}).",
-        "operationId" : "uploadMedia",
-        "requestBody" : {
-          "content" : {
-            "multipart/form-data" : {
-              "schema" : {
-                "type" : "object",
-                "properties" : {
-                  "file" : {
-                    "type" : "string",
-                    "format" : "binary",
-                    "description" : "The media file to be uploaded"
-                  }
-                },
-                "required" : [ "file" ]
-              }
-            }
-          }
-        },
-        "responses" : {
-          "200" : {
-            "description" : "Media uploaded successfully",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseDataString"
-                }
-              }
-            }
-          },
-          "400" : {
-            "description" : "Invalid file name",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseDataString"
-                }
-              }
-            }
-          },
-          "503" : {
-            "description" : "Media storage unavailable (MEDIA_UPLOAD_FAILED); see Retry-After",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseDataString"
                 }
               }
             }
@@ -694,7 +637,7 @@
       "post" : {
         "tags" : [ "Profile Management" ],
         "summary" : "Upload profile photo",
-        "description" : "Uploads or updates the profile picture for the authenticated user.",
+        "description" : "JPEG, PNG, WebP or GIF, at most 5 MB. Replaces the current photo. Needs a saved profile. The response's photoUrl works for 10 minutes; GET /api/profile/me gives a fresh one.",
         "operationId" : "uploadProfileImage",
         "requestBody" : {
           "content" : {
@@ -705,7 +648,7 @@
                   "file" : {
                     "type" : "string",
                     "format" : "binary",
-                    "description" : "The image file to upload (PNG, JPG, etc.)"
+                    "description" : "The image file to upload"
                   }
                 },
                 "required" : [ "file" ]
@@ -715,7 +658,7 @@
         },
         "responses" : {
           "200" : {
-            "description" : "Profile photo uploaded successfully",
+            "description" : "Photo saved",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -725,7 +668,7 @@
             }
           },
           "400" : {
-            "description" : "Invalid file format or size",
+            "description" : "No file or not an image (VALIDATION_FAILED)",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -734,12 +677,53 @@
               }
             }
           },
-          "500" : {
-            "description" : "Internal server error during file upload",
+          "409" : {
+            "description" : "No saved profile yet (PROFILE_REQUIRED)",
             "content" : {
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ApiResponseDataEditProfileResponse"
+                }
+              }
+            }
+          },
+          "413" : {
+            "description" : "Larger than 5 MB (PHOTO_TOO_LARGE)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataEditProfileResponse"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "Storage unavailable (MEDIA_UPLOAD_FAILED), with Retry-After",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataEditProfileResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      },
+      "delete" : {
+        "tags" : [ "Profile Management" ],
+        "summary" : "Remove profile photo",
+        "description" : "Idempotent.",
+        "operationId" : "removeProfileImage",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
                 }
               }
             }
@@ -2116,59 +2100,6 @@
         } ]
       }
     },
-    "/api/user/media-download" : {
-      "get" : {
-        "tags" : [ "User Management" ],
-        "summary" : "Get media download URL",
-        "description" : "Generates a temporary download URL for one of the caller's own uploaded media objects.",
-        "operationId" : "downloadMedia",
-        "parameters" : [ {
-          "name" : "objectName",
-          "in" : "query",
-          "description" : "The unique storage object name/key",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          },
-          "example" : "uploads/1/3f2b9c1e-7a4d-4e8a-9b1c-2d5e6f7a8b9c.jpg"
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "Download URL generated successfully",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseDataString"
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Media object not found",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseDataString"
-                }
-              }
-            }
-          },
-          "503" : {
-            "description" : "Media storage unavailable (MEDIA_UNAVAILABLE); see Retry-After",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseDataString"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "bearerAuth" : [ ]
-        } ]
-      }
-    },
     "/api/transfer/{id}" : {
       "get" : {
         "tags" : [ "Transfer Management" ],
@@ -2359,7 +2290,7 @@
       "get" : {
         "tags" : [ "Profile Management" ],
         "summary" : "Get my profile",
-        "description" : "The caller's own profile. Before the first save only fullName and email are set; objectName is the photo key for GET /api/user/media-download.",
+        "description" : "The caller's own profile. Before the first save only fullName and email are set; photoUrl is a 10-minute link to the photo, if there is one.",
         "operationId" : "getMyProfile",
         "responses" : {
           "200" : {
@@ -2484,6 +2415,29 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ApiResponseDataKycStatusResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/fees" : {
+      "get" : {
+        "tags" : [ "Fees" ],
+        "summary" : "Fee rates (T-129)",
+        "description" : "commissionPercent is added to every transfer; cashbackPercent of every phone payment comes back to the card. Amounts round half-even to 2 decimals.",
+        "operationId" : "fees",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataFeesResponse"
                 }
               }
             }
@@ -3062,25 +3016,6 @@
         },
         "required" : [ "pin" ]
       },
-      "ApiResponseDataString" : {
-        "type" : "object",
-        "properties" : {
-          "timestamp" : {
-            "type" : "string",
-            "format" : "date-time"
-          },
-          "status" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "data" : {
-            "type" : "string"
-          }
-        }
-      },
       "TransferRequest" : {
         "type" : "object",
         "properties" : {
@@ -3266,6 +3201,9 @@
           },
           "objectName" : {
             "type" : "string"
+          },
+          "photoUrl" : {
+            "type" : "string"
           }
         }
       },
@@ -3322,6 +3260,25 @@
           }
         },
         "required" : [ "amount", "fromCardId", "phoneNumber" ]
+      },
+      "ApiResponseDataString" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "string"
+          }
+        }
       },
       "ConfirmPaymentRequest" : {
         "type" : "object",
@@ -4081,7 +4038,7 @@
           },
           "status" : {
             "type" : "string",
-            "enum" : [ "PENDING", "COMPLETED" ]
+            "enum" : [ "PENDING", "COMPLETED", "EXPIRED" ]
           },
           "createdAt" : {
             "type" : "string",
@@ -4122,6 +4079,36 @@
             "format" : "date"
           },
           "content" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ApiResponseDataFeesResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/FeesResponse"
+          }
+        }
+      },
+      "FeesResponse" : {
+        "type" : "object",
+        "properties" : {
+          "commissionPercent" : {
+            "type" : "string"
+          },
+          "cashbackPercent" : {
             "type" : "string"
           }
         }

@@ -19,6 +19,7 @@ beforeEach(() => {
     const url = new URL(req.url)
     if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
     if (url.pathname === '/api/cards/me') return ok([card])
+    if (url.pathname === '/api/fees') return ok({ commissionPercent: '2', cashbackPercent: '0.5' })
     if (url.pathname === '/api/transfer') {
       sent.push({ key: req.headers.get('Idempotency-Key'), body: await req.clone().json() })
       return transfer(req)
@@ -116,4 +117,11 @@ test.each([
   await fill()
   send()
   expect(await screen.findByText(text)).toBeInTheDocument()
+})
+
+test('shows the fee and the total for the typed amount', async () => {
+  render(<RouterProvider router={createMemoryRouter(routes, { initialEntries: ['/transfer'] })} />)
+  expect(await screen.findByText('A 2% fee is added to this amount.')).toBeInTheDocument()
+  fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10,5' } })
+  expect(await screen.findByText('Fee 2%: ₼0.21. Total: ₼10.71.')).toBeInTheDocument()
 })

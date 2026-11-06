@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useLocation } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { api } from '../api/client'
 import { t } from '../i18n'
 import { Alert, Button, EmptyState, ErrorState, List, ListRow, Skeleton } from '../ui'
@@ -13,13 +13,17 @@ const PAGE_SIZE = 20
 
 /** Admin: identity documents by status (GET /api/admin/kyc), pending ones oldest first. */
 export default function AdminKyc() {
-  const notice = (useLocation().state as { reviewed?: string } | null)?.reviewed
+  const location = useLocation()
+  const navigate = useNavigate()
+  // shown once: the history entry forgets it, so a reload or Back does not repeat it
+  const [notice] = useState(() => (location.state as { reviewed?: string } | null)?.reviewed)
+  useEffect(() => { if (location.state) void navigate('.', { replace: true, state: null }) }, [location.state, navigate])
   const [status, setStatus] = useState<Status>('PENDING')
   const [items, setItems] = useState<Review[] | null | 'failed'>(null)
   const [next, setNext] = useState<number | null>(null)
   const [more, setMore] = useState<'idle' | 'busy' | 'failed'>('idle')
   const [round, setRound] = useState(0)
-  const shown = useRef(status) // a page for another tab that lands late is dropped
+  const generation = useRef(0) // bumped per tab switch: a "show more" answer from before it is dropped
 
   const load = useCallback(async (s: Status, page: number) => {
     const { data, response } = await api.GET('/api/admin/kyc', { params: { query: { status: s, page, size: PAGE_SIZE } } })
@@ -39,21 +43,22 @@ export default function AdminKyc() {
   const loadMore = async () => {
     if (next === null || more === 'busy') return
     const s = status
+    const started = generation.current
     setMore('busy')
     try {
       const p = await load(s, next)
-      if (shown.current !== s) return
+      if (generation.current !== started) return
       setItems((list) => (Array.isArray(list) ? [...list, ...p.items.filter((i) => !list.some((x) => x.id === i.id))] : list))
       setNext(p.next)
       setMore('idle')
     } catch {
-      if (shown.current === s) setMore('failed')
+      if (generation.current === started) setMore('failed')
     }
   }
 
   const choose = (s: Status) => {
     if (s === status) return
-    shown.current = s
+    generation.current++
     setItems(null); setNext(null); setMore('idle'); setStatus(s)
   }
 

@@ -28,6 +28,8 @@ export default function Verify() {
     return () => { live = false }
   }, [round])
   const reload = () => { setKyc(null); setRound((r) => r + 1) }
+  // after a send the form (and its focused button) is gone: the result takes focus, so it is read out
+  const [sent, setSent] = useState(false)
 
   return (
     <main className="page">
@@ -37,13 +39,15 @@ export default function Verify() {
             action={<Button variant="secondary" onClick={reload}>{t('error.retry')}</Button>} />
         : kyc.status === 'APPROVED' ? <Alert tone="success" title={t('verify.approved')} />
         : kyc.status === 'PENDING' ? (
-          <Alert title={t('verify.pending')}>{t('verify.pendingBody', { date: formatDate(kyc.submittedAt) })}</Alert>
+          <div ref={sent ? (el) => el?.focus() : undefined} tabIndex={-1}>
+            <Alert title={t('verify.pending')}>{t('verify.pendingBody', { date: formatDate(kyc.submittedAt) })}</Alert>
+          </div>
         ) : (
           <>
             {kyc.status === 'REJECTED'
               ? <Alert tone="warning" title={t('verify.rejected')}>{kyc.rejectionReason}</Alert>
               : <p className="muted">{t('verify.intro')}</p>}
-            <SubmitForm onSent={setKyc} onStale={reload} />
+            <SubmitForm onSent={(k) => { setSent(true); setKyc(k) }} onStale={reload} />
           </>
         )}
       <p><Link to="/settings/profile">{t('changePin.back')}</Link></p>
@@ -65,7 +69,7 @@ function SubmitForm({ onSent, onStale }: { onSent: (k: Kyc) => void; onStale: ()
   const pick = (f: File | undefined) => {
     setError(null)
     if (!f) { setFile(null); return }
-    if (!PHOTO_TYPES.includes(f.type)) { setFile(null); return setFieldError((e) => ({ ...e, file: t('verify.fileType') })) }
+    if (!PHOTO_TYPES.includes(f.type) || f.size === 0) { setFile(null); return setFieldError((e) => ({ ...e, file: t('verify.fileType') })) }
     if (f.size > MAX_BYTES) { setFile(null); return setFieldError((e) => ({ ...e, file: t('verify.fileTooLarge') })) }
     setFieldError((e) => ({ ...e, file: undefined }))
     setFile(f)

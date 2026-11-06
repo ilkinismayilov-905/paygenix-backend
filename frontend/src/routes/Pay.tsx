@@ -6,6 +6,7 @@ import { api, retryAfterMinutes } from '../api/client'
 import { t } from '../i18n'
 import { Button, formatMoney, PinInput, TextField, type Currency } from '../ui'
 import { amountSchema, cardLabel, pickCard, problemCode, pinSchema, useOwnCards } from './money'
+import { useFees } from './fees'
 import { CardsGate, MoneyDone, MoneyError } from './MoneyViews'
 import { toPhone } from './phone'
 
@@ -35,6 +36,7 @@ export default function Pay() {
 
   const fromCardId = useWatch({ control, name: 'fromCardId' })
   const from = Array.isArray(cards) ? pickCard(cards, fromCardId) : undefined
+  const fees = useFees()
 
   const initiate = async (form: z.output<typeof schema>) => {
     setError(null)
@@ -87,6 +89,7 @@ export default function Pay() {
         case 'INSUFFICIENT_BALANCE': setError(t('pay.insufficient')); return
         case 'PAYMENT_ALREADY_PROCESSED': setFlow(null); setError(t('pay.already')); reload(); return
         case 'NOT_FOUND': setFlow(null); setError(t('pay.flowGone')); reload(); return // unknown flow, or the card was closed
+        case 'PAYMENT_EXPIRED': setFlow(null); setError(t('pay.expired')); return // not confirmed within 15 minutes
         default: setError(t('pay.rejected'))
       }
     } catch {
@@ -121,7 +124,7 @@ export default function Pay() {
           </dl>
           <PinInput label={t('money.pin')} value={pin} onChange={setPin} error={pinError} autoFocus />
           <Button type="submit" block loading={confirming}>{t('pay.submit')}</Button>
-          {/* the old flow stays PENDING on the server (nothing expires it yet, T-132); editing starts a new one */}
+          {/* the old flow expires on the server after 15 minutes (T-132); editing starts a new one */}
           <Button variant="ghost" block disabled={confirming} onClick={() => { setFlow(null); setError(null) }}>{t('pay.edit')}</Button>
         </form>
       </main>
@@ -145,7 +148,8 @@ export default function Pay() {
           <TextField label={t('pay.phone')} type="tel" inputMode="tel" autoComplete="off" placeholder="+994 50 123 45 67"
             error={errors.phoneNumber?.message} {...register('phoneNumber')} />
           <TextField label={t('money.amount')} inputMode="decimal" autoComplete="off" placeholder="0.00"
-            suffix={from?.currency} error={errors.amount?.message} {...register('amount')} />
+            suffix={from?.currency} hint={fees ? t('pay.cashbackHint', { percent: fees.cashbackPercent }) : undefined}
+            error={errors.amount?.message} {...register('amount')} />
           <Button type="submit" block loading={isSubmitting}>{t('pay.continue')}</Button>
         </form>
       )}</CardsGate>

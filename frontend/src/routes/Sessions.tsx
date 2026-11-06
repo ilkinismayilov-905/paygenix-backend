@@ -68,7 +68,8 @@ export default function Sessions() {
     <main className="page">
       <h1>{t('sessions.title')}</h1>
       <p className="muted">{t('sessions.intro')}</p>
-      {notice && <Alert tone="success" title={notice} />}
+      {/* the signed-out row (and its focused button) is gone: the notice takes focus */}
+      {notice && <div ref={(el) => el?.focus()} tabIndex={-1}><Alert tone="success" title={notice} /></div>}
       {error && <Alert tone="danger" title={error} />}
       {sessions === null ? (
         <div aria-busy="true"><Skeleton height="12rem" /></div>
