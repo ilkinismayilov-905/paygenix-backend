@@ -28,11 +28,11 @@ beforeEach(() => {
   revokeAll = () => ok(null)
   vi.stubGlobal('fetch', async (req: Request) => {
     const url = new URL(req.url)
-    if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
-    if (url.pathname === '/api/auth/sessions' && req.method === 'GET') return sessions()
-    if (url.pathname === '/api/auth/sessions' && req.method === 'DELETE') { deleted.push('all'); return revokeAll() }
-    if (url.pathname.startsWith('/api/auth/sessions/') && req.method === 'DELETE') { deleted.push(url.pathname.split('/').pop()!); return revokeOne() }
-    if (url.pathname === '/api/auth/logout') return ok(null)
+    if (url.pathname === '/api/v1/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
+    if (url.pathname === '/api/v1/auth/sessions' && req.method === 'GET') return sessions()
+    if (url.pathname === '/api/v1/auth/sessions' && req.method === 'DELETE') { deleted.push('all'); return revokeAll() }
+    if (url.pathname.startsWith('/api/v1/auth/sessions/') && req.method === 'DELETE') { deleted.push(url.pathname.split('/').pop()!); return revokeOne() }
+    if (url.pathname === '/api/v1/auth/logout') return ok(null)
     return json(404, {})
   })
 })

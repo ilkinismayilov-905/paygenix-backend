@@ -103,7 +103,7 @@ class LedgerInvariantTest extends IntegrationTest {
     }
 
     private void pay(User payer, String card, String amount) throws Exception {
-        var initiated = mockMvc.perform(post("/api/payment/initiate").header("Authorization", bearer(payer))
+        var initiated = mockMvc.perform(post("/api/v1/payment/initiate").header("Authorization", bearer(payer))
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"phoneNumber\":\"+994501234567\",\"fromCardId\":" + cardOf(card).getId()
@@ -114,7 +114,7 @@ class LedgerInvariantTest extends IntegrationTest {
         }
         assertThat(initiated.getStatus()).isEqualTo(200);
         String flowId = JsonPath.read(initiated.getContentAsString(), "$.data");
-        mockMvc.perform(post("/api/payment/confirm").header("Authorization", bearer(payer))
+        mockMvc.perform(post("/api/v1/payment/confirm").header("Authorization", bearer(payer))
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"flowId\":\"" + flowId + "\",\"pin\":\"" + PIN + "\"}"))

@@ -63,7 +63,7 @@ public abstract class IntegrationTest {
 
     /** A browser refresh: the token as the refresh cookie, from the frontend's origin. */
     protected ResultActions cookieRefresh(String refreshToken) throws Exception {
-        return mockMvc.perform(post("/api/auth/refresh-token").header("Origin", ALLOWED_ORIGIN)
+        return mockMvc.perform(post("/api/v1/auth/refresh-token").header("Origin", ALLOWED_ORIGIN)
                 .cookie(new Cookie(RefreshCookie.NAME, refreshToken)));
     }
 
@@ -108,7 +108,7 @@ public abstract class IntegrationTest {
 
     /** Issues a card through the API and returns the full number (only ever visible in that response). */
     protected String issueCard(User owner, String currency) throws Exception {
-        String body = mockMvc.perform(post("/api/cards").header("Authorization", bearer(owner))
+        String body = mockMvc.perform(post("/api/v1/cards").header("Authorization", bearer(owner))
                         .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"currency\":\"" + currency + "\"}"))

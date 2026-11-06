@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/admin/kyc")
+@RequestMapping("/api/v1/admin/kyc")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN_ROLE')")
 @Tag(name = "Admin: identity verification", description = "Review identity documents (admins only)")

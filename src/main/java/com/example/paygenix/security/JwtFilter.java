@@ -60,12 +60,12 @@ public class JwtFilter extends OncePerRequestFilter {
 
         try {
             String tokenUse = jwtService.extractTokenUse(token);
-            boolean onboardingPath = path.startsWith("/api/onboarding/");
+            boolean onboardingPath = path.startsWith("/api/v1/onboarding/");
 
             if (JwtService.ONBOARDING.equals(tokenUse) && onboardingPath) {
                 // SEC-19: an onboarding token may only drive the flow it was issued for
                 String flowId = jwtService.extractClaim(token, claims -> claims.get(JwtService.FLOW_ID, String.class));
-                if (flowId == null || !path.startsWith("/api/onboarding/" + flowId + "/")) {
+                if (flowId == null || !path.startsWith("/api/v1/onboarding/" + flowId + "/")) {
                     filterChain.doFilter(request, response);
                     return;
                 }
@@ -149,13 +149,13 @@ public class JwtFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
 
-        boolean isEmailStep = path.equals("/api/onboarding/email");
-        boolean isOtpStep = path.matches("/api/onboarding/[^/]+/otp");
+        boolean isEmailStep = path.equals("/api/v1/onboarding/email");
+        boolean isOtpStep = path.matches("/api/v1/onboarding/[^/]+/otp");
         return isOtpStep || isEmailStep
                 || path.startsWith("/swagger-ui")
                 || path.startsWith("/v3/api-docs")
-                || path.startsWith("/api/auth/login")
-                || path.startsWith("/api/auth/register");
+                || path.startsWith("/api/v1/auth/login")
+                || path.startsWith("/api/v1/auth/register");
     }
 
 }

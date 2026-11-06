@@ -25,14 +25,14 @@ class RefreshCookieTest extends IntegrationTest {
     @Test
     void loginSetsAHardenedCookieScopedToAuth() throws Exception {
         User user = createUser();
-        MockHttpServletResponse res = mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+        MockHttpServletResponse res = mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"" + user.getEmail() + "\",\"password\":\"" + PASSWORD + "\"}"))
                 .andExpect(status().isOk()).andReturn().getResponse();
 
         String cookie = res.getHeader("Set-Cookie");
         assertThat(jwtService.extractTokenUse(refreshCookieOf(res))).isEqualTo(JwtService.REFRESH);
         assertThat(res.getContentAsString()).as("T-116: the refresh token is never in the body").doesNotContain("refreshToken");
-        assertThat(cookie).contains("Path=/api/auth", "HttpOnly", "Secure", "SameSite=Strict", "Max-Age=604800");
+        assertThat(cookie).contains("Path=/api/v1/auth", "HttpOnly", "Secure", "SameSite=Strict", "Max-Age=604800");
     }
 
     @Test
@@ -54,7 +54,7 @@ class RefreshCookieTest extends IntegrationTest {
     @Test
     void aBodyTokenIsNoLongerAccepted() throws Exception {
         JwtTokenResponse login = sessionService.start(createUser(), "app");
-        mockMvc.perform(post("/api/auth/refresh-token").header("Origin", ALLOWED_ORIGIN).contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/api/v1/auth/refresh-token").header("Origin", ALLOWED_ORIGIN).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"refreshToken\":\"" + login.refreshToken() + "\"}"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_REFRESH_TOKEN"));
@@ -64,7 +64,7 @@ class RefreshCookieTest extends IntegrationTest {
     @Test
     void googleCodeExchangeSetsTheCookie() throws Exception {
         String code = oAuthCodeService.issue(createUser().getId());
-        MockHttpServletResponse res = mockMvc.perform(post("/api/auth/oauth/exchange").contentType(MediaType.APPLICATION_JSON)
+        MockHttpServletResponse res = mockMvc.perform(post("/api/v1/auth/oauth/exchange").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"code\":\"" + code + "\"}"))
                 .andExpect(status().isOk()).andReturn().getResponse();
         assertThat(res.getContentAsString()).doesNotContain("refreshToken");
@@ -85,7 +85,7 @@ class RefreshCookieTest extends IntegrationTest {
 
     @Test
     void noBodyAndNoCookieIsInvalid() throws Exception {
-        mockMvc.perform(post("/api/auth/refresh-token").header("Origin", ALLOWED_ORIGIN))
+        mockMvc.perform(post("/api/v1/auth/refresh-token").header("Origin", ALLOWED_ORIGIN))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_REFRESH_TOKEN"));
     }
@@ -96,21 +96,21 @@ class RefreshCookieTest extends IntegrationTest {
         JwtTokenResponse here = sessionService.start(user, "browser");
         JwtTokenResponse other = sessionService.start(user, "phone");
 
-        String otherCleared = mockMvc.perform(delete("/api/auth/sessions/" + jwtService.extractSessionId(other.token()))
+        String otherCleared = mockMvc.perform(delete("/api/v1/auth/sessions/" + jwtService.extractSessionId(other.token()))
                         .header("Authorization", "Bearer " + here.token()))
                 .andExpect(status().isOk()).andReturn().getResponse().getHeader("Set-Cookie");
         assertThat(otherCleared).isNull();
 
-        String cleared = mockMvc.perform(delete("/api/auth/sessions/" + jwtService.extractSessionId(here.token()))
+        String cleared = mockMvc.perform(delete("/api/v1/auth/sessions/" + jwtService.extractSessionId(here.token()))
                         .header("Authorization", "Bearer " + here.token()))
                 .andExpect(status().isOk()).andReturn().getResponse().getHeader("Set-Cookie");
-        assertThat(cleared).startsWith(RefreshCookie.NAME + "=;").contains("Max-Age=0", "Path=/api/auth");
+        assertThat(cleared).startsWith(RefreshCookie.NAME + "=;").contains("Max-Age=0", "Path=/api/v1/auth");
     }
 
     @Test
     void signingOutEverywhereClearsTheCookie() throws Exception {
         JwtTokenResponse login = sessionService.start(createUser(), "browser");
-        String cleared = mockMvc.perform(delete("/api/auth/sessions").header("Authorization", "Bearer " + login.token()))
+        String cleared = mockMvc.perform(delete("/api/v1/auth/sessions").header("Authorization", "Bearer " + login.token()))
                 .andExpect(status().isOk()).andReturn().getResponse().getHeader("Set-Cookie");
         assertThat(cleared).startsWith(RefreshCookie.NAME + "=;").contains("Max-Age=0");
     }
@@ -121,17 +121,17 @@ class RefreshCookieTest extends IntegrationTest {
         JwtTokenResponse here = sessionService.start(user, "browser");
         JwtTokenResponse other = sessionService.start(user, "phone");
 
-        String cleared = mockMvc.perform(post("/api/auth/logout").header("Origin", ALLOWED_ORIGIN)
+        String cleared = mockMvc.perform(post("/api/v1/auth/logout").header("Origin", ALLOWED_ORIGIN)
                         .cookie(new Cookie(RefreshCookie.NAME, here.refreshToken())))
                 .andExpect(status().isOk()).andReturn().getResponse().getHeader("Set-Cookie");
-        assertThat(cleared).startsWith(RefreshCookie.NAME + "=;").contains("Max-Age=0", "Path=/api/auth");
+        assertThat(cleared).startsWith(RefreshCookie.NAME + "=;").contains("Max-Age=0", "Path=/api/v1/auth");
 
         assertThat(sessionService.isActive(jwtService.extractSessionId(here.token()), user.getId())).isFalse();
         assertThat(sessionService.isActive(jwtService.extractSessionId(other.token()), user.getId())).isTrue();
         cookieRefresh(here.refreshToken(), ALLOWED_ORIGIN).andExpect(status().isUnauthorized());
 
         // idempotent: signing out again with the same cookie is still a 200 that clears it
-        assertThat(mockMvc.perform(post("/api/auth/logout").header("Origin", ALLOWED_ORIGIN)
+        assertThat(mockMvc.perform(post("/api/v1/auth/logout").header("Origin", ALLOWED_ORIGIN)
                         .cookie(new Cookie(RefreshCookie.NAME, here.refreshToken())))
                 .andExpect(status().isOk()).andReturn().getResponse().getHeader("Set-Cookie")).contains("Max-Age=0");
     }
@@ -141,7 +141,7 @@ class RefreshCookieTest extends IntegrationTest {
         JwtTokenResponse login = sessionService.start(createUser(), "browser");
         for (Cookie c : new Cookie[]{null, new Cookie(RefreshCookie.NAME, "garbage"),
                 new Cookie(RefreshCookie.NAME, login.token())}) { // an access token is not a refresh token
-            var req = post("/api/auth/logout").header("Origin", ALLOWED_ORIGIN);
+            var req = post("/api/v1/auth/logout").header("Origin", ALLOWED_ORIGIN);
             if (c != null) req.cookie(c);
             assertThat(mockMvc.perform(req).andExpect(status().isOk()).andReturn().getResponse().getHeader("Set-Cookie"))
                     .contains("Max-Age=0");
@@ -152,14 +152,14 @@ class RefreshCookieTest extends IntegrationTest {
     @Test
     void logoutWithoutAnAllowedOriginIsRejectedAndKeepsTheSession() throws Exception {
         JwtTokenResponse login = sessionService.start(createUser(), "browser");
-        mockMvc.perform(post("/api/auth/logout").cookie(new Cookie(RefreshCookie.NAME, login.refreshToken())))
+        mockMvc.perform(post("/api/v1/auth/logout").cookie(new Cookie(RefreshCookie.NAME, login.refreshToken())))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("REFRESH_ORIGIN_REJECTED"));
         cookieRefresh(login.refreshToken(), ALLOWED_ORIGIN).andExpect(status().isOk());
     }
 
     private org.springframework.test.web.servlet.ResultActions cookieRefresh(String token, String origin) throws Exception {
-        var req = post("/api/auth/refresh-token").cookie(new Cookie(RefreshCookie.NAME, token));
+        var req = post("/api/v1/auth/refresh-token").cookie(new Cookie(RefreshCookie.NAME, token));
         if (origin != null) req.header("Origin", origin);
         return mockMvc.perform(req);
     }

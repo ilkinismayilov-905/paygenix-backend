@@ -32,7 +32,7 @@ function Result({ session, cancelled }: { session: string; cancelled: boolean })
         if (i > 0) await new Promise((r) => setTimeout(r, POLL_MS))
         if (run.stopped) return
         try {
-          const { data, response } = await api.GET('/api/topups/session/{sessionId}', { params: { path: { sessionId: session } } })
+          const { data, response } = await api.GET('/api/v1/topups/session/{sessionId}', { params: { path: { sessionId: session } } })
           if (run.stopped) return
           if (response.status === 404) return setTopUp('missing')
           const found = data?.data

@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-/** Profile photos, in their own bucket. Only the owner gets a link, through GET /api/profile/me. */
+/** Profile photos, in their own bucket. Only the owner gets a link, through GET /api/v1/profile/me. */
 @Slf4j
 @Service
 public class ProfileMediaStorage extends AbstractMediaStorage {

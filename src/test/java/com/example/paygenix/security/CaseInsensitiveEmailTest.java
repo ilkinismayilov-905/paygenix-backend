@@ -22,7 +22,7 @@ class CaseInsensitiveEmailTest extends IntegrationTest {
         User user = createUser();
         String shouted = "  " + user.getEmail().toUpperCase(Locale.ROOT) + " ";
 
-        mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"" + shouted + "\",\"password\":\"" + PASSWORD + "\"}"))
                 .andExpect(status().isOk());
     }

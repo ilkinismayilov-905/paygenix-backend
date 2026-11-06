@@ -24,7 +24,7 @@ class AuthenticationPrincipalTest extends IntegrationTest {
 
     @Test
     void storyFeedResolvesTheLoggedInUser() throws Exception {
-        mockMvc.perform(get("/api/stories/feed").header("Authorization", bearer(createUser())))
+        mockMvc.perform(get("/api/v1/stories/feed").header("Authorization", bearer(createUser())))
                 .andExpect(status().isOk());
     }
 
@@ -33,7 +33,7 @@ class AuthenticationPrincipalTest extends IntegrationTest {
         User owner = createUser(com.example.paygenix.enums.Role.ADMIN_ROLE);
         Story story = storyOf(owner);
 
-        mockMvc.perform(delete("/api/admin/stories/" + story.getId()).header("Authorization", bearer(owner)))
+        mockMvc.perform(delete("/api/v1/admin/stories/" + story.getId()).header("Authorization", bearer(owner)))
                 .andExpect(status().isOk());
 
         assertThat(storyRepository.findById(story.getId()).orElseThrow().isDeleted()).isTrue();
@@ -43,7 +43,7 @@ class AuthenticationPrincipalTest extends IntegrationTest {
     void aUserCannotTakeAPromoDown() throws Exception {
         Story story = storyOf(createUser(com.example.paygenix.enums.Role.ADMIN_ROLE));
 
-        int status = mockMvc.perform(delete("/api/admin/stories/" + story.getId()).header("Authorization", bearer(createUser())))
+        int status = mockMvc.perform(delete("/api/v1/admin/stories/" + story.getId()).header("Authorization", bearer(createUser())))
                 .andReturn().getResponse().getStatus();
 
         assertThat(status).isGreaterThanOrEqualTo(400);

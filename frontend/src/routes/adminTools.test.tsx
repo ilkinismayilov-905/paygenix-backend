@@ -19,11 +19,11 @@ beforeEach(() => {
   lock = () => ok({ ...user, status: 'LOCKED' })
   vi.stubGlobal('fetch', async (req: Request) => {
     const url = new URL(req.url)
-    if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'admin', roles: ['ADMIN_ROLE'], pendingLegalDocuments: [] })
-    if (url.pathname === '/api/admin/users') { queries.push(url.searchParams.get('query') ?? ''); return ok({ items: [user], hasNext: false }) }
-    if (url.pathname === '/api/admin/users/5/lock') return lock()
-    if (url.pathname === '/api/admin/reports') return ok({ items: url.searchParams.get('status') === 'OPEN' ? [report] : [], hasNext: false })
-    if (url.pathname === '/api/admin/reports/9') { patches.push(await req.clone().json()); return ok({ ...report, status: 'RESOLVED' }) }
+    if (url.pathname === '/api/v1/auth/me') return ok({ id: 1, username: 'admin', roles: ['ADMIN_ROLE'], pendingLegalDocuments: [] })
+    if (url.pathname === '/api/v1/admin/users') { queries.push(url.searchParams.get('query') ?? ''); return ok({ items: [user], hasNext: false }) }
+    if (url.pathname === '/api/v1/admin/users/5/lock') return lock()
+    if (url.pathname === '/api/v1/admin/reports') return ok({ items: url.searchParams.get('status') === 'OPEN' ? [report] : [], hasNext: false })
+    if (url.pathname === '/api/v1/admin/reports/9') { patches.push(await req.clone().json()); return ok({ ...report, status: 'RESOLVED' }) }
     return json(404, {})
   })
 })

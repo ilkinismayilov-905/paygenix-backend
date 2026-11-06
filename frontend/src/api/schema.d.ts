@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/api/onboarding/{flowId}/username": {
+    "/api/v1/onboarding/{flowId}/username": {
         parameters: {
             query?: never;
             header?: never;
@@ -24,7 +24,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/onboarding/{flowId}/pin": {
+    "/api/v1/onboarding/{flowId}/pin": {
         parameters: {
             query?: never;
             header?: never;
@@ -34,7 +34,7 @@ export interface paths {
         get?: never;
         /**
          * Set PIN and complete onboarding
-         * @description Finalizes the onboarding with the login password, the 6-digit transaction PIN and acceptedLegalDocuments: the Terms and Privacy versions shown to the user (from GET /api/legal/terms and /api/legal/privacy). The user then signs in through /api/auth/login with email and password.
+         * @description Finalizes the onboarding with the login password, the 6-digit transaction PIN and acceptedLegalDocuments: the Terms and Privacy versions shown to the user (from GET /api/v1/legal/terms and /api/v1/legal/privacy). The user then signs in through /api/v1/auth/login with email and password.
          */
         put: operations["setPin"];
         post?: never;
@@ -44,7 +44,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/onboarding/{flowId}/full-name": {
+    "/api/v1/onboarding/{flowId}/full-name": {
         parameters: {
             query?: never;
             header?: never;
@@ -64,7 +64,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/user/pin": {
+    "/api/v1/user/pin": {
         parameters: {
             query?: never;
             header?: never;
@@ -84,7 +84,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/transfer": {
+    "/api/v1/transfer": {
         parameters: {
             query?: never;
             header?: never;
@@ -108,7 +108,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/topups": {
+    "/api/v1/topups": {
         parameters: {
             query?: never;
             header?: never;
@@ -128,7 +128,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/stories/{storyId}/view": {
+    "/api/v1/stories/{storyId}/view": {
         parameters: {
             query?: never;
             header?: never;
@@ -148,7 +148,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/reports": {
+    "/api/v1/reports": {
         parameters: {
             query?: never;
             header?: never;
@@ -172,7 +172,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/profile": {
+    "/api/v1/profile": {
         parameters: {
             query?: never;
             header?: never;
@@ -196,7 +196,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/profile/photo": {
+    "/api/v1/profile/photo": {
         parameters: {
             query?: never;
             header?: never;
@@ -207,7 +207,7 @@ export interface paths {
         put?: never;
         /**
          * Upload profile photo
-         * @description JPEG, PNG, WebP or GIF, at most 5 MB. Replaces the current photo. Needs a saved profile. The response's photoUrl works for 10 minutes; GET /api/profile/me gives a fresh one.
+         * @description JPEG, PNG, WebP or GIF, at most 5 MB. Replaces the current photo. Needs a saved profile. The response's photoUrl works for 10 minutes; GET /api/v1/profile/me gives a fresh one.
          */
         post: operations["uploadProfileImage"];
         /**
@@ -220,7 +220,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/profile/email": {
+    "/api/v1/profile/email": {
         parameters: {
             query?: never;
             header?: never;
@@ -231,7 +231,7 @@ export interface paths {
         put?: never;
         /**
          * Start an email change
-         * @description Needs the current PIN. Sends a 6-digit code to the new address and another to the current one. The email changes only after POST /api/profile/email/confirm with both codes (within 10 minutes); the old address is then notified.
+         * @description Needs the current PIN. Sends a 6-digit code to the new address and another to the current one. The email changes only after POST /api/v1/profile/email/confirm with both codes (within 10 minutes); the old address is then notified.
          */
         post: operations["startEmailChange"];
         delete?: never;
@@ -240,7 +240,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/profile/email/confirm": {
+    "/api/v1/profile/email/confirm": {
         parameters: {
             query?: never;
             header?: never;
@@ -260,7 +260,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/payment/initiate": {
+    "/api/v1/payment/initiate": {
         parameters: {
             query?: never;
             header?: never;
@@ -280,7 +280,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/payment/confirm": {
+    "/api/v1/payment/confirm": {
         parameters: {
             query?: never;
             header?: never;
@@ -300,7 +300,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/onboarding/{flowId}/otp": {
+    "/api/v1/onboarding/{flowId}/otp": {
         parameters: {
             query?: never;
             header?: never;
@@ -320,7 +320,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/onboarding/email": {
+    "/api/v1/onboarding/email": {
         parameters: {
             query?: never;
             header?: never;
@@ -340,7 +340,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/legal/acceptances": {
+    "/api/v1/legal/acceptances": {
         parameters: {
             query?: never;
             header?: never;
@@ -351,7 +351,7 @@ export interface paths {
         put?: never;
         /**
          * Accept the current legal documents
-         * @description Records that the caller accepted the given Terms/Privacy versions (the ones listed in pendingLegalDocuments of GET /api/auth/me). Until every active document is accepted, transfers and payments answer 403 LEGAL_ACCEPTANCE_REQUIRED. Accepting the same version again changes nothing.
+         * @description Records that the caller accepted the given Terms/Privacy versions (the ones listed in pendingLegalDocuments of GET /api/v1/auth/me). Until every active document is accepted, transfers and payments answer 403 LEGAL_ACCEPTANCE_REQUIRED. Accepting the same version again changes nothing.
          */
         post: operations["accept"];
         delete?: never;
@@ -360,7 +360,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/kyc": {
+    "/api/v1/kyc": {
         parameters: {
             query?: never;
             header?: never;
@@ -380,7 +380,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/change-pin": {
+    "/api/v1/change-pin": {
         parameters: {
             query?: never;
             header?: never;
@@ -400,7 +400,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/change-pin/{flowId}/pin": {
+    "/api/v1/change-pin/{flowId}/pin": {
         parameters: {
             query?: never;
             header?: never;
@@ -420,7 +420,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/change-pin/{flowId}/otp": {
+    "/api/v1/change-pin/{flowId}/otp": {
         parameters: {
             query?: never;
             header?: never;
@@ -440,7 +440,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/cards": {
+    "/api/v1/cards": {
         parameters: {
             query?: never;
             header?: never;
@@ -464,7 +464,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/refresh-token": {
+    "/api/v1/auth/refresh-token": {
         parameters: {
             query?: never;
             header?: never;
@@ -484,7 +484,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/oauth/exchange": {
+    "/api/v1/auth/oauth/exchange": {
         parameters: {
             query?: never;
             header?: never;
@@ -504,7 +504,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/logout": {
+    "/api/v1/auth/logout": {
         parameters: {
             query?: never;
             header?: never;
@@ -524,7 +524,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/login": {
+    "/api/v1/auth/login": {
         parameters: {
             query?: never;
             header?: never;
@@ -544,7 +544,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/users/{id}/unlock": {
+    "/api/v1/admin/users/{id}/unlock": {
         parameters: {
             query?: never;
             header?: never;
@@ -561,7 +561,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/users/{id}/lock": {
+    "/api/v1/admin/users/{id}/lock": {
         parameters: {
             query?: never;
             header?: never;
@@ -581,7 +581,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/stories": {
+    "/api/v1/admin/stories": {
         parameters: {
             query?: never;
             header?: never;
@@ -605,7 +605,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/kyc/{id}/reject": {
+    "/api/v1/admin/kyc/{id}/reject": {
         parameters: {
             query?: never;
             header?: never;
@@ -625,7 +625,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/kyc/{id}/approve": {
+    "/api/v1/admin/kyc/{id}/approve": {
         parameters: {
             query?: never;
             header?: never;
@@ -645,7 +645,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/reports/{id}": {
+    "/api/v1/admin/reports/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -665,7 +665,7 @@ export interface paths {
         patch: operations["setStatus"];
         trace?: never;
     };
-    "/api/user": {
+    "/api/v1/user": {
         parameters: {
             query?: never;
             header?: never;
@@ -685,7 +685,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/transfer/{id}": {
+    "/api/v1/transfer/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -705,7 +705,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/transaction": {
+    "/api/v1/transaction": {
         parameters: {
             query?: never;
             header?: never;
@@ -725,7 +725,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/transaction/{id}": {
+    "/api/v1/transaction/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -745,7 +745,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/transaction/between": {
+    "/api/v1/transaction/between": {
         parameters: {
             query?: never;
             header?: never;
@@ -765,7 +765,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/topups/session/{sessionId}": {
+    "/api/v1/topups/session/{sessionId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -785,7 +785,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/stories/feed": {
+    "/api/v1/stories/feed": {
         parameters: {
             query?: never;
             header?: never;
@@ -805,7 +805,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/profile/me": {
+    "/api/v1/profile/me": {
         parameters: {
             query?: never;
             header?: never;
@@ -825,7 +825,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/payment/history": {
+    "/api/v1/payment/history": {
         parameters: {
             query?: never;
             header?: never;
@@ -845,7 +845,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/legal/terms": {
+    "/api/v1/legal/terms": {
         parameters: {
             query?: never;
             header?: never;
@@ -865,7 +865,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/legal/privacy": {
+    "/api/v1/legal/privacy": {
         parameters: {
             query?: never;
             header?: never;
@@ -885,7 +885,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/kyc/me": {
+    "/api/v1/kyc/me": {
         parameters: {
             query?: never;
             header?: never;
@@ -905,7 +905,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/fees": {
+    "/api/v1/fees": {
         parameters: {
             query?: never;
             header?: never;
@@ -925,7 +925,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/cards/{id}": {
+    "/api/v1/cards/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -949,7 +949,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/cards/me": {
+    "/api/v1/cards/me": {
         parameters: {
             query?: never;
             header?: never;
@@ -969,7 +969,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/cards/me/activity": {
+    "/api/v1/cards/me/activity": {
         parameters: {
             query?: never;
             header?: never;
@@ -989,7 +989,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/sessions": {
+    "/api/v1/auth/sessions": {
         parameters: {
             query?: never;
             header?: never;
@@ -1013,7 +1013,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/providers": {
+    "/api/v1/auth/providers": {
         parameters: {
             query?: never;
             header?: never;
@@ -1033,7 +1033,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/me": {
+    "/api/v1/auth/me": {
         parameters: {
             query?: never;
             header?: never;
@@ -1053,7 +1053,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/": {
+    "/api/v1/auth/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1073,7 +1073,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/users": {
+    "/api/v1/admin/users": {
         parameters: {
             query?: never;
             header?: never;
@@ -1093,7 +1093,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/reports": {
+    "/api/v1/admin/reports": {
         parameters: {
             query?: never;
             header?: never;
@@ -1113,7 +1113,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/kyc": {
+    "/api/v1/admin/kyc": {
         parameters: {
             query?: never;
             header?: never;
@@ -1133,7 +1133,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/kyc/{id}": {
+    "/api/v1/admin/kyc/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1153,7 +1153,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/sessions/{id}": {
+    "/api/v1/auth/sessions/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1173,7 +1173,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/stories/{storyId}": {
+    "/api/v1/admin/stories/{storyId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1226,7 +1226,7 @@ export interface components {
         TransferRequest: {
             /**
              * Format: int64
-             * @description Id of one of the caller's cards (GET /api/cards/me)
+             * @description Id of one of the caller's cards (GET /api/v1/cards/me)
              */
             fromCardId: number;
             toCardNumber: string;
@@ -1348,7 +1348,7 @@ export interface components {
             phoneNumber: string;
             /**
              * Format: int64
-             * @description Id of one of the caller's cards (GET /api/cards/me)
+             * @description Id of one of the caller's cards (GET /api/v1/cards/me)
              */
             fromCardId: number;
             /**
@@ -1954,7 +1954,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description User created; sign in through /api/auth/login */
+            /** @description User created; sign in through /api/v1/auth/login */
             200: {
                 headers: {
                     [name: string]: unknown;

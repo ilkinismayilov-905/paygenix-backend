@@ -11,14 +11,14 @@ type Doc = { version: string; effectiveDate?: string; content: string }
 const date = new Intl.DateTimeFormat('en', { dateStyle: 'long', timeZone: 'UTC' })
 const formatDate = (d?: string) => (d && !Number.isNaN(Date.parse(d)) ? date.format(new Date(d)) : '')
 
-/** Terms or Privacy as a page anyone can open (GET /api/legal/terms, /privacy); the sign-up dialogs show the same text. */
+/** Terms or Privacy as a page anyone can open (GET /api/v1/legal/terms, /privacy); the sign-up dialogs show the same text. */
 function LegalPage({ type }: { type: 'terms' | 'privacy' }) {
   const [doc, setDoc] = useState<Doc | null | 'missing' | 'failed'>(null)
   const [round, setRound] = useState(0)
   const signedIn = useAuthStatus() === 'signed-in'
   useEffect(() => {
     let live = true
-    void api.GET(type === 'terms' ? '/api/legal/terms' : '/api/legal/privacy')
+    void api.GET(type === 'terms' ? '/api/v1/legal/terms' : '/api/v1/legal/privacy')
       .then(({ data, response }) => {
         if (!live) return
         const d = data?.data

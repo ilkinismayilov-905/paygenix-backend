@@ -66,7 +66,7 @@ public class TopUpService {
         CheckoutGateway.Checkout checkout = gateway.open(user.getId(), value, card.getCurrency(),
                 // hashed: Stripe keys are at most 255 characters, the client's alone may be that long
                 "topup-" + user.getId() + "-" + sha256(idempotencyKey),
-                // Stripe fills in {CHECKOUT_SESSION_ID} on success only; the return page asks GET /api/topups/session/{id}
+                // Stripe fills in {CHECKOUT_SESSION_ID} on success only; the return page asks GET /api/v1/topups/session/{id}
                 frontendUrl + "/top-up/return?session={CHECKOUT_SESSION_ID}",
                 frontendUrl + "/top-up/return?cancelled=1");
         try {

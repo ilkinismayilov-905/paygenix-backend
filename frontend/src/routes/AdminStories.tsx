@@ -13,7 +13,7 @@ const TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4'
 const MAX_BYTES = 10 * 1024 * 1024 // spring.servlet.multipart.max-file-size
 const DURATIONS = [6, 24, 72, 168]
 
-/** Admin: publish promo stories every user sees on the dashboard, and take live ones down (/api/admin/stories). */
+/** Admin: publish promo stories every user sees on the dashboard, and take live ones down (/api/v1/admin/stories). */
 export default function AdminStories() {
   const [promos, setPromos] = useState<Promo[] | null | 'failed'>(null)
   const [round, setRound] = useState(0)
@@ -24,7 +24,7 @@ export default function AdminStories() {
 
   useEffect(() => {
     let live = true
-    void api.GET('/api/admin/stories')
+    void api.GET('/api/v1/admin/stories')
       .then(({ data, response }) => { if (live) setPromos(response.ok && Array.isArray(data?.data) ? data.data : 'failed') })
       .catch(() => { if (live) setPromos('failed') })
     return () => { live = false }
@@ -35,7 +35,7 @@ export default function AdminStories() {
     if (!removing?.id) return
     setRemoveBusy(true); setRemoveError(null)
     try {
-      const { response } = await api.DELETE('/api/admin/stories/{storyId}', { params: { path: { storyId: removing.id } } })
+      const { response } = await api.DELETE('/api/v1/admin/stories/{storyId}', { params: { path: { storyId: removing.id } } })
       // 404: already taken down (another admin) — the outcome asked for
       if (response.ok || response.status === 404) {
         setPromos((list) => (Array.isArray(list) ? list.filter((p) => p.id !== removing.id) : list))
@@ -116,7 +116,7 @@ function PublishForm({ onPublished }: { onPublished: () => void }) {
     const form = new FormData()
     form.append('file', file)
     try {
-      const { error: problem, response } = await api.POST('/api/admin/stories', {
+      const { error: problem, response } = await api.POST('/api/v1/admin/stories', {
         params: { query: { hours } },
         body: form as never, // multipart: sent as built, the browser sets the boundary
         bodySerializer: (b) => b as unknown as FormData,

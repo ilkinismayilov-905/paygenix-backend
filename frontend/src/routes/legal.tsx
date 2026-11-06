@@ -49,7 +49,7 @@ export function AcceptLegal({ pending, onDone }: { pending: LegalRef[]; onDone: 
     setBusy(true)
     setError(null)
     try {
-      const { response } = await api.POST('/api/legal/acceptances', { body: { documents: pending } })
+      const { response } = await api.POST('/api/v1/legal/acceptances', { body: { documents: pending } })
       if (response.ok) return onDone([])
       if (response.status === 409) { // a newer version appeared meanwhile: show it
         reload()

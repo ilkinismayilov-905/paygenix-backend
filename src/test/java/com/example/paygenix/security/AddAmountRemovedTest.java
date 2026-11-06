@@ -32,7 +32,7 @@ class AddAmountRemovedTest extends IntegrationTest {
                 .build());
 
         try {
-            int status = mockMvc.perform(post("/api/cards/" + number + "/add-amount")
+            int status = mockMvc.perform(post("/api/v1/cards/" + number + "/add-amount")
                     .param("amount", "1000000")
                     .header("Authorization", bearer(createUser())))
                     .andReturn().getResponse().getStatus();

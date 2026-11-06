@@ -9,7 +9,7 @@ import { Alert, Button, TextField } from '../ui'
 import { problemCode } from './money'
 import { PinStep } from './PinStep'
 
-/** Change PIN: email code → new PIN → repeat (POST /api/change-pin, /{flowId}/otp, /{flowId}/pin). A reload starts over. */
+/** Change PIN: email code → new PIN → repeat (POST /api/v1/change-pin, /{flowId}/otp, /{flowId}/pin). A reload starts over. */
 type Step = 'start' | 'code' | 'pin' | 'pinRepeat' | 'done'
 
 // After these the flow cannot continue: back to the start with a new code.
@@ -54,7 +54,7 @@ export default function ChangePin() {
     setError(null)
     setResent(false)
     setSending(true)
-    const r = await call(() => api.POST('/api/change-pin'))
+    const r = await call(() => api.POST('/api/v1/change-pin'))
     setSending(false)
     const id = (r.data as { data?: string } | undefined)?.data
     if (r.error || !id) return setError(r.error ?? message(undefined))
@@ -93,7 +93,7 @@ export default function ChangePin() {
         {resent && <Alert tone="success" title={t('changePin.resent')} />}
         <CodeForm key={flowId} sending={sending} onResend={send} onSubmit={async (otp) => {
           setError(null)
-          const r = await call(() => api.POST('/api/change-pin/{flowId}/otp', { params: path, body: { otp } }))
+          const r = await call(() => api.POST('/api/v1/change-pin/{flowId}/otp', { params: path, body: { otp } }))
           if (r.error) return fail(r)
           setStep('pin')
         }} />
@@ -105,7 +105,7 @@ export default function ChangePin() {
         <PinStep key="repeat" label="signUp.pinRepeat" submit="changePin.submit" onSubmit={async (repeat) => {
           setError(null)
           if (repeat !== pin) { setStep('pin'); return setError(t('signUp.pinMismatch')) }
-          const r = await call(() => api.POST('/api/change-pin/{flowId}/pin', { params: path, body: { newPin: pin, reEnterNewPin: repeat } }))
+          const r = await call(() => api.POST('/api/v1/change-pin/{flowId}/pin', { params: path, body: { newPin: pin, reEnterNewPin: repeat } }))
           if (!r.error) return setStep('done')
           if (r.code === 'PIN_UNCHANGED' || r.code === 'VALIDATION_FAILED' || r.code === 'PIN_MISMATCH') setStep('pin')
           fail(r)

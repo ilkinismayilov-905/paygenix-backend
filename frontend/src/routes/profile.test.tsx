@@ -19,11 +19,11 @@ beforeEach(() => {
   save = () => json(201, { data: saved })
   vi.stubGlobal('fetch', async (req: Request) => {
     const url = new URL(req.url)
-    if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
-    if (url.pathname === '/api/profile/me') return me()
-    if (url.pathname === '/api/profile' && req.method === 'POST') { posted.push(await req.clone().json()); return save() }
-    if (url.pathname === '/api/cards/me') return ok([])
-    if (url.pathname === '/api/cards/me/activity') return ok({ items: [], page: 0, size: 20, hasNext: false })
+    if (url.pathname === '/api/v1/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
+    if (url.pathname === '/api/v1/profile/me') return me()
+    if (url.pathname === '/api/v1/profile' && req.method === 'POST') { posted.push(await req.clone().json()); return save() }
+    if (url.pathname === '/api/v1/cards/me') return ok([])
+    if (url.pathname === '/api/v1/cards/me/activity') return ok({ items: [], page: 0, size: 20, hasNext: false })
     return json(404, {})
   })
 })
@@ -79,10 +79,10 @@ test('adds a photo, shows it, and removes it', async () => {
   let photo: string | null = null
   vi.stubGlobal('fetch', async (req: Request) => {
     const url = new URL(req.url)
-    if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
-    if (url.pathname === '/api/profile/me') return ok({ ...saved, photoUrl: photo })
-    if (url.pathname === '/api/profile/photo' && req.method === 'POST') { photo = 'https://s.test/me.png'; return ok({ ...saved, photoUrl: photo }) }
-    if (url.pathname === '/api/profile/photo' && req.method === 'DELETE') { photo = null; return ok(null) }
+    if (url.pathname === '/api/v1/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
+    if (url.pathname === '/api/v1/profile/me') return ok({ ...saved, photoUrl: photo })
+    if (url.pathname === '/api/v1/profile/photo' && req.method === 'POST') { photo = 'https://s.test/me.png'; return ok({ ...saved, photoUrl: photo }) }
+    if (url.pathname === '/api/v1/profile/photo' && req.method === 'DELETE') { photo = null; return ok(null) }
     return json(404, {})
   })
   open()

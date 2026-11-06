@@ -34,7 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Authentication", description = "İstifadəçi girişi, token yenilənməsi və profil məlumatları üçün API-lar")

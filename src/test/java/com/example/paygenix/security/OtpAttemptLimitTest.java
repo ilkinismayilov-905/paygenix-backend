@@ -38,7 +38,7 @@ class OtpAttemptLimitTest extends IntegrationTest {
         flow.setExpiresAt(Instant.now().plusSeconds(1800));
         flowRepository.save(flow);
 
-        assertLockedAfterFiveWrong(otp -> post("/api/onboarding/" + flow.getId() + "/otp").content(otp));
+        assertLockedAfterFiveWrong(otp -> post("/api/v1/onboarding/" + flow.getId() + "/otp").content(otp));
     }
 
     @Test
@@ -52,7 +52,7 @@ class OtpAttemptLimitTest extends IntegrationTest {
                 .otpExpiresAt(Instant.now().plusSeconds(300))
                 .build());
 
-        assertLockedAfterFiveWrong(otp -> post("/api/change-pin/" + flow.getId() + "/otp")
+        assertLockedAfterFiveWrong(otp -> post("/api/v1/change-pin/" + flow.getId() + "/otp")
                 .header("Authorization", bearer(owner)).content(otp));
     }
 
@@ -66,7 +66,7 @@ class OtpAttemptLimitTest extends IntegrationTest {
                 .step(OnboardingChangePin.Step.OTP_VERIFIED)
                 .build());
 
-        mockMvc.perform(post("/api/change-pin/" + flow.getId() + "/pin").header("Authorization", bearer(owner))
+        mockMvc.perform(post("/api/v1/change-pin/" + flow.getId() + "/pin").header("Authorization", bearer(owner))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"newPin\":\"" + PIN + "\",\"reEnterNewPin\":\"654321\"}"))
                 .andExpect(status().isBadRequest())

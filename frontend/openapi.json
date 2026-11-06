@@ -70,7 +70,7 @@
     "description" : "APIs for viewing and filtering financial transaction history"
   } ],
   "paths" : {
-    "/api/onboarding/{flowId}/username" : {
+    "/api/v1/onboarding/{flowId}/username" : {
       "put" : {
         "tags" : [ "Onboarding" ],
         "summary" : "Set username",
@@ -131,11 +131,11 @@
         } ]
       }
     },
-    "/api/onboarding/{flowId}/pin" : {
+    "/api/v1/onboarding/{flowId}/pin" : {
       "put" : {
         "tags" : [ "Onboarding" ],
         "summary" : "Set PIN and complete onboarding",
-        "description" : "Finalizes the onboarding with the login password, the 6-digit transaction PIN and acceptedLegalDocuments: the Terms and Privacy versions shown to the user (from GET /api/legal/terms and /api/legal/privacy). The user then signs in through /api/auth/login with email and password.",
+        "description" : "Finalizes the onboarding with the login password, the 6-digit transaction PIN and acceptedLegalDocuments: the Terms and Privacy versions shown to the user (from GET /api/v1/legal/terms and /api/v1/legal/privacy). The user then signs in through /api/v1/auth/login with email and password.",
         "operationId" : "setPin",
         "parameters" : [ {
           "name" : "flowId",
@@ -157,7 +157,7 @@
         },
         "responses" : {
           "200" : {
-            "description" : "User created; sign in through /api/auth/login",
+            "description" : "User created; sign in through /api/v1/auth/login",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -212,7 +212,7 @@
         } ]
       }
     },
-    "/api/onboarding/{flowId}/full-name" : {
+    "/api/v1/onboarding/{flowId}/full-name" : {
       "put" : {
         "tags" : [ "Onboarding" ],
         "summary" : "Set full name",
@@ -253,7 +253,7 @@
         } ]
       }
     },
-    "/api/user/pin" : {
+    "/api/v1/user/pin" : {
       "post" : {
         "tags" : [ "User Management" ],
         "summary" : "Set the first transaction PIN",
@@ -306,7 +306,7 @@
         } ]
       }
     },
-    "/api/transfer" : {
+    "/api/v1/transfer" : {
       "get" : {
         "tags" : [ "Transfer Management" ],
         "summary" : "Get all transfers",
@@ -439,7 +439,7 @@
         } ]
       }
     },
-    "/api/topups" : {
+    "/api/v1/topups" : {
       "post" : {
         "tags" : [ "Top-ups" ],
         "summary" : "Start a top-up",
@@ -531,7 +531,7 @@
         } ]
       }
     },
-    "/api/stories/{storyId}/view" : {
+    "/api/v1/stories/{storyId}/view" : {
       "post" : {
         "tags" : [ "Stories" ],
         "summary" : "Mark a story as viewed",
@@ -573,7 +573,7 @@
         } ]
       }
     },
-    "/api/reports" : {
+    "/api/v1/reports" : {
       "get" : {
         "tags" : [ "Problem Reporting" ],
         "summary" : "Get all problem reports",
@@ -657,7 +657,7 @@
         } ]
       }
     },
-    "/api/profile" : {
+    "/api/v1/profile" : {
       "get" : {
         "tags" : [ "Profile Management" ],
         "summary" : "Get all profiles",
@@ -731,11 +731,11 @@
         } ]
       }
     },
-    "/api/profile/photo" : {
+    "/api/v1/profile/photo" : {
       "post" : {
         "tags" : [ "Profile Management" ],
         "summary" : "Upload profile photo",
-        "description" : "JPEG, PNG, WebP or GIF, at most 5 MB. Replaces the current photo. Needs a saved profile. The response's photoUrl works for 10 minutes; GET /api/profile/me gives a fresh one.",
+        "description" : "JPEG, PNG, WebP or GIF, at most 5 MB. Replaces the current photo. Needs a saved profile. The response's photoUrl works for 10 minutes; GET /api/v1/profile/me gives a fresh one.",
         "operationId" : "uploadProfileImage",
         "requestBody" : {
           "content" : {
@@ -832,11 +832,11 @@
         } ]
       }
     },
-    "/api/profile/email" : {
+    "/api/v1/profile/email" : {
       "post" : {
         "tags" : [ "Profile Management" ],
         "summary" : "Start an email change",
-        "description" : "Needs the current PIN. Sends a 6-digit code to the new address and another to the current one. The email changes only after POST /api/profile/email/confirm with both codes (within 10 minutes); the old address is then notified.",
+        "description" : "Needs the current PIN. Sends a 6-digit code to the new address and another to the current one. The email changes only after POST /api/v1/profile/email/confirm with both codes (within 10 minutes); the old address is then notified.",
         "operationId" : "startEmailChange",
         "requestBody" : {
           "content" : {
@@ -905,7 +905,7 @@
         } ]
       }
     },
-    "/api/profile/email/confirm" : {
+    "/api/v1/profile/email/confirm" : {
       "post" : {
         "tags" : [ "Profile Management" ],
         "summary" : "Confirm an email change",
@@ -968,7 +968,7 @@
         } ]
       }
     },
-    "/api/payment/initiate" : {
+    "/api/v1/payment/initiate" : {
       "post" : {
         "tags" : [ "Payment Management" ],
         "summary" : "Initiate payment transfer",
@@ -1070,7 +1070,7 @@
         } ]
       }
     },
-    "/api/payment/confirm" : {
+    "/api/v1/payment/confirm" : {
       "post" : {
         "tags" : [ "Payment Management" ],
         "summary" : "Confirm payment",
@@ -1192,7 +1192,7 @@
         } ]
       }
     },
-    "/api/onboarding/{flowId}/otp" : {
+    "/api/v1/onboarding/{flowId}/otp" : {
       "post" : {
         "tags" : [ "Onboarding" ],
         "summary" : "Verify OTP",
@@ -1281,7 +1281,7 @@
         }
       }
     },
-    "/api/onboarding/email" : {
+    "/api/v1/onboarding/email" : {
       "post" : {
         "tags" : [ "Onboarding" ],
         "summary" : "Submit email",
@@ -1321,11 +1321,11 @@
         }
       }
     },
-    "/api/legal/acceptances" : {
+    "/api/v1/legal/acceptances" : {
       "post" : {
         "tags" : [ "Legal Documents" ],
         "summary" : "Accept the current legal documents",
-        "description" : "Records that the caller accepted the given Terms/Privacy versions (the ones listed in pendingLegalDocuments of GET /api/auth/me). Until every active document is accepted, transfers and payments answer 403 LEGAL_ACCEPTANCE_REQUIRED. Accepting the same version again changes nothing.",
+        "description" : "Records that the caller accepted the given Terms/Privacy versions (the ones listed in pendingLegalDocuments of GET /api/v1/auth/me). Until every active document is accepted, transfers and payments answer 403 LEGAL_ACCEPTANCE_REQUIRED. Accepting the same version again changes nothing.",
         "operationId" : "accept",
         "requestBody" : {
           "content" : {
@@ -1374,7 +1374,7 @@
         } ]
       }
     },
-    "/api/kyc" : {
+    "/api/v1/kyc" : {
       "post" : {
         "tags" : [ "Identity verification" ],
         "summary" : "Send an identity document",
@@ -1472,7 +1472,7 @@
         } ]
       }
     },
-    "/api/change-pin" : {
+    "/api/v1/change-pin" : {
       "post" : {
         "tags" : [ "PIN Management" ],
         "summary" : "Initiate PIN change",
@@ -1505,7 +1505,7 @@
         } ]
       }
     },
-    "/api/change-pin/{flowId}/pin" : {
+    "/api/v1/change-pin/{flowId}/pin" : {
       "post" : {
         "tags" : [ "PIN Management" ],
         "summary" : "Complete PIN change",
@@ -1587,7 +1587,7 @@
         } ]
       }
     },
-    "/api/change-pin/{flowId}/otp" : {
+    "/api/v1/change-pin/{flowId}/otp" : {
       "post" : {
         "tags" : [ "PIN Management" ],
         "summary" : "Verify OTP",
@@ -1679,7 +1679,7 @@
         } ]
       }
     },
-    "/api/cards" : {
+    "/api/v1/cards" : {
       "get" : {
         "tags" : [ "Card Management" ],
         "summary" : "Get all cards",
@@ -1772,7 +1772,7 @@
         } ]
       }
     },
-    "/api/auth/refresh-token" : {
+    "/api/v1/auth/refresh-token" : {
       "post" : {
         "tags" : [ "Authentication" ],
         "summary" : "Token yeniləmə (Refresh)",
@@ -1810,7 +1810,7 @@
         }
       }
     },
-    "/api/auth/oauth/exchange" : {
+    "/api/v1/auth/oauth/exchange" : {
       "post" : {
         "tags" : [ "Authentication" ],
         "summary" : "Google sign-in: exchange code",
@@ -1854,7 +1854,7 @@
         }
       }
     },
-    "/api/auth/logout" : {
+    "/api/v1/auth/logout" : {
       "post" : {
         "tags" : [ "Authentication" ],
         "summary" : "Sign out this browser",
@@ -1892,7 +1892,7 @@
         }
       }
     },
-    "/api/auth/login" : {
+    "/api/v1/auth/login" : {
       "post" : {
         "tags" : [ "Authentication" ],
         "summary" : "Giriş (Login)",
@@ -1939,7 +1939,7 @@
         }
       }
     },
-    "/api/admin/users/{id}/unlock" : {
+    "/api/v1/admin/users/{id}/unlock" : {
       "post" : {
         "tags" : [ "Admin: users and reports" ],
         "summary" : "Unlock a user",
@@ -1970,7 +1970,7 @@
         } ]
       }
     },
-    "/api/admin/users/{id}/lock" : {
+    "/api/v1/admin/users/{id}/lock" : {
       "post" : {
         "tags" : [ "Admin: users and reports" ],
         "summary" : "Lock a user",
@@ -2032,7 +2032,7 @@
         } ]
       }
     },
-    "/api/admin/stories" : {
+    "/api/v1/admin/stories" : {
       "get" : {
         "tags" : [ "Admin: promo stories" ],
         "summary" : "Live promo stories",
@@ -2134,7 +2134,7 @@
         } ]
       }
     },
-    "/api/admin/kyc/{id}/reject" : {
+    "/api/v1/admin/kyc/{id}/reject" : {
       "post" : {
         "tags" : [ "Admin: identity verification" ],
         "summary" : "Reject",
@@ -2216,7 +2216,7 @@
         } ]
       }
     },
-    "/api/admin/kyc/{id}/approve" : {
+    "/api/v1/admin/kyc/{id}/approve" : {
       "post" : {
         "tags" : [ "Admin: identity verification" ],
         "summary" : "Approve",
@@ -2278,7 +2278,7 @@
         } ]
       }
     },
-    "/api/admin/reports/{id}" : {
+    "/api/v1/admin/reports/{id}" : {
       "patch" : {
         "tags" : [ "Admin: users and reports" ],
         "summary" : "Set a report's status",
@@ -2330,7 +2330,7 @@
         } ]
       }
     },
-    "/api/user" : {
+    "/api/v1/user" : {
       "get" : {
         "tags" : [ "User Management" ],
         "summary" : "Get all users",
@@ -2363,7 +2363,7 @@
         } ]
       }
     },
-    "/api/transfer/{id}" : {
+    "/api/v1/transfer/{id}" : {
       "get" : {
         "tags" : [ "Transfer Management" ],
         "summary" : "Get transfer by ID",
@@ -2407,7 +2407,7 @@
         } ]
       }
     },
-    "/api/transaction" : {
+    "/api/v1/transaction" : {
       "get" : {
         "tags" : [ "Transaction Management" ],
         "summary" : "Get all transactions",
@@ -2430,7 +2430,7 @@
         } ]
       }
     },
-    "/api/transaction/{id}" : {
+    "/api/v1/transaction/{id}" : {
       "get" : {
         "tags" : [ "Transaction Management" ],
         "summary" : "Get transaction by ID",
@@ -2472,7 +2472,7 @@
         } ]
       }
     },
-    "/api/transaction/between" : {
+    "/api/v1/transaction/between" : {
       "get" : {
         "tags" : [ "Transaction Management" ],
         "summary" : "Filter transactions by date range",
@@ -2526,7 +2526,7 @@
         } ]
       }
     },
-    "/api/topups/session/{sessionId}" : {
+    "/api/v1/topups/session/{sessionId}" : {
       "get" : {
         "tags" : [ "Top-ups" ],
         "summary" : "A top-up by its checkout session",
@@ -2567,7 +2567,7 @@
         } ]
       }
     },
-    "/api/stories/feed" : {
+    "/api/v1/stories/feed" : {
       "get" : {
         "tags" : [ "Stories" ],
         "summary" : "Promo stories",
@@ -2590,7 +2590,7 @@
         } ]
       }
     },
-    "/api/profile/me" : {
+    "/api/v1/profile/me" : {
       "get" : {
         "tags" : [ "Profile Management" ],
         "summary" : "Get my profile",
@@ -2623,7 +2623,7 @@
         } ]
       }
     },
-    "/api/payment/history" : {
+    "/api/v1/payment/history" : {
       "get" : {
         "tags" : [ "Payment Management" ],
         "summary" : "Get transaction history",
@@ -2646,7 +2646,7 @@
         } ]
       }
     },
-    "/api/legal/terms" : {
+    "/api/v1/legal/terms" : {
       "get" : {
         "tags" : [ "Legal Documents" ],
         "summary" : "Get Terms of Service",
@@ -2676,7 +2676,7 @@
         }
       }
     },
-    "/api/legal/privacy" : {
+    "/api/v1/legal/privacy" : {
       "get" : {
         "tags" : [ "Legal Documents" ],
         "summary" : "Get Privacy Policy",
@@ -2706,7 +2706,7 @@
         }
       }
     },
-    "/api/kyc/me" : {
+    "/api/v1/kyc/me" : {
       "get" : {
         "tags" : [ "Identity verification" ],
         "summary" : "My verification",
@@ -2729,7 +2729,7 @@
         } ]
       }
     },
-    "/api/fees" : {
+    "/api/v1/fees" : {
       "get" : {
         "tags" : [ "Fees" ],
         "summary" : "Fee rates (T-129)",
@@ -2752,7 +2752,7 @@
         } ]
       }
     },
-    "/api/cards/{id}" : {
+    "/api/v1/cards/{id}" : {
       "get" : {
         "tags" : [ "Card Management" ],
         "summary" : "Get one of my cards",
@@ -2844,7 +2844,7 @@
         } ]
       }
     },
-    "/api/cards/me" : {
+    "/api/v1/cards/me" : {
       "get" : {
         "tags" : [ "Card Management" ],
         "summary" : "List my cards",
@@ -2867,7 +2867,7 @@
         } ]
       }
     },
-    "/api/cards/me/activity" : {
+    "/api/v1/cards/me/activity" : {
       "get" : {
         "tags" : [ "Card Management" ],
         "summary" : "My activity",
@@ -2930,7 +2930,7 @@
         } ]
       }
     },
-    "/api/auth/sessions" : {
+    "/api/v1/auth/sessions" : {
       "get" : {
         "tags" : [ "Sessions" ],
         "summary" : "List active sessions",
@@ -2974,7 +2974,7 @@
         } ]
       }
     },
-    "/api/auth/providers" : {
+    "/api/v1/auth/providers" : {
       "get" : {
         "tags" : [ "Authentication" ],
         "summary" : "OAuth2 Provayderləri",
@@ -2994,7 +2994,7 @@
         }
       }
     },
-    "/api/auth/me" : {
+    "/api/v1/auth/me" : {
       "get" : {
         "tags" : [ "Authentication" ],
         "summary" : "Cari istifadəçi məlumatları",
@@ -3017,7 +3017,7 @@
         } ]
       }
     },
-    "/api/auth/" : {
+    "/api/v1/auth/" : {
       "get" : {
         "tags" : [ "Authentication" ],
         "summary" : "Sistem salamlaması",
@@ -3037,7 +3037,7 @@
         }
       }
     },
-    "/api/admin/users" : {
+    "/api/v1/admin/users" : {
       "get" : {
         "tags" : [ "Admin: users and reports" ],
         "summary" : "Find users",
@@ -3092,7 +3092,7 @@
         } ]
       }
     },
-    "/api/admin/reports" : {
+    "/api/v1/admin/reports" : {
       "get" : {
         "tags" : [ "Admin: users and reports" ],
         "summary" : "Problem reports by status",
@@ -3146,7 +3146,7 @@
         } ]
       }
     },
-    "/api/admin/kyc" : {
+    "/api/v1/admin/kyc" : {
       "get" : {
         "tags" : [ "Admin: identity verification" ],
         "summary" : "Submissions by status",
@@ -3200,7 +3200,7 @@
         } ]
       }
     },
-    "/api/admin/kyc/{id}" : {
+    "/api/v1/admin/kyc/{id}" : {
       "get" : {
         "tags" : [ "Admin: identity verification" ],
         "summary" : "One submission",
@@ -3252,7 +3252,7 @@
         } ]
       }
     },
-    "/api/auth/sessions/{id}" : {
+    "/api/v1/auth/sessions/{id}" : {
       "delete" : {
         "tags" : [ "Sessions" ],
         "summary" : "Revoke one session",
@@ -3294,7 +3294,7 @@
         } ]
       }
     },
-    "/api/admin/stories/{storyId}" : {
+    "/api/v1/admin/stories/{storyId}" : {
       "delete" : {
         "tags" : [ "Admin: promo stories" ],
         "summary" : "Take a promo story down",
@@ -3435,7 +3435,7 @@
           "fromCardId" : {
             "type" : "integer",
             "format" : "int64",
-            "description" : "Id of one of the caller's cards (GET /api/cards/me)"
+            "description" : "Id of one of the caller's cards (GET /api/v1/cards/me)"
           },
           "toCardNumber" : {
             "type" : "string",
@@ -3732,7 +3732,7 @@
           "fromCardId" : {
             "type" : "integer",
             "format" : "int64",
-            "description" : "Id of one of the caller's cards (GET /api/cards/me)"
+            "description" : "Id of one of the caller's cards (GET /api/v1/cards/me)"
           },
           "amount" : {
             "type" : "string",

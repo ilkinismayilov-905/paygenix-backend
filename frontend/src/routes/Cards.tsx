@@ -29,7 +29,7 @@ export default function Cards() {
     const key = attempt.current?.currency === currency ? attempt.current.key : crypto.randomUUID()
     attempt.current = { currency, key }
     try {
-      const { data, response } = await api.POST('/api/cards',
+      const { data, response } = await api.POST('/api/v1/cards',
         { body: { currency }, params: { header: { 'Idempotency-Key': key } } })
       if (response.ok) attempt.current = null // the next click is a new card
       const pan = data?.data?.cardNumber

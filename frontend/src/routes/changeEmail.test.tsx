@@ -18,12 +18,12 @@ beforeEach(() => {
   confirm = () => ok(null)
   vi.stubGlobal('fetch', async (req: Request) => {
     const url = new URL(req.url)
-    if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
-    if (url.pathname.startsWith('/api/profile/email')) {
+    if (url.pathname === '/api/v1/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
+    if (url.pathname.startsWith('/api/v1/profile/email')) {
       calls.push({ path: url.pathname, body: await req.clone().json() })
       return url.pathname.endsWith('/confirm') ? confirm() : start()
     }
-    if (url.pathname === '/api/auth/logout') return ok(null)
+    if (url.pathname === '/api/v1/auth/logout') return ok(null)
     return json(404, {})
   })
 })
@@ -49,8 +49,8 @@ test('new email + PIN, then both codes change the email and sign this tab out', 
   expect(await screen.findByRole('heading', { name: 'Your email is changed.' })).toHaveFocus()
   expect(screen.getByText(/Sign in again with new@example.test/)).toBeInTheDocument()
   expect(calls).toEqual([
-    { path: '/api/profile/email', body: { email: 'new@example.test', pin: '123456' } },
-    { path: '/api/profile/email/confirm', body: { otp: '111111', currentEmailOtp: '222222' } },
+    { path: '/api/v1/profile/email', body: { email: 'new@example.test', pin: '123456' } },
+    { path: '/api/v1/profile/email/confirm', body: { otp: '111111', currentEmailOtp: '222222' } },
   ])
   click('Sign in')
   expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument()

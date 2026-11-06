@@ -22,7 +22,7 @@ class IntegrationTestHarnessTest extends IntegrationTest {
     void issuedTokenOpensProtectedEndpoint() throws Exception {
         User user = createUser();
 
-        mockMvc.perform(get("/api/auth/me").header("Authorization", bearer(user)))
+        mockMvc.perform(get("/api/v1/auth/me").header("Authorization", bearer(user)))
                 .andExpect(status().isOk())
                 // the chosen @username, not the email (User.getUsername() is the email, for Spring Security)
                 .andExpect(jsonPath("$.data.username").value(user.getPublicUsername()));
@@ -30,6 +30,6 @@ class IntegrationTestHarnessTest extends IntegrationTest {
 
     @Test
     void protectedEndpointWithoutTokenIsRejected() throws Exception {
-        mockMvc.perform(get("/api/auth/me")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/auth/me")).andExpect(status().isUnauthorized());
     }
 }

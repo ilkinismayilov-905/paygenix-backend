@@ -25,7 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/api/v1/user")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "User Management", description = "APIs for user data retrieval and generic media file handling")

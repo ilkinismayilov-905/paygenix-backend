@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/payment")
+@RequestMapping("/api/v1/payment")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Payment Management", description = "APIs for initiating, confirming, and viewing payment transactions")

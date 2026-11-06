@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/topups")
+@RequestMapping("/api/v1/topups")
 @RequiredArgsConstructor
 @Tag(name = "Top-ups", description = "Add money to a card through Stripe Checkout (test mode)")
 @SecurityRequirement(name = "bearerAuth")

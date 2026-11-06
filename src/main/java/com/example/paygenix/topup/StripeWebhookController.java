@@ -35,7 +35,7 @@ public class StripeWebhookController {
         this.secret = secret;
     }
 
-    @PostMapping("/api/stripe/webhook")
+    @PostMapping("/api/v1/stripe/webhook")
     public ResponseEntity<Void> receive(@RequestBody String payload,
                                         @RequestHeader(value = "Stripe-Signature", required = false) String signature) {
         if (secret.isBlank()) {

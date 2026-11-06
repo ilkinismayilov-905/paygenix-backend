@@ -8,8 +8,8 @@ const TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const MAX_BYTES = 5 * 1024 * 1024 // EditProfileService.MAX_PHOTO_BYTES
 
 /**
- * Profile photo: shows it (a 10-minute link from GET /api/profile/me), replaces it (POST /api/profile/photo) or
- * removes it (DELETE /api/profile/photo). The server needs a saved profile first.
+ * Profile photo: shows it (a 10-minute link from GET /api/v1/profile/me), replaces it (POST /api/v1/profile/photo) or
+ * removes it (DELETE /api/v1/profile/photo). The server needs a saved profile first.
  */
 export function ProfilePhoto({ name, url, saved, onChange }:
   { name: string; url: string | null; saved: boolean; onChange: (url: string | null) => void }) {
@@ -29,7 +29,7 @@ export function ProfilePhoto({ name, url, saved, onChange }:
     const form = new FormData()
     form.append('file', file)
     try {
-      const { data, error: problem, response } = await api.POST('/api/profile/photo', {
+      const { data, error: problem, response } = await api.POST('/api/v1/profile/photo', {
         body: form as never, // multipart: sent as built, the browser sets the boundary
         bodySerializer: (b) => b as unknown as FormData,
       })
@@ -49,7 +49,7 @@ export function ProfilePhoto({ name, url, saved, onChange }:
   const remove = async () => {
     setError(null); setBusy('remove')
     try {
-      const { response } = await api.DELETE('/api/profile/photo')
+      const { response } = await api.DELETE('/api/v1/profile/photo')
       if (response.ok) onChange(null)
       else setError(t('photo.failed'))
     } catch {

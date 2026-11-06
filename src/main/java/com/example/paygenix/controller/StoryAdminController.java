@@ -31,7 +31,7 @@ import java.time.Duration;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/admin/stories")
+@RequestMapping("/api/v1/admin/stories")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN_ROLE')")
 @Tag(name = "Admin: promo stories", description = "Publish and take down promo stories (admins only)")

@@ -1,5 +1,5 @@
 -- T-070/T-071: identity verification by manual admin review of an identity document.
--- The old self-check (/api/verify) compared what users typed with their own profile and set VERIFIED without
+-- The old self-check (/api/v1/verify) compared what users typed with their own profile and set VERIFIED without
 -- looking at any document, so nobody verified that way counts as verified.
 ALTER TABLE public.users DROP CONSTRAINT users_verification_status_check;
 UPDATE public.users SET verification_status = 'UNVERIFIED';

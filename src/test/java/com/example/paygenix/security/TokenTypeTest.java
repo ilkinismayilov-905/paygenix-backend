@@ -64,12 +64,12 @@ class TokenTypeTest extends IntegrationTest {
     }
 
     private int businessStatus(String authorization) throws Exception {
-        return mockMvc.perform(get("/api/auth/me").header("Authorization", authorization))
+        return mockMvc.perform(get("/api/v1/auth/me").header("Authorization", authorization))
                 .andReturn().getResponse().getStatus();
     }
 
     private int setFullNameStatus(String authorization) throws Exception {
-        return mockMvc.perform(put("/api/onboarding/" + FLOW_ID + "/full-name")
+        return mockMvc.perform(put("/api/v1/onboarding/" + FLOW_ID + "/full-name")
                         .header("Authorization", authorization)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"Test User\"}"))

@@ -13,7 +13,7 @@ type Session = components['schemas']['SessionResponse']
 const when = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' })
 const formatWhen = (iso?: string) => (iso && !Number.isNaN(Date.parse(iso)) ? when.format(new Date(iso)) : '')
 
-/** Signed-in devices (GET /api/auth/sessions): sign one out, or every device including this one. */
+/** Signed-in devices (GET /api/v1/auth/sessions): sign one out, or every device including this one. */
 export default function Sessions() {
   const [sessions, setSessions] = useState<Session[] | null | 'failed'>(null)
   const [round, setRound] = useState(0)
@@ -26,7 +26,7 @@ export default function Sessions() {
 
   useEffect(() => {
     let live = true
-    void api.GET('/api/auth/sessions')
+    void api.GET('/api/v1/auth/sessions')
       .then(({ data, response }) => {
         if (live) setSessions(response.ok && Array.isArray(data?.data) && data.data.every((s) => s.id) ? data.data : 'failed')
       })
@@ -37,7 +37,7 @@ export default function Sessions() {
   const revoke = async (s: Session) => {
     setError(null); setNotice(null); setBusy(s.id!)
     try {
-      const { response } = await api.DELETE('/api/auth/sessions/{id}', { params: { path: { id: s.id! } } })
+      const { response } = await api.DELETE('/api/v1/auth/sessions/{id}', { params: { path: { id: s.id! } } })
       // 404: that device already signed out or expired — the outcome the user asked for
       if (response.ok || response.status === 404) {
         setSessions((list) => (Array.isArray(list) ? list.filter((x) => x.id !== s.id) : list))
@@ -55,7 +55,7 @@ export default function Sessions() {
   const revokeAll = async () => {
     setAllBusy(true); setAllError(null)
     try {
-      const { response } = await api.DELETE('/api/auth/sessions')
+      const { response } = await api.DELETE('/api/v1/auth/sessions')
       if (!response.ok) { setAllError(t('sessions.allFailed')); setAllBusy(false); return }
     } catch {
       setAllError(t('sessions.allFailed')); setAllBusy(false); return

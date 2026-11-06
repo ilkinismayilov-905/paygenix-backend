@@ -21,12 +21,12 @@ test('parallel 401s share one refresh and each retries once with the new token',
   signedIn('old')
   let refreshes = 0
   fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
-    if (urlOf(input).endsWith('/api/auth/refresh-token')) { refreshes++; return json(200, { data: { token: 'new' } }) }
+    if (urlOf(input).endsWith('/api/v1/auth/refresh-token')) { refreshes++; return json(200, { data: { token: 'new' } }) }
     const auth = (input as Request).headers.get('Authorization')
     return auth === 'Bearer new' ? json(200, { data: [] }) : json(401, { code: 'UNAUTHORIZED' })
   })
 
-  const [a, b] = await Promise.all([api.GET('/api/auth/sessions'), api.GET('/api/cards/me')])
+  const [a, b] = await Promise.all([api.GET('/api/v1/auth/sessions'), api.GET('/api/v1/cards/me')])
   expect(a.response.status).toBe(200)
   expect(b.response.status).toBe(200)
   expect(refreshes).toBe(1)
@@ -36,15 +36,15 @@ test('parallel 401s share one refresh and each retries once with the new token',
 test('a failed refresh signs out and the 401 is returned', async () => {
   signedIn('old')
   fetchMock.mockImplementation(async (input: RequestInfo | URL) =>
-    urlOf(input).endsWith('/api/auth/refresh-token') ? json(401, { code: 'REFRESH_TOKEN_REUSED' }) : json(401, {}))
-  const { response } = await api.GET('/api/auth/sessions')
+    urlOf(input).endsWith('/api/v1/auth/refresh-token') ? json(401, { code: 'REFRESH_TOKEN_REUSED' }) : json(401, {}))
+  const { response } = await api.GET('/api/v1/auth/sessions')
   expect(response.status).toBe(401)
   expect(getAccessToken()).toBeNull()
 })
 
 test('a 401 without a token (wrong password) never triggers a refresh', async () => {
   fetchMock.mockResolvedValue(json(401, { code: 'UNAUTHORIZED' }))
-  await api.POST('/api/auth/login', { body: { email: 'a@b.c', password: 'x' } })
+  await api.POST('/api/v1/auth/login', { body: { email: 'a@b.c', password: 'x' } })
   expect(fetchMock).toHaveBeenCalledTimes(1)
 })
 
@@ -97,12 +97,12 @@ test('the 401 retry resends the request body', async () => {
   signedIn('old')
   const bodies: string[] = []
   fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
-    if (urlOf(input).endsWith('/api/auth/refresh-token')) return json(200, { data: { token: 'new' } })
+    if (urlOf(input).endsWith('/api/v1/auth/refresh-token')) return json(200, { data: { token: 'new' } })
     const req = input as Request
     bodies.push(await req.text())
     return req.headers.get('Authorization') === 'Bearer new' ? json(200, {}) : json(401, {})
   })
-  await api.POST('/api/auth/login', { body: { email: 'a@b.c', password: 'pw' } })
+  await api.POST('/api/v1/auth/login', { body: { email: 'a@b.c', password: 'pw' } })
   expect(bodies).toEqual([bodies[0], bodies[0]])
   expect(JSON.parse(bodies[0]!)).toEqual({ email: 'a@b.c', password: 'pw' })
 })
@@ -132,7 +132,7 @@ test('sign-out posts the cookie logout and tells the other tabs', async () => {
   const heard = new Promise((r) => { other.onmessage = (e) => r(e.data) })
   fetchMock.mockResolvedValue(json(200, {}))
   expect(await signOut()).toBe(true)
-  expect(fetchMock).toHaveBeenCalledExactlyOnceWith('/api/auth/logout', expect.objectContaining({ method: 'POST', credentials: 'same-origin' }))
+  expect(fetchMock).toHaveBeenCalledExactlyOnceWith('/api/v1/auth/logout', expect.objectContaining({ method: 'POST', credentials: 'same-origin' }))
   expect(getAccessToken()).toBeNull()
   expect(await heard).toBe('signed-out')
   other.close()
@@ -163,8 +163,8 @@ test('a logout the server rejects keeps the session and tells no other tab', asy
 test('a mid-session refresh that cannot reach the server returns the 401 and offers a retry', async () => {
   signedIn('old')
   fetchMock.mockImplementation(async (input: RequestInfo | URL) =>
-    urlOf(input).endsWith('/api/auth/refresh-token') ? Promise.reject(new TypeError('offline')) : json(401, {}))
-  const { response } = await api.GET('/api/auth/sessions')
+    urlOf(input).endsWith('/api/v1/auth/refresh-token') ? Promise.reject(new TypeError('offline')) : json(401, {}))
+  const { response } = await api.GET('/api/v1/auth/sessions')
   expect(response.status).toBe(401)
   expect(getAccessToken()).toBeNull()
   renderAt('/')
@@ -228,7 +228,7 @@ test('the Google code is exchanged once, even under StrictMode', async () => {
   fetchMock.mockResolvedValue(json(200, { data: { token: 'g' } }))
   renderAt('/oauth2/callback?code=one-time', true)
   expect(await screen.findByRole('heading', { name: 'Welcome to Paygenix' })).toBeInTheDocument()
-  const exchanges = fetchMock.mock.calls.filter(([r]) => urlOf(r).endsWith('/api/auth/oauth/exchange'))
+  const exchanges = fetchMock.mock.calls.filter(([r]) => urlOf(r).endsWith('/api/v1/auth/oauth/exchange'))
   expect(exchanges).toHaveLength(1)
 })
 
@@ -243,9 +243,9 @@ test('after an ended session sign-in returns to the page; after the user\'s own 
   const signInAgain = async () => {
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = urlOf(input)
-      if (url.endsWith('/api/auth/login')) return json(200, { data: { token: 'again' } })
-      if (url.endsWith('/api/auth/me')) return json(200, { data: { id: 1, username: 'nigar', pendingLegalDocuments: [] } })
-      if (url.endsWith('/api/cards/me')) return json(200, { data: [] })
+      if (url.endsWith('/api/v1/auth/login')) return json(200, { data: { token: 'again' } })
+      if (url.endsWith('/api/v1/auth/me')) return json(200, { data: { id: 1, username: 'nigar', pendingLegalDocuments: [] } })
+      if (url.endsWith('/api/v1/cards/me')) return json(200, { data: [] })
       return json(200, { data: { items: [], hasNext: false } })
     })
     fireEvent.input(await screen.findByLabelText('Email'), { target: { value: 'aysel@example.test' } })

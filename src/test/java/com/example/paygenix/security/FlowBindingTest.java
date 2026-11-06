@@ -45,9 +45,9 @@ class FlowBindingTest extends IntegrationTest {
         String token = jwtService.generateOnboardingToken(mine);
 
         for (String path : new String[]{
-                "/api/onboarding/" + mine.getId() + "/../" + victims.getId() + "/pin",
-                "/api/onboarding/" + mine.getId() + ";x=/" + victims.getId() + "/pin",
-                "/api/onboarding/" + mine.getId() + "%2F..%2F" + victims.getId() + "/pin"}) {
+                "/api/v1/onboarding/" + mine.getId() + "/../" + victims.getId() + "/pin",
+                "/api/v1/onboarding/" + mine.getId() + ";x=/" + victims.getId() + "/pin",
+                "/api/v1/onboarding/" + mine.getId() + "%2F..%2F" + victims.getId() + "/pin"}) {
             int status;
             try {
                 status = mockMvc.perform(put(path).header("Authorization", "Bearer " + token)
@@ -88,7 +88,7 @@ class FlowBindingTest extends IntegrationTest {
         owner.setUsername(taken); // getUsername() is the email (UserDetails), so set a known one
         userRepository.save(owner);
 
-        mockMvc.perform(put("/api/onboarding/" + flow.getId() + "/username")
+        mockMvc.perform(put("/api/v1/onboarding/" + flow.getId() + "/username")
                         .header("Authorization", "Bearer " + jwtService.generateOnboardingToken(flow))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"" + taken + "\"}"))
@@ -111,7 +111,7 @@ class FlowBindingTest extends IntegrationTest {
         OnboardingChangePin flow = verifiedChangePinFlow(owner);
 
         changePin(flow, createUser()).andExpect(status().isNotFound());
-        mockMvc.perform(post("/api/change-pin/" + flow.getId() + "/otp").header("Authorization", bearer(createUser()))
+        mockMvc.perform(post("/api/v1/change-pin/" + flow.getId() + "/otp").header("Authorization", bearer(createUser()))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"otp\":\"123456\"}"))
                 .andExpect(status().isNotFound());
         assertThat(passwordEncoder.matches(PIN, userRepository.findById(owner.getId()).orElseThrow().getPinHash())).isTrue();
@@ -147,14 +147,14 @@ class FlowBindingTest extends IntegrationTest {
     }
 
     private ResultActions setOnboardingPin(OnboardingFlow flow, String token) throws Exception {
-        return mockMvc.perform(put("/api/onboarding/" + flow.getId() + "/pin")
+        return mockMvc.perform(put("/api/v1/onboarding/" + flow.getId() + "/pin")
                 .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"pin\":\"" + PIN + "\",\"password\":\"" + PASSWORD + "\",\"acceptedLegalDocuments\":" + activeLegalDocumentsJson() + "}"));
     }
 
     private ResultActions changePin(OnboardingChangePin flow, User caller) throws Exception {
-        return mockMvc.perform(post("/api/change-pin/" + flow.getId() + "/pin").header("Authorization", bearer(caller))
+        return mockMvc.perform(post("/api/v1/change-pin/" + flow.getId() + "/pin").header("Authorization", bearer(caller))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"newPin\":\"135790\",\"reEnterNewPin\":\"135790\"}"));
     }

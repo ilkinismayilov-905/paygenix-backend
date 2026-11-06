@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/auth/sessions")
+@RequestMapping("/api/v1/auth/sessions")
 @RequiredArgsConstructor
 @Tag(name = "Sessions", description = "Signed-in devices of the current user")
 @SecurityRequirement(name = "bearerAuth")

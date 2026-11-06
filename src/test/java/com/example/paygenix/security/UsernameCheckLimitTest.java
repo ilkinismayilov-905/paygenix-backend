@@ -75,7 +75,7 @@ class UsernameCheckLimitTest extends IntegrationTest {
     }
 
     private ResultActions check(OnboardingFlow flow, String username, String ip) throws Exception {
-        return mockMvc.perform(put("/api/onboarding/" + flow.getId() + "/username")
+        return mockMvc.perform(put("/api/v1/onboarding/" + flow.getId() + "/username")
                 .with(r -> { r.setRemoteAddr(ip); return r; })
                 .header("Authorization", "Bearer " + jwtService.generateOnboardingToken(flow))
                 .contentType(MediaType.APPLICATION_JSON)

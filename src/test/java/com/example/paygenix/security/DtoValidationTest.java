@@ -26,18 +26,18 @@ class DtoValidationTest extends IntegrationTest {
     void profileRejectsBlankNameAndFutureBirthDate() throws Exception {
         String auth = bearer(createUser());
 
-        send(post("/api/profile"), auth, "{\"fullName\":\"   \"}").andExpect(status().isBadRequest())
+        send(post("/api/v1/profile"), auth, "{\"fullName\":\"   \"}").andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
-        send(post("/api/profile"), auth, "{\"fullName\":\"" + "a".repeat(101) + "\"}").andExpect(status().isBadRequest())
+        send(post("/api/v1/profile"), auth, "{\"fullName\":\"" + "a".repeat(101) + "\"}").andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
-        send(post("/api/profile"), auth, "{\"dateOfBirth\":\"01-01-2999\"}").andExpect(status().isBadRequest())
+        send(post("/api/v1/profile"), auth, "{\"dateOfBirth\":\"01-01-2999\"}").andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
     }
 
     // used to reach the database NOT NULL constraints and answer 500
     @Test
     void firstProfileSaveNeedsEveryField() throws Exception {
-        send(post("/api/profile"), bearer(createUser()), "{\"phoneNumber\":\"+994501234567\"}")
+        send(post("/api/v1/profile"), bearer(createUser()), "{\"phoneNumber\":\"+994501234567\"}")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
     }
@@ -46,7 +46,7 @@ class DtoValidationTest extends IntegrationTest {
     void onboardingRejectsBlankNameAndBadUsername() throws Exception {
         OnboardingFlow flow = onboardingFlow();
         String auth = "Bearer " + jwtService.generateOnboardingToken(flow);
-        String base = "/api/onboarding/" + flow.getId();
+        String base = "/api/v1/onboarding/" + flow.getId();
 
         send(put(base + "/full-name"), auth, "{\"fullName\":\"\"}").andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
@@ -63,7 +63,7 @@ class DtoValidationTest extends IntegrationTest {
 
     @Test
     void loginRejectsOversizedPassword() throws Exception {
-        mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"a@example.test\",\"password\":\"" + "x".repeat(73) + "\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));

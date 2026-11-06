@@ -11,8 +11,8 @@ const ok = (data: unknown = null) => json(200, { data })
 let fetchMock: ReturnType<typeof vi.fn>
 // The active Terms/Privacy (T-121) are answered here, so each test's mock sees only the onboarding calls.
 let termsVersion = '1'
-const legal = (url: string) => url.endsWith('/api/legal/terms') ? ok({ type: 'TERMS', version: termsVersion, content: 'Demo terms' })
-  : url.endsWith('/api/legal/privacy') ? ok({ type: 'PRIVACY', version: '1', content: 'Demo privacy' }) : null
+const legal = (url: string) => url.endsWith('/api/v1/legal/terms') ? ok({ type: 'TERMS', version: termsVersion, content: 'Demo terms' })
+  : url.endsWith('/api/v1/legal/privacy') ? ok({ type: 'PRIVACY', version: '1', content: 'Demo privacy' }) : null
 const shown = (terms = '1') => [{ type: 'TERMS', version: terms }, { type: 'PRIVACY', version: '1' }]
 beforeEach(() => {
   signedOut(); termsVersion = '1'; fetchMock = vi.fn()
@@ -62,9 +62,9 @@ test('the whole sign-up sends each step in order with the onboarding token, then
   fetchMock.mockImplementation(async (req: Request) => {
     const url = new URL(req.url).pathname
     calls.push({ url, auth: req.headers.get('Authorization'), body: await req.json() })
-    if (url === '/api/onboarding/email') return ok('flow-1')
-    if (url === '/api/onboarding/flow-1/otp') return ok('onb-token')
-    if (url === '/api/auth/login') return ok({ token: 'session' })
+    if (url === '/api/v1/onboarding/email') return ok('flow-1')
+    if (url === '/api/v1/onboarding/flow-1/otp') return ok('onb-token')
+    if (url === '/api/v1/auth/login') return ok({ token: 'session' })
     return ok()
   })
   await reachUsername()
@@ -76,8 +76,8 @@ test('the whole sign-up sends each step in order with the onboarding token, then
   expect(await screen.findByRole('heading', { name: 'Welcome to Paygenix' })).toBeInTheDocument()
 
   expect(calls.map((c) => c.url)).toEqual([
-    '/api/onboarding/email', '/api/onboarding/flow-1/otp', '/api/onboarding/flow-1/full-name',
-    '/api/onboarding/flow-1/username', '/api/onboarding/flow-1/pin', '/api/auth/login',
+    '/api/v1/onboarding/email', '/api/v1/onboarding/flow-1/otp', '/api/v1/onboarding/flow-1/full-name',
+    '/api/v1/onboarding/flow-1/username', '/api/v1/onboarding/flow-1/pin', '/api/v1/auth/login',
   ])
   expect(calls.slice(2, 5).every((c) => c.auth === 'Bearer onb-token')).toBe(true)
   expect(calls[4]!.body).toEqual({ pin: '482913', password: 'long-enough-pass', acceptedLegalDocuments: shown() })
@@ -156,7 +156,7 @@ test('a repeated PIN that differs goes back to creating it, without sending', as
 test('if sign-in fails after the account is created, the sign-in page takes over', async () => {
   fetchMock.mockImplementation(async (req: Request) => {
     const url = new URL(req.url).pathname
-    if (url === '/api/auth/login') return Promise.reject(new TypeError('offline'))
+    if (url === '/api/v1/auth/login') return Promise.reject(new TypeError('offline'))
     return ok(url.endsWith('/email') ? 'flow-1' : 'tok')
   })
   await reachPassword()
@@ -169,7 +169,7 @@ test('a new code replaces the flow and says so; asking too soon is explained', a
   let flows = 0
   fetchMock.mockImplementation(async (req: Request) => {
     const url = new URL(req.url).pathname
-    if (url === '/api/onboarding/email') return ++flows === 3 ? json(429, { code: 'OTP_SEND_TOO_FREQUENT' }) : ok(`flow-${flows}`)
+    if (url === '/api/v1/onboarding/email') return ++flows === 3 ? json(429, { code: 'OTP_SEND_TOO_FREQUENT' }) : ok(`flow-${flows}`)
     return ok('tok')
   })
   render(<RouterProvider router={createMemoryRouter(routes, { initialEntries: ['/sign-up'] })} />)
@@ -183,7 +183,7 @@ test('a new code replaces the flow and says so; asking too soon is explained', a
   type('Code', ' 123 456 ')
   next()
   await screen.findByRole('heading', { name: 'What is your name?' })
-  expect(fetchMock.mock.calls.map(([r]) => new URL((r as Request).url).pathname)).toContain('/api/onboarding/flow-2/otp')
+  expect(fetchMock.mock.calls.map(([r]) => new URL((r as Request).url).pathname)).toContain('/api/v1/onboarding/flow-2/otp')
 })
 
 test('the username check limit shows the Retry-After minutes', async () => {
@@ -209,7 +209,7 @@ test('a Terms version published during sign-up is shown and sent on the retry', 
   fetchMock.mockImplementation(async (req: Request) => {
     const url = new URL(req.url).pathname
     if (url.endsWith('/pin')) return ++pins === 1 ? json(409, { code: 'LEGAL_VERSION_OUTDATED' }) : ok()
-    if (url === '/api/auth/login') return ok({ token: 'session' })
+    if (url === '/api/v1/auth/login') return ok({ token: 'session' })
     return ok(url.endsWith('/email') ? 'flow-1' : 'tok')
   })
   await reachPassword()

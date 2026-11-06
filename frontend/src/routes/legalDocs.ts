@@ -12,7 +12,7 @@ export const legalTypeOf = (type: string): LegalType => (type === 'PRIVACY' ? 'p
 
 async function fetchLegal(type: LegalType): Promise<LegalDoc> {
   try {
-    const { data, response } = await api.GET(type === 'terms' ? '/api/legal/terms' : '/api/legal/privacy')
+    const { data, response } = await api.GET(type === 'terms' ? '/api/v1/legal/terms' : '/api/v1/legal/privacy')
     const doc = data?.data
     if (response.ok && doc?.type && doc.version) return { type: doc.type, version: doc.version, content: doc.content ?? '' }
     return response.status === 404 ? 'missing' : 'failed'
@@ -47,7 +47,7 @@ export type Me = { pending: LegalRef[]; admin: boolean }
 /** What the signed-in user still has to accept, and whether they are an admin; null when it could not be checked. */
 export async function loadMe(): Promise<Me | null> {
   try {
-    const { data, response } = await api.GET('/api/auth/me')
+    const { data, response } = await api.GET('/api/v1/auth/me')
     if (!response.ok) return null
     return { pending: data?.data?.pendingLegalDocuments ?? [], admin: data?.data?.roles?.includes('ADMIN_ROLE') ?? false }
   } catch {

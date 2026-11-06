@@ -19,7 +19,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/onboarding")
+@RequestMapping("/api/v1/onboarding")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Onboarding", description = "APIs for user registration and onboarding workflow")
@@ -87,9 +87,9 @@ public class OnboardingController {
         return ResponseEntity.ok(ApiResponseData.success(null));
     }
 
-    @Operation(summary = "Set PIN and complete onboarding", description = "Finalizes the onboarding with the login password, the 6-digit transaction PIN and acceptedLegalDocuments: the Terms and Privacy versions shown to the user (from GET /api/legal/terms and /api/legal/privacy). The user then signs in through /api/auth/login with email and password.")
+    @Operation(summary = "Set PIN and complete onboarding", description = "Finalizes the onboarding with the login password, the 6-digit transaction PIN and acceptedLegalDocuments: the Terms and Privacy versions shown to the user (from GET /api/v1/legal/terms and /api/v1/legal/privacy). The user then signs in through /api/v1/auth/login with email and password.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "User created; sign in through /api/auth/login"),
+            @ApiResponse(responseCode = "200", description = "User created; sign in through /api/v1/auth/login"),
             @ApiResponse(responseCode = "400", description = "PIN not 6 digits, or password not 8-72 characters / over 72 UTF-8 bytes (VALIDATION_FAILED)"),
             @ApiResponse(responseCode = "404", description = "No such flow (FLOW_NOT_FOUND)"),
             @ApiResponse(responseCode = "409", description = "Flow not at this step (INVALID_STEP), or email/username taken by another sign-up meanwhile (ALREADY_TAKEN), or acceptedLegalDocuments are not the active Terms/Privacy versions (LEGAL_VERSION_OUTDATED; nothing was saved, reload the texts and retry)"),

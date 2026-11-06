@@ -47,7 +47,7 @@ Optional pieces, each switched off cleanly when not configured:
 - **Mail** (`MAIL_*`): codes are sent by SMTP. Any local SMTP catcher works for development.
 - **Storage** (`MINIO_*`): buckets `stories`, `profile` and `kyc` (keep `kyc` private). `docker compose --profile local up -d minio`, or any S3-compatible store.
 - **Google sign-in** (`GOOGLE_*`).
-- **Stripe top-ups** (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`): without them top-ups answer `503 TOP_UP_UNAVAILABLE`. Locally: `stripe listen --forward-to localhost:8000/api/stripe/webhook` prints the webhook secret. Pay with the test card `4242 4242 4242 4242`.
+- **Stripe top-ups** (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`): without them top-ups answer `503 TOP_UP_UNAVAILABLE`. Locally: `stripe listen --forward-to localhost:8000/api/v1/stripe/webhook` prints the webhook secret. Pay with the test card `4242 4242 4242 4242`.
 
 An admin is a user with the `ADMIN_ROLE` row in `user_roles`; the frontend then shows **Review** (identity documents, promo stories, problem reports, users).
 

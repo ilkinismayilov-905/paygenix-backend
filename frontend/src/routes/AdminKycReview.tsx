@@ -38,7 +38,7 @@ function AdminKycReview({ id }: { id: number }) {
 
   useEffect(() => {
     let live = true
-    void api.GET('/api/admin/kyc/{id}', { params: { path: { id } } })
+    void api.GET('/api/v1/admin/kyc/{id}', { params: { path: { id } } })
       .then(({ data, response }) => {
         if (!live) return
         if (response.status === 404) setItem('missing')
@@ -61,8 +61,8 @@ function AdminKycReview({ id }: { id: number }) {
     try {
       const params = { params: { path: { id } } }
       const { error: problem, response } = action === 'approve'
-        ? await api.POST('/api/admin/kyc/{id}/approve', params)
-        : await api.POST('/api/admin/kyc/{id}/reject', { ...params, body: { reason: reason.trim() } })
+        ? await api.POST('/api/v1/admin/kyc/{id}/approve', params)
+        : await api.POST('/api/v1/admin/kyc/{id}/reject', { ...params, body: { reason: reason.trim() } })
       if (response.ok) {
         const name = typeof item === 'object' && item ? item.fullName || item.username || '' : ''
         return navigate('/admin/kyc', { replace: true, state: { reviewed: t(action === 'approve' ? 'admin.approved' : 'admin.rejected', { name }) } })

@@ -174,12 +174,12 @@ class GoogleSignInTest extends IntegrationTest {
     }
 
     private ResultActions exchange(String code) throws Exception {
-        return mockMvc.perform(post("/api/auth/oauth/exchange").contentType(MediaType.APPLICATION_JSON)
+        return mockMvc.perform(post("/api/v1/auth/oauth/exchange").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"" + code + "\"}"));
     }
 
     private ResultActions setPin(User user, String pin) throws Exception {
-        return mockMvc.perform(post("/api/user/pin").header("Authorization", bearer(user))
+        return mockMvc.perform(post("/api/v1/user/pin").header("Authorization", bearer(user))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"pin\":\"" + pin + "\"}"));
     }
 

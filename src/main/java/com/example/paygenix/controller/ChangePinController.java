@@ -20,7 +20,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/change-pin")
+@RequestMapping("/api/v1/change-pin")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "PIN Management", description = "APIs for secure PIN change workflow including OTP verification")

@@ -164,9 +164,9 @@ class TransferValidationTest extends IntegrationTest {
     void closedOwnCardCannotSend() throws Exception {
         User sender = createUser();
         Long closed = cardOf(issueCard(sender, "AZN")).getId();
-        mockMvc.perform(delete("/api/cards/" + closed).header("Authorization", bearer(sender))).andExpect(status().isOk());
+        mockMvc.perform(delete("/api/v1/cards/" + closed).header("Authorization", bearer(sender))).andExpect(status().isOk());
         String to = issueCard(createUser(), "AZN");
-        mockMvc.perform(post("/api/transfer").header("Authorization", bearer(sender))
+        mockMvc.perform(post("/api/v1/transfer").header("Authorization", bearer(sender))
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fromCardId\":" + closed + ",\"toCardNumber\":\"" + to + "\",\"amount\":\"1.00\",\"pin\":\"" + PIN + "\"}"))
@@ -177,7 +177,7 @@ class TransferValidationTest extends IntegrationTest {
     void missingSourceCardIsRejected() throws Exception {
         User sender = createUser();
         String to = issueCard(createUser(), "AZN");
-        mockMvc.perform(post("/api/transfer").header("Authorization", bearer(sender))
+        mockMvc.perform(post("/api/v1/transfer").header("Authorization", bearer(sender))
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"toCardNumber\":\"" + to + "\",\"amount\":\"1.00\",\"pin\":\"" + PIN + "\"}"))
@@ -185,7 +185,7 @@ class TransferValidationTest extends IntegrationTest {
     }
 
     private ResultActions transfer(User caller, String from, String to, String amount, String pin) throws Exception {
-        return mockMvc.perform(post("/api/transfer").header("Authorization", bearer(caller))
+        return mockMvc.perform(post("/api/v1/transfer").header("Authorization", bearer(caller))
                 .header("Idempotency-Key", UUID.randomUUID().toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"fromCardId\":" + cardOf(from).getId() + ",\"toCardNumber\":\"" + to

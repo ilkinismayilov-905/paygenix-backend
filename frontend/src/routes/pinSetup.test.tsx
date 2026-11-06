@@ -17,10 +17,10 @@ beforeEach(() => {
   setPin = () => ok(null)
   vi.stubGlobal('fetch', async (req: Request) => {
     const url = new URL(req.url)
-    if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
-    if (url.pathname === '/api/cards/me') return ok([card])
-    if (url.pathname === '/api/transfer') return json(403, { code: 'PIN_NOT_SET' })
-    if (url.pathname === '/api/user/pin') { posted.push(await req.clone().json()); return setPin() }
+    if (url.pathname === '/api/v1/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
+    if (url.pathname === '/api/v1/cards/me') return ok([card])
+    if (url.pathname === '/api/v1/transfer') return json(403, { code: 'PIN_NOT_SET' })
+    if (url.pathname === '/api/v1/user/pin') { posted.push(await req.clone().json()); return setPin() }
     return json(404, {})
   })
 })

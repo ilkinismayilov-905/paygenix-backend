@@ -20,14 +20,14 @@ beforeEach(() => {
   remove = () => ok(null)
   vi.stubGlobal('fetch', async (req: Request) => {
     const url = new URL(req.url)
-    if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'admin', roles: ['ADMIN_ROLE'], pendingLegalDocuments: [] })
-    if (url.pathname === '/api/admin/stories' && req.method === 'GET') return ok(live)
-    if (url.pathname === '/api/admin/stories' && req.method === 'POST') {
+    if (url.pathname === '/api/v1/auth/me') return ok({ id: 1, username: 'admin', roles: ['ADMIN_ROLE'], pendingLegalDocuments: [] })
+    if (url.pathname === '/api/v1/admin/stories' && req.method === 'GET') return ok(live)
+    if (url.pathname === '/api/v1/admin/stories' && req.method === 'POST') {
       const f = (await req.clone().formData()).get('file') as Blob
       posted.push({ hours: url.searchParams.get('hours'), size: f.size })
       return publish()
     }
-    if (url.pathname === '/api/admin/stories/5' && req.method === 'DELETE') return remove()
+    if (url.pathname === '/api/v1/admin/stories/5' && req.method === 'DELETE') return remove()
     return json(404, {})
   })
 })

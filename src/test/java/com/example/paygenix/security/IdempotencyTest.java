@@ -105,7 +105,7 @@ class IdempotencyTest extends IntegrationTest {
         String from = issueCard(sender, "AZN");
         setBalance(from, "100.00");
 
-        mockMvc.perform(post("/api/transfer").header("Authorization", bearer(sender))
+        mockMvc.perform(post("/api/v1/transfer").header("Authorization", bearer(sender))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body(from, issueCard(createUser(), "AZN"), "10.00")))
                 .andExpect(status().isBadRequest())
@@ -119,7 +119,7 @@ class IdempotencyTest extends IntegrationTest {
         User payer = createUser();
         String card = issueCard(payer, "AZN");
         setBalance(card, "100.00");
-        String body = mockMvc.perform(post("/api/payment/initiate").header("Authorization", bearer(payer))
+        String body = mockMvc.perform(post("/api/v1/payment/initiate").header("Authorization", bearer(payer))
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"phoneNumber\":\"+994501234567\",\"fromCardId\":" + cardOf(card).getId() + ",\"amount\":10.00}"))
@@ -196,14 +196,14 @@ class IdempotencyTest extends IntegrationTest {
     }
 
     private ResultActions transfer(User caller, String key, String from, String to, String amount) throws Exception {
-        return mockMvc.perform(post("/api/transfer").header("Authorization", bearer(caller))
+        return mockMvc.perform(post("/api/v1/transfer").header("Authorization", bearer(caller))
                 .header("Idempotency-Key", key)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body(from, to, amount)));
     }
 
     private ResultActions confirm(User payer, String key, String flowId) throws Exception {
-        return mockMvc.perform(post("/api/payment/confirm").header("Authorization", bearer(payer))
+        return mockMvc.perform(post("/api/v1/payment/confirm").header("Authorization", bearer(payer))
                 .header("Idempotency-Key", key)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"flowId\":\"" + flowId + "\",\"pin\":\"" + PIN + "\"}"));
@@ -228,7 +228,7 @@ class IdempotencyTest extends IntegrationTest {
     }
 
     private ResultActions issueWithKey(User owner, String key, String currency) throws Exception {
-        return mockMvc.perform(post("/api/cards").header("Authorization", bearer(owner))
+        return mockMvc.perform(post("/api/v1/cards").header("Authorization", bearer(owner))
                 .header("Idempotency-Key", key)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"currency\":\"" + currency + "\"}"));

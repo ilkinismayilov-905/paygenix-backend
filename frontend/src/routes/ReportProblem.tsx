@@ -22,7 +22,7 @@ const schema = z.object({
 type Input = z.input<typeof schema>
 type Form = z.output<typeof schema>
 
-/** Report a problem (POST /api/reports). Support answers by email; there is no list of own reports yet. */
+/** Report a problem (POST /api/v1/reports). Support answers by email; there is no list of own reports yet. */
 export default function ReportProblem() {
   const [sent, setSent] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -34,7 +34,7 @@ export default function ReportProblem() {
   const send = async (form: Form) => {
     setError(null)
     try {
-      const { data, response } = await api.POST('/api/reports', { body: form })
+      const { data, response } = await api.POST('/api/v1/reports', { body: form })
       if (response.ok) return setSent(data?.data?.id ?? 0)
       setError(t(response.status === 400 ? 'signUp.invalid' : 'report.failed'))
     } catch {

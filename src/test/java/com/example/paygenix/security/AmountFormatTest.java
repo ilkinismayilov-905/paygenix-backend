@@ -25,7 +25,7 @@ class AmountFormatTest extends IntegrationTest {
         setBalance(from, "100.5");
 
         // a string amount is accepted, and the response echoes a string
-        mockMvc.perform(post("/api/transfer").header("Authorization", bearer(user))
+        mockMvc.perform(post("/api/v1/transfer").header("Authorization", bearer(user))
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fromCardId\":" + cardOf(from).getId() + ",\"toCardNumber\":\"" + to + "\",\"amount\":\"10.00\",\"pin\":\"" + PIN + "\"}"))
@@ -33,7 +33,7 @@ class AmountFormatTest extends IntegrationTest {
                 .andExpect(jsonPath("$.data.amount").value("10.00"))
                 .andExpect(jsonPath("$.data.amount", instanceOf(String.class)));
 
-        mockMvc.perform(get("/api/cards/me").header("Authorization", bearer(user)))
+        mockMvc.perform(get("/api/v1/cards/me").header("Authorization", bearer(user)))
                 .andExpect(jsonPath("$.data[0].amount").value("90.30")) // 100.50 - 10.00 - 2% commission
                 .andExpect(jsonPath("$.data[0].amount", instanceOf(String.class)))
                 .andExpect(jsonPath("$.data[0].displayAmount").exists());
@@ -44,13 +44,13 @@ class AmountFormatTest extends IntegrationTest {
         User user = createUser();
         String card = issueCard(user, "USD");
         setBalance(card, "50.00");
-        String flow = JsonPath.read(mockMvc.perform(post("/api/payment/initiate").header("Authorization", bearer(user))
+        String flow = JsonPath.read(mockMvc.perform(post("/api/v1/payment/initiate").header("Authorization", bearer(user))
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"phoneNumber\":\"+994501234567\",\"fromCardId\":" + cardOf(card).getId() + ",\"amount\":\"5.25\"}"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(), "$.data");
 
-        mockMvc.perform(post("/api/payment/confirm").header("Authorization", bearer(user))
+        mockMvc.perform(post("/api/v1/payment/confirm").header("Authorization", bearer(user))
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"flowId\":\"" + flow + "\",\"pin\":\"" + PIN + "\"}"))
@@ -66,7 +66,7 @@ class AmountFormatTest extends IntegrationTest {
         String to = issueCard(createUser(), "AZN");
         setBalance(from, "2000.00");
         for (String sent : new String[]{"1E+3", "1000"}) {
-            mockMvc.perform(post("/api/transfer").header("Authorization", bearer(user))
+            mockMvc.perform(post("/api/v1/transfer").header("Authorization", bearer(user))
                             .header("Idempotency-Key", UUID.randomUUID().toString())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"fromCardId\":" + cardOf(from).getId() + ",\"toCardNumber\":\"" + to + "\",\"amount\":\"" + sent + "\",\"pin\":\"" + PIN + "\"}"))

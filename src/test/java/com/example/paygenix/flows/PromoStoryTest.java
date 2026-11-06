@@ -43,13 +43,13 @@ class PromoStoryTest extends IntegrationTest {
     }
 
     private ResultActions publish(User admin, String type, String hours) throws Exception {
-        var req = multipart("/api/admin/stories").file(com.example.paygenix.support.TestFiles.file("file", type, 16))
+        var req = multipart("/api/v1/admin/stories").file(com.example.paygenix.support.TestFiles.file("file", type, 16))
                 .header("Authorization", bearer(admin));
         return mockMvc.perform(hours == null ? req : req.param("hours", hours));
     }
 
     private ResultActions feed(User user) throws Exception {
-        return mockMvc.perform(get("/api/stories/feed").header("Authorization", bearer(user)));
+        return mockMvc.perform(get("/api/v1/stories/feed").header("Authorization", bearer(user)));
     }
 
     private Long publishedId(ResultActions r) throws Exception {
@@ -75,12 +75,12 @@ class PromoStoryTest extends IntegrationTest {
                 .andExpect(jsonPath("$.data.groups[0].userId").doesNotExist())
                 .andExpect(jsonPath("$.data.groups[0].stories[?(@.storyId == %d)].mediaUrl".formatted(image)).value(hasItem("https://storage.test/s?sig=1")));
 
-        mockMvc.perform(post("/api/stories/{id}/view", image).header("Authorization", bearer(user))).andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/stories/{id}/view", image).header("Authorization", bearer(user))).andExpect(status().isOk());
         feed(user).andExpect(jsonPath("$.data.groups[0].stories[?(@.storyId == %d)].viewed".formatted(image)).value(hasItem(true)))
                 .andExpect(jsonPath("$.data.groups[0].stories[?(@.storyId == %d)].viewed".formatted(video)).value(hasItem(false)));
         feed(createUser()).andExpect(jsonPath("$.data.groups[0].stories[?(@.storyId == %d)].viewed".formatted(image)).value(hasItem(false)));
 
-        mockMvc.perform(get("/api/admin/stories").header("Authorization", bearer(admin)))
+        mockMvc.perform(get("/api/v1/admin/stories").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[?(@.id == %d)].views".formatted(image)).value(hasItem(1)));
     }
@@ -91,20 +91,20 @@ class PromoStoryTest extends IntegrationTest {
         Long id = publishedId(publish(admin, "image/jpeg", null));
 
         // another admin may take it down: promos belong to the team
-        mockMvc.perform(delete("/api/admin/stories/{id}", id).header("Authorization", bearer(createUser(Role.ADMIN_ROLE))))
+        mockMvc.perform(delete("/api/v1/admin/stories/{id}", id).header("Authorization", bearer(createUser(Role.ADMIN_ROLE))))
                 .andExpect(status().isOk());
         verify(minio).removeObject(any(RemoveObjectArgs.class));
         feed(createUser()).andExpect(jsonPath("$.data.groups[*].stories[*].storyId").value(not(hasItem(id.intValue()))));
-        mockMvc.perform(delete("/api/admin/stories/{id}", id).header("Authorization", bearer(admin))).andExpect(status().isNotFound());
-        mockMvc.perform(post("/api/stories/{id}/view", id).header("Authorization", bearer(createUser()))).andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/v1/admin/stories/{id}", id).header("Authorization", bearer(admin))).andExpect(status().isNotFound());
+        mockMvc.perform(post("/api/v1/stories/{id}/view", id).header("Authorization", bearer(createUser()))).andExpect(status().isNotFound());
     }
 
     @Test
     void onlyAdminsPublishAndOnlyMediaFiles() throws Exception {
         User user = createUser();
         publish(user, "image/png", null).andExpect(status().isForbidden());
-        mockMvc.perform(get("/api/admin/stories").header("Authorization", bearer(user))).andExpect(status().isForbidden());
-        mockMvc.perform(multipart("/api/stories").file(new MockMultipartFile("file", "x", "image/png", new byte[]{1}))
+        mockMvc.perform(get("/api/v1/admin/stories").header("Authorization", bearer(user))).andExpect(status().isForbidden());
+        mockMvc.perform(multipart("/api/v1/stories").file(new MockMultipartFile("file", "x", "image/png", new byte[]{1}))
                 .param("mediaType", "IMAGE").header("Authorization", bearer(user))).andExpect(status().is4xxClientError());
 
         User admin = createUser(Role.ADMIN_ROLE);

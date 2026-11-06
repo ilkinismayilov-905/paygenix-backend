@@ -68,24 +68,24 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/oauth2/authorization/**",
                                 "/login/oauth2/**",
-                                "/api/onboarding/email",
-                                "/api/onboarding/*/otp",
-                                "/api/auth/login",
-                                "/api/auth/refresh-token",
-                                "/api/auth/logout",
-                                "/api/auth/oauth/exchange",
+                                "/api/v1/onboarding/email",
+                                "/api/v1/onboarding/*/otp",
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/refresh-token",
+                                "/api/v1/auth/logout",
+                                "/api/v1/auth/oauth/exchange",
                                 "/actuator/health",
                                 // Stripe has no token; the handler checks the Stripe-Signature (T-064)
-                                "/api/stripe/webhook",
+                                "/api/v1/stripe/webhook",
                                 // only served when SWAGGER_ENABLED=true
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**"
                         ).permitAll()
                         // sign-up shows them before the account exists (T-110)
-                        .requestMatchers(HttpMethod.GET, "/api/legal/terms", "/api/legal/privacy").permitAll()
-                        .requestMatchers("/api/onboarding/**").hasAuthority("onboarding")
-                        .requestMatchers("/api/**").hasAnyRole("USER_ROLE", "ADMIN_ROLE")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/legal/terms", "/api/v1/legal/privacy").permitAll()
+                        .requestMatchers("/api/v1/onboarding/**").hasAuthority("onboarding")
+                        .requestMatchers("/api/v1/**").hasAnyRole("USER_ROLE", "ADMIN_ROLE")
                         .anyRequest().authenticated()
                 )
                 // stateless JSON API: 401 instead of a redirect to a login page (SEC-22)

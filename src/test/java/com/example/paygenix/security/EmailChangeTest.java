@@ -42,7 +42,7 @@ class EmailChangeTest extends IntegrationTest {
     @MockitoBean EmailService emailService;
     @Autowired StringRedisTemplate redis;
 
-    // shortcut: asserted on the DTO because POST /api/profile still 500s on the Redis cache (T-016); go through HTTP once fixed
+    // shortcut: asserted on the DTO because POST /api/v1/profile still 500s on the Redis cache (T-016); go through HTTP once fixed
     @Test
     void profileEditCannotCarryAnEmail() {
         assertThat(EditProfileRequest.class.getRecordComponents())
@@ -61,7 +61,7 @@ class EmailChangeTest extends IntegrationTest {
 
         assertThat(userRepository.findById(user.getId()).orElseThrow().getEmail()).isEqualTo(newEmail);
         verify(emailService).sendEmailChanged(user.getEmail());
-        int me = mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + session.token()))
+        int me = mockMvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + session.token()))
                 .andReturn().getResponse().getStatus();
         assertThat(me).isIn(302, 401);
     }
@@ -101,7 +101,7 @@ class EmailChangeTest extends IntegrationTest {
         confirm(token, sentCode(newEmail)).andExpect(status().isOk());
 
         assertThat(userRepository.findById(user.getId()).orElseThrow().getEmail()).isEqualTo(newEmail);
-        int me = mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + token))
+        int me = mockMvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + token))
                 .andReturn().getResponse().getStatus();
         assertThat(me).isIn(302, 401);
     }
@@ -281,7 +281,7 @@ class EmailChangeTest extends IntegrationTest {
     }
 
     private ResultActions start(String token, String email, String pin) throws Exception {
-        return mockMvc.perform(post("/api/profile/email").header("Authorization", "Bearer " + token)
+        return mockMvc.perform(post("/api/v1/profile/email").header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"" + email + "\",\"pin\":\"" + pin + "\"}"));
     }
@@ -294,7 +294,7 @@ class EmailChangeTest extends IntegrationTest {
     }
 
     private ResultActions confirm(String token, String otp, String currentEmailOtp) throws Exception {
-        return mockMvc.perform(post("/api/profile/email/confirm").header("Authorization", "Bearer " + token)
+        return mockMvc.perform(post("/api/v1/profile/email/confirm").header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"otp\":\"" + otp + "\",\"currentEmailOtp\":\"" + currentEmailOtp + "\"}"));
     }
