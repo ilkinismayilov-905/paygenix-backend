@@ -163,6 +163,8 @@ export const en = {
   'pay.already': 'This payment was already made.',
   'pay.rejected': 'The payment could not be made. Try again later.',
   'pay.failed': 'The payment did not go through. Check your connection and try again.',
+  'pay.operatorRejected': 'The mobile operator did not accept this number. Nothing was charged. Check the number.',
+  'pay.operatorTimeout': 'The mobile operator did not answer. Nothing was charged. Press Pay again.',
   'pay.paid': 'Payment made',
   'pay.paidTo': 'To {phone}',
   'pay.another': 'New payment',

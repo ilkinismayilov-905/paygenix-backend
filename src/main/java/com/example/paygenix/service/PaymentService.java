@@ -16,6 +16,7 @@ import com.example.paygenix.exceptions.InsufficientBalanceException;
 import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.exceptions.PaymentAlreadyProcessedException;
 import com.example.paygenix.mapper.PaymentMapper;
+import com.example.paygenix.phone.PhoneTopUpProvider;
 import com.example.paygenix.mapper.PaymentTransactionMapper;
 import com.example.paygenix.repository.CardRepository;
 import com.example.paygenix.repository.PaymentOnboardingRepository;
@@ -57,6 +58,7 @@ public class PaymentService {
     private final PinValidationService pinValidationService;
     private final LedgerService ledgerService;
     private final FeeProperties fees;
+    private final PhoneTopUpProvider phoneTopUpProvider;
     private final LegalAcceptanceService legalAcceptanceService;
 
     @Transactional
@@ -115,6 +117,12 @@ public class PaymentService {
         BigDecimal cashbackAmount = fees.cashbackOf(onboarding.getAmount());
 
         transaction.setTransactionId(ptService.generatePaymentTransactionId());
+        // The operator is asked last, after every check: a refusal or timeout throws and this whole transaction (and the
+        // idempotency claim) rolls back, so nothing is charged and the same flow can be confirmed again.
+        // shortcut: the card row stays locked during the call, and a real operator that times out may still deliver;
+        // a real adapter needs reserve -> call outside the transaction -> settle or release, with reconciliation.
+        phoneTopUpProvider.topUp(transaction.getTransactionId(), onboarding.getPhoneNumber(), onboarding.getAmount(),
+                from.getCurrency());
         ledgerService.post(LedgerKind.PAYMENT, transaction.getTransactionId(), from.getCurrency(), List.of(
                 Leg.card(from, onboarding.getAmount().negate()),
                 Leg.system(SystemAccount.PAYMENT_PAYOUT, onboarding.getAmount())));

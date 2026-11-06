@@ -90,6 +90,10 @@ export default function Pay() {
         case 'PAYMENT_ALREADY_PROCESSED': setFlow(null); setError(t('pay.already')); reload(); return
         case 'NOT_FOUND': setFlow(null); setError(t('pay.flowGone')); reload(); return // unknown flow, or the card was closed
         case 'PAYMENT_EXPIRED': setFlow(null); setError(t('pay.expired')); return // not confirmed within 15 minutes
+        // the operator failed: nothing was charged; a refused number goes back to the form, a timeout can press Pay again
+        // (the same key works: the server rolled its claim back)
+        case 'PHONE_TOPUP_REJECTED': setFlow(null); setError(t('pay.operatorRejected')); return
+        case 'PROVIDER_TIMEOUT': setError(t('pay.operatorTimeout')); return
         default: setError(t('pay.rejected'))
       }
     } catch {

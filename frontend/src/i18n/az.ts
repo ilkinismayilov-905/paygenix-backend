@@ -166,6 +166,8 @@ export const az: Record<keyof typeof en, string> = {
   'pay.already': 'Bu ödəniş artıq edilib.',
   'pay.rejected': 'Ödənişi etmək mümkün olmadı. Bir az sonra yenidən cəhd edin.',
   'pay.failed': 'Ödəniş baş tutmadı. İnternet bağlantısını yoxlayıb yenidən cəhd edin.',
+  'pay.operatorRejected': 'Mobil operator bu nömrəni qəbul etmədi. Heç bir məbləğ çıxılmadı. Nömrəni yoxlayın.',
+  'pay.operatorTimeout': 'Mobil operator cavab vermədi. Heç bir məbləğ çıxılmadı. “Ödə” düyməsini yenidən basın.',
   'pay.paid': 'Ödəniş edildi',
   'pay.paidTo': 'Nömrə: {phone}',
   'pay.another': 'Yeni ödəniş',

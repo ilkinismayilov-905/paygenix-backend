@@ -77,7 +77,9 @@ public class PaymentController {
             @ApiResponse(responseCode = "404", description = "Payment flow not found or not owned by the caller"),
             @ApiResponse(responseCode = "429", description = "Too many wrong PINs; PIN checks locked for 15 minutes (PIN_LOCKED); see Retry-After"),
             @ApiResponse(responseCode = "409", description = "Payment already processed, insufficient balance, or busy (retry with the same Idempotency-Key)"),
-            @ApiResponse(responseCode = "422", description = "Idempotency-Key already used for a different request")
+            @ApiResponse(responseCode = "410", description = "Not confirmed within 15 minutes of starting (PAYMENT_EXPIRED); start again"),
+            @ApiResponse(responseCode = "422", description = "Idempotency-Key already used for a different request, or the operator refused the number (PHONE_TOPUP_REJECTED; nothing charged)"),
+            @ApiResponse(responseCode = "504", description = "The operator did not answer (PROVIDER_TIMEOUT); nothing charged, confirm again")
     })
     @PostMapping("/confirm")
     public ResponseEntity<ApiResponseData<PaymentResponse>> confirmPayment(
