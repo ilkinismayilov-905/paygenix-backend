@@ -37,6 +37,14 @@ class StoryViewTest extends IntegrationTest {
         view(viewer, story(author, Instant.now().plus(Duration.ofHours(1)), true)).andExpect(status().isNotFound());
     }
 
+    // only promo stories (PUBLIC) are shown to anyone; an old private story stays private
+    @Test
+    void aPrivateStoryIsNotFound() throws Exception {
+        Long id = story(createUser(), Instant.now().plus(Duration.ofHours(1)), false);
+        jdbc.update("UPDATE stories SET visibility = 'FOLLOWERS' WHERE id = ?", id);
+        view(createUser(), id).andExpect(status().isNotFound());
+    }
+
     private Long story(User author, Instant expiresAt, boolean deleted) {
         return storyRepository.save(Story.builder()
                 .user(author)
