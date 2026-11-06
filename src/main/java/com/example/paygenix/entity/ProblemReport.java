@@ -35,9 +35,9 @@ public class ProblemReport {
     @Column(name = "message", nullable = false, length = 2000)
     private String message;
 
-//     optional: transaction/payment ilə bağlıdırsa
-//    @Column(name = "reference_id", length = 100)
-//    private String referenceId;
+    // optional: what the report is about (card ending, amount, date), as the user typed it
+    @Column(name = "reference_id", length = 100)
+    private String referenceId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
@@ -50,6 +50,7 @@ public class ProblemReport {
         this.userId = userId;
         this.category = category;
         this.message = message;
+        this.referenceId = referenceId;
         this.status = ReportStatus.OPEN;
     }
 

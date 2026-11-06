@@ -39,7 +39,7 @@ public class ProblemReportService {
                 getCurrentUser().getId(),
                 req.category(),
                 req.message().trim(),
-                req.referenceId() == null ? null : req.referenceId().trim()
+                req.referenceId() == null || req.referenceId().isBlank() ? null : req.referenceId().trim()
         );
         log.info("Creating {} problem report for user {}", req.category(), report.getUserId());
         return repository.save(report);
@@ -72,6 +72,7 @@ public class ProblemReportService {
                 report.getUserId(),
                 report.getCategory(),
                 report.getMessage(),
+                report.getReferenceId(),
                 report.getStatus(),
                 report.getCreatedAt()
         );
