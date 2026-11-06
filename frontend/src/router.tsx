@@ -45,6 +45,8 @@ export const routes = [
                 { path: '/admin/kyc', lazy: page(() => import('./routes/AdminKyc')) },
                 { path: '/admin/kyc/:id', lazy: page(() => import('./routes/AdminKycReview')) },
                 { path: '/admin/stories', lazy: page(() => import('./routes/AdminStories')) },
+                { path: '/admin/reports', lazy: page(() => import('./routes/AdminReports')) },
+                { path: '/admin/users', lazy: page(() => import('./routes/AdminUsers')) },
               ],
             },
           ],

@@ -12,6 +12,9 @@
     "bearerAuth" : [ ]
   } ],
   "tags" : [ {
+    "name" : "Admin: users and reports",
+    "description" : "Find, lock and unlock users; work through problem reports (admins only)"
+  }, {
     "name" : "Legal Documents",
     "description" : "APIs for retrieving active Terms of Service and Privacy Policy"
   }, {
@@ -1936,6 +1939,99 @@
         }
       }
     },
+    "/api/admin/users/{id}/unlock" : {
+      "post" : {
+        "tags" : [ "Admin: users and reports" ],
+        "summary" : "Unlock a user",
+        "operationId" : "unlock",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataAdminUserItem"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/admin/users/{id}/lock" : {
+      "post" : {
+        "tags" : [ "Admin: users and reports" ],
+        "summary" : "Lock a user",
+        "description" : "Sign-in and every session stop at once. Not for yourself or other admins.",
+        "operationId" : "lock",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Locked",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataAdminUserItem"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "The user is an admin (ADMIN_TARGET)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataAdminUserItem"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such user (NOT_FOUND)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataAdminUserItem"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Your own account (CANNOT_LOCK_SELF)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataAdminUserItem"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
     "/api/admin/stories" : {
       "get" : {
         "tags" : [ "Admin: promo stories" ],
@@ -2172,6 +2268,58 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ApiResponseDataKycReviewItem"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/admin/reports/{id}" : {
+      "patch" : {
+        "tags" : [ "Admin: users and reports" ],
+        "summary" : "Set a report's status",
+        "description" : "OPEN, IN_PROGRESS, RESOLVED or REJECTED.",
+        "operationId" : "setStatus",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReportStatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Updated",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataAdminReportItem"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such report (NOT_FOUND)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataAdminReportItem"
                 }
               }
             }
@@ -2887,6 +3035,115 @@
             }
           }
         }
+      }
+    },
+    "/api/admin/users" : {
+      "get" : {
+        "tags" : [ "Admin: users and reports" ],
+        "summary" : "Find users",
+        "description" : "query matches part of the email or username (case-insensitive); newest first.",
+        "operationId" : "users",
+        "parameters" : [ {
+          "name" : "query",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20,
+            "maximum" : 50,
+            "minimum" : 1
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataAdminPageAdminUserItem"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/admin/reports" : {
+      "get" : {
+        "tags" : [ "Admin: users and reports" ],
+        "summary" : "Problem reports by status",
+        "description" : "Newest first.",
+        "operationId" : "reports",
+        "parameters" : [ {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "OPEN",
+            "enum" : [ "OPEN", "IN_PROGRESS", "RESOLVED", "REJECTED" ]
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20,
+            "maximum" : 50,
+            "minimum" : 1
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataAdminPageAdminReportItem"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
       }
     },
     "/api/admin/kyc" : {
@@ -3825,6 +4082,59 @@
         },
         "required" : [ "email", "password" ]
       },
+      "AdminUserItem" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "username" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "fullName" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "verified" : {
+            "type" : "boolean"
+          },
+          "roles" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ApiResponseDataAdminUserItem" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/AdminUserItem"
+          }
+        }
+      },
       "ApiResponseDataPromoStoryResponse" : {
         "type" : "object",
         "properties" : {
@@ -3943,6 +4253,72 @@
           },
           "documentUrl" : {
             "type" : "string"
+          }
+        }
+      },
+      "ReportStatusRequest" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "enum" : [ "OPEN", "IN_PROGRESS", "RESOLVED", "REJECTED" ]
+          }
+        },
+        "required" : [ "status" ]
+      },
+      "AdminReportItem" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "userId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "username" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "category" : {
+            "type" : "string",
+            "enum" : [ "TRANSACTION_FAILED", "CARD_NOT_WORKING", "TRANSFER_DELAYED", "INCORRECT_AMOUNT_CHARGED", "MISSING_TRANSACTION", "SECURITY_CONCERN" ]
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "referenceId" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "OPEN", "IN_PROGRESS", "RESOLVED", "REJECTED" ]
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ApiResponseDataAdminReportItem" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/AdminReportItem"
           }
         }
       },
@@ -4569,6 +4945,47 @@
           }
         }
       },
+      "AdminPageAdminUserItem" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AdminUserItem"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "hasNext" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ApiResponseDataAdminPageAdminUserItem" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/AdminPageAdminUserItem"
+          }
+        }
+      },
       "ApiResponseDataListPromoStoryResponse" : {
         "type" : "object",
         "properties" : {
@@ -4588,6 +5005,47 @@
             "items" : {
               "$ref" : "#/components/schemas/PromoStoryResponse"
             }
+          }
+        }
+      },
+      "AdminPageAdminReportItem" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AdminReportItem"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "hasNext" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ApiResponseDataAdminPageAdminReportItem" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/AdminPageAdminReportItem"
           }
         }
       },

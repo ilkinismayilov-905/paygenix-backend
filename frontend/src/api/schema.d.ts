@@ -544,6 +544,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/users/{id}/unlock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unlock a user */
+        post: operations["unlock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{id}/lock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lock a user
+         * @description Sign-in and every session stop at once. Not for yourself or other admins.
+         */
+        post: operations["lock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/stories": {
         parameters: {
             query?: never;
@@ -606,6 +643,26 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Set a report's status
+         * @description OPEN, IN_PROGRESS, RESOLVED or REJECTED.
+         */
+        patch: operations["setStatus"];
         trace?: never;
     };
     "/api/user": {
@@ -1016,6 +1073,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Find users
+         * @description query matches part of the email or username (case-insensitive); newest first.
+         */
+        get: operations["users"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Problem reports by status
+         * @description Newest first.
+         */
+        get: operations["reports"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/kyc": {
         parameters: {
             query?: never;
@@ -1389,6 +1486,26 @@ export interface components {
             email: string;
             password: string;
         };
+        AdminUserItem: {
+            /** Format: int64 */
+            id?: number;
+            username?: string;
+            email?: string;
+            fullName?: string;
+            status?: string;
+            verified?: boolean;
+            roles?: string[];
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        ApiResponseDataAdminUserItem: {
+            /** Format: date-time */
+            timestamp?: string;
+            /** Format: int32 */
+            status?: number;
+            message?: string;
+            data?: components["schemas"]["AdminUserItem"];
+        };
         ApiResponseDataPromoStoryResponse: {
             /** Format: date-time */
             timestamp?: string;
@@ -1439,6 +1556,34 @@ export interface components {
             reviewedAt?: string;
             rejectionReason?: string;
             documentUrl?: string;
+        };
+        ReportStatusRequest: {
+            /** @enum {string} */
+            status: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "REJECTED";
+        };
+        AdminReportItem: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            userId?: number;
+            username?: string;
+            email?: string;
+            /** @enum {string} */
+            category?: "TRANSACTION_FAILED" | "CARD_NOT_WORKING" | "TRANSFER_DELAYED" | "INCORRECT_AMOUNT_CHARGED" | "MISSING_TRANSACTION" | "SECURITY_CONCERN";
+            message?: string;
+            referenceId?: string;
+            /** @enum {string} */
+            status?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "REJECTED";
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        ApiResponseDataAdminReportItem: {
+            /** Format: date-time */
+            timestamp?: string;
+            /** Format: int32 */
+            status?: number;
+            message?: string;
+            data?: components["schemas"]["AdminReportItem"];
         };
         ApiResponseDataListUserResponse: {
             /** Format: date-time */
@@ -1685,6 +1830,22 @@ export interface components {
             expiresAt?: number;
             pendingLegalDocuments?: components["schemas"]["LegalDocumentRef"][];
         };
+        AdminPageAdminUserItem: {
+            items?: components["schemas"]["AdminUserItem"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            hasNext?: boolean;
+        };
+        ApiResponseDataAdminPageAdminUserItem: {
+            /** Format: date-time */
+            timestamp?: string;
+            /** Format: int32 */
+            status?: number;
+            message?: string;
+            data?: components["schemas"]["AdminPageAdminUserItem"];
+        };
         ApiResponseDataListPromoStoryResponse: {
             /** Format: date-time */
             timestamp?: string;
@@ -1692,6 +1853,22 @@ export interface components {
             status?: number;
             message?: string;
             data?: components["schemas"]["PromoStoryResponse"][];
+        };
+        AdminPageAdminReportItem: {
+            items?: components["schemas"]["AdminReportItem"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            hasNext?: boolean;
+        };
+        ApiResponseDataAdminPageAdminReportItem: {
+            /** Format: date-time */
+            timestamp?: string;
+            /** Format: int32 */
+            status?: number;
+            message?: string;
+            data?: components["schemas"]["AdminPageAdminReportItem"];
         };
         ApiResponseDataKycReviewPage: {
             /** Format: date-time */
@@ -3223,6 +3400,77 @@ export interface operations {
             };
         };
     };
+    unlock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataAdminUserItem"];
+                };
+            };
+        };
+    };
+    lock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Locked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataAdminUserItem"];
+                };
+            };
+            /** @description The user is an admin (ADMIN_TARGET) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataAdminUserItem"];
+                };
+            };
+            /** @description No such user (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataAdminUserItem"];
+                };
+            };
+            /** @description Your own account (CANNOT_LOCK_SELF) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataAdminUserItem"];
+                };
+            };
+        };
+    };
     live: {
         parameters: {
             query?: never;
@@ -3406,6 +3654,41 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseDataKycReviewItem"];
+                };
+            };
+        };
+    };
+    setStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataAdminReportItem"];
+                };
+            };
+            /** @description No such report (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataAdminReportItem"];
                 };
             };
         };
@@ -3983,6 +4266,54 @@ export interface operations {
                 };
                 content: {
                     "*/*": string;
+                };
+            };
+        };
+    };
+    users: {
+        parameters: {
+            query?: {
+                query?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataAdminPageAdminUserItem"];
+                };
+            };
+        };
+    };
+    reports: {
+        parameters: {
+            query?: {
+                status?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "REJECTED";
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataAdminPageAdminReportItem"];
                 };
             };
         };

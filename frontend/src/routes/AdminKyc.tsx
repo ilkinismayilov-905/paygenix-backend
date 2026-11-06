@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import { t } from '../i18n'
 import { Alert, Button, EmptyState, ErrorState, List, ListRow, Skeleton } from '../ui'
 
+import { AdminNav } from './AdminNav'
 import { formatWhen, type Review } from './kyc'
 
 type Status = NonNullable<Review['status']>
@@ -65,7 +66,7 @@ export default function AdminKyc() {
   return (
     <main className="page">
       <h1>{t('admin.kycTitle')}</h1>
-      <p><Link to="/admin/stories">{t('promo.title')}</Link></p>
+      <AdminNav />
       {notice && <Alert tone="success" title={notice} />}
       <div className="tabs" role="group" aria-label={t('admin.kycFilter')}>
         {STATUSES.map((s) => (

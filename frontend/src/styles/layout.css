@@ -123,3 +123,6 @@ fieldset.field { border: 0; margin: 0; padding: 0; min-width: 0; }
 
 /* language */
 .language-switch { font-size: var(--text-sm); color: var(--text-muted); }
+
+.report-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-4); }
+.tabs .btn.btn-sm { text-decoration: none; }

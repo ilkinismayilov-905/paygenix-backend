@@ -3,6 +3,7 @@ import { api } from '../api/client'
 import type { components } from '../api/schema'
 import { t } from '../i18n'
 import { Alert, Button, Dialog, EmptyState, ErrorState, Skeleton } from '../ui'
+import { AdminNav } from './AdminNav'
 import { formatWhen } from './kyc'
 import { problemCode } from './money'
 
@@ -51,6 +52,7 @@ export default function AdminStories() {
   return (
     <main className="page">
       <h1>{t('promo.title')}</h1>
+      <AdminNav />
       {notice && <Alert tone="success" title={notice} />}
       <PublishForm onPublished={() => { setNotice(t('promo.published')); reload() }} />
       <section className="home-section" aria-labelledby="live">
