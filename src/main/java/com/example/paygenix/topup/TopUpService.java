@@ -64,10 +64,11 @@ public class TopUpService {
         Cards card = cardService.findOwned(user, cardId);
         // outside any transaction: the provider call must not hold a DB connection
         CheckoutGateway.Checkout checkout = gateway.open(user.getId(), value, card.getCurrency(),
-                "topup-" + user.getId() + "-" + idempotencyKey,
-                // Stripe fills in {CHECKOUT_SESSION_ID}; the return page asks GET /api/topups/session/{id} for the outcome
+                // hashed: Stripe keys are at most 255 characters, the client's alone may be that long
+                "topup-" + user.getId() + "-" + sha256(idempotencyKey),
+                // Stripe fills in {CHECKOUT_SESSION_ID} on success only; the return page asks GET /api/topups/session/{id}
                 frontendUrl + "/top-up/return?session={CHECKOUT_SESSION_ID}",
-                frontendUrl + "/top-up/return?session={CHECKOUT_SESSION_ID}&cancelled=1");
+                frontendUrl + "/top-up/return?cancelled=1");
         try {
             TopUp saved = topUps.saveAndFlush(new TopUp(user.getId(), card.getId(), value, card.getCurrency(), idempotencyKey,
                     checkout.sessionId(), checkout.url()));
@@ -82,6 +83,10 @@ public class TopUpService {
     private static Started replay(TopUp t, Long cardId, BigDecimal amount) {
         if (!t.getCardId().equals(cardId) || t.getAmount().compareTo(amount) != 0) {
             throw new IdempotencyKeyReusedException();
+        }
+        if (t.getStatus() != TopUpStatus.PENDING) {
+            // paid or expired already: its checkout cannot be used again; a new top-up needs a new key
+            throw new ApiException(HttpStatus.CONFLICT, "TOP_UP_FINISHED", "This top-up is already finished");
         }
         return new Started(t.getId(), t.getCheckoutUrl());
     }
@@ -136,5 +141,14 @@ public class TopUpService {
         topUps.findBySessionIdForUpdate(sessionId)
                 .filter(t -> t.getStatus() == TopUpStatus.PENDING)
                 .ifPresent(t -> t.finish(TopUpStatus.EXPIRED));
+    }
+
+    private static String sha256(String value) {
+        try {
+            return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(value.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }

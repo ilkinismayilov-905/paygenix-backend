@@ -16,13 +16,16 @@ const POLL_TRIES = 15 // about 30 s: Stripe's webhook usually lands within secon
  */
 export default function TopUpReturn() {
   const [params] = useSearchParams()
-  const session = params.get('session') ?? ''
-  const cancelled = params.has('cancelled')
+  // keyed: another session in the URL starts from scratch
+  return <Result key={params.get('session') ?? ''} session={params.get('session') ?? ''} cancelled={params.has('cancelled')} />
+}
+
+function Result({ session, cancelled }: { session: string; cancelled: boolean }) {
   const [topUp, setTopUp] = useState<TopUp | null | 'missing'>(null)
   const [gaveUp, setGaveUp] = useState(false)
 
   useEffect(() => {
-    if (!session) return
+    if (!session || cancelled) return // a cancelled checkout charged nothing: no need to ask
     const run = { stopped: false }
     void (async () => {
       for (let i = 0; i < POLL_TRIES; i++) {
@@ -44,13 +47,14 @@ export default function TopUpReturn() {
       if (!run.stopped) setGaveUp(true)
     })()
     return () => { run.stopped = true }
-  }, [session])
+  }, [session, cancelled])
 
   const pending = topUp === null || (topUp !== 'missing' && topUp.status === 'PENDING')
   const stillPolling = pending && !gaveUp && !cancelled
 
   let body
-  if (!session || topUp === 'missing') body = <Alert tone="danger" title={t('topUp.unknown')} />
+  if (cancelled) body = <Alert title={t('topUp.cancelled')} />
+  else if (!session || topUp === 'missing') body = <Alert tone="danger" title={t('topUp.unknown')} />
   else if (topUp && topUp.status === 'SUCCEEDED') body = (
     <section className="transfer-done" aria-labelledby="topup-done">
       <h2 id="topup-done" ref={(el) => el?.focus()} tabIndex={-1}>{t('topUp.done')}</h2>

@@ -46,7 +46,8 @@ services:
       - postgres-db
       - redis
     ports:
-      - "${SERVER_PORT:-8000}:8000"
+      # host-only: clients reach the app through nginx; a direct client must not be able to pose as a proxy (T-076)
+      - "127.0.0.1:${SERVER_PORT:-8000}:8000"
     # Bu hissə vacibdir: .env faylındakı bütün dataları Java-ya ötürür
     env_file:
       - .env

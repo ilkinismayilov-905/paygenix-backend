@@ -64,7 +64,8 @@ public abstract class AbstractMediaStorage {
             case ".gif" -> n >= 4 && starts(head, 0, 'G', 'I', 'F', '8');
             case ".webp" -> n >= 12 && starts(head, 0, 'R', 'I', 'F', 'F') && starts(head, 8, 'W', 'E', 'B', 'P');
             case ".mp4", ".mov" -> n >= 8 && (starts(head, 4, 'f', 't', 'y', 'p') || starts(head, 4, 'm', 'o', 'o', 'v')
-                    || starts(head, 4, 'm', 'd', 'a', 't') || starts(head, 4, 'w', 'i', 'd', 'e'));
+                    || starts(head, 4, 'm', 'd', 'a', 't') || starts(head, 4, 'w', 'i', 'd', 'e')
+                    || starts(head, 4, 'f', 'r', 'e', 'e') || starts(head, 4, 's', 'k', 'i', 'p') || starts(head, 4, 'p', 'n', 'o', 't'));
             case ".webm" -> n >= 4 && starts(head, 0, 0x1A, 0x45, 0xDF, 0xA3);
             default -> false;
         };

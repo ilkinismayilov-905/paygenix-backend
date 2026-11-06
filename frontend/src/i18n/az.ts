@@ -125,6 +125,7 @@ export const az: Record<keyof typeof en, string> = {
   'topUp.refund': 'Ödəniş kart bağlandıqdan sonra daxil oldu. Məbləğ geri qaytarılacaq.',
   'topUp.slow': 'Ödəniş hələ təsdiqlənir. Bitdikdə balansınız yenilənəcək.',
   'topUp.unknown': 'Bu balans artırma əməliyyatı tapılmadı.',
+  'topUp.finished': 'Bu balans artırma artıq başa çatıb. Yenisini başlatmaq üçün düyməni yenidən basın.',
   'topUp.another': 'Yenidən artır',
   'home.hello': 'Salam, {name}',
   'shell.profile': 'Profil',

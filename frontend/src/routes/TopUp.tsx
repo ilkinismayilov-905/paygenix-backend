@@ -42,10 +42,15 @@ export default function TopUp() {
         params: { header: { 'Idempotency-Key': key } },
       })
       const url = data?.data?.checkoutUrl
-      if (response.ok && url) { window.location.assign(url); return } // the page stays busy until the browser leaves
+      if (response.ok && url) {
+        attempt.current = null // coming back (Back, bfcache) starts a new top-up, not this finished one
+        window.location.assign(url)
+        return // the page stays busy until the browser leaves
+      }
       switch (problemCode(problem)) {
         case 'TOP_UP_UNAVAILABLE': return setError(t('topUp.unavailable', { minutes: retryAfterMinutes(response) ?? 1 }))
         case 'NOT_FOUND': return setError(t('pay.cardGone'))
+        case 'TOP_UP_FINISHED': attempt.current = null; return setError(t('topUp.finished'))
         case 'VALIDATION_FAILED': return setError(t('topUp.range'))
         default: return setError(t('topUp.failed'))
       }

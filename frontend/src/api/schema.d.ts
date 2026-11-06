@@ -2045,6 +2045,15 @@ export interface operations {
                     "*/*": components["schemas"]["ApiResponseDataTopUpResponse"];
                 };
             };
+            /** @description The key's top-up is already paid or expired (TOP_UP_FINISHED); use a new key */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataTopUpResponse"];
+                };
+            };
             /** @description Idempotency-Key used for a different top-up (IDEMPOTENCY_KEY_REUSED) */
             422: {
                 headers: {

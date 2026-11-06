@@ -122,6 +122,7 @@ export const en = {
   'topUp.refund': 'The payment arrived after the card was closed. It will be refunded.',
   'topUp.slow': 'The payment is still being confirmed. Your balance updates when it is done.',
   'topUp.unknown': 'This top-up could not be found.',
+  'topUp.finished': 'That top-up is already finished. Press the button again to start a new one.',
   'topUp.another': 'New top-up',
   'home.hello': 'Hi, {name}',
   'shell.profile': 'Profile',
