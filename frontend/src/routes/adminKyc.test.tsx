@@ -59,10 +59,18 @@ test('others get the not-found page and no Review link', async () => {
   expect(screen.queryByRole('link', { name: 'Review' })).toBeNull()
 })
 
-test('approve goes back to the list with a notice', async () => {
+test('the notice is shown once: the history entry forgets it', async () => {
+  const router = createMemoryRouter(routes, { initialEntries: [{ pathname: '/admin/kyc', state: { reviewed: 'Person 9 is verified.' } }] })
+  render(<RouterProvider router={router} />)
+  expect(await screen.findByText('Person 9 is verified.')).toBeInTheDocument()
+  await vi.waitFor(() => expect(router.state.location.state).toBeNull())
+})
+
+test('approve asks first, then goes back to the list with a notice', async () => {
   open('/admin/kyc/1')
   expect(await screen.findByAltText('Identity document of Person 1')).toHaveAttribute('src', 'https://storage.test/kyc/1.jpg?sig=x')
   fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
+  fireEvent.click(within(await screen.findByRole('dialog', { name: 'Approve this document?' })).getByRole('button', { name: 'Approve' }))
   expect(await screen.findByText('Person 1 is verified.')).toBeInTheDocument()
   expect(decisions).toEqual([{ path: '/api/admin/kyc/1/approve', body: null }])
 })
@@ -83,11 +91,16 @@ test('reject needs a reason, sends it trimmed', async () => {
 test('own submission and an earlier review say so', async () => {
   decide = () => json(403, { code: 'KYC_OWN_SUBMISSION' })
   open('/admin/kyc/1')
-  fireEvent.click(await screen.findByRole('button', { name: 'Approve' }))
+  const approve = async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Approve this document?' })).getByRole('button', { name: 'Approve' }))
+  }
+  await screen.findByRole('button', { name: 'Approve' })
+  await approve()
   expect(await screen.findByText('You cannot review your own document.')).toBeInTheDocument()
   decide = () => json(409, { code: 'KYC_ALREADY_REVIEWED' })
   detail = () => ok({ ...item(1, { status: 'APPROVED', reviewedAt: '2026-11-06T11:00:00Z' }), documentUrl: 'https://storage.test/x' })
-  fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
+  await approve()
   expect(await screen.findByText('Someone already reviewed this document.')).toBeInTheDocument()
   expect(await screen.findByText('Approved')).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull()

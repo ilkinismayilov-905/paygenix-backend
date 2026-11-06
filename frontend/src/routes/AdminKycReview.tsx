@@ -49,6 +49,7 @@ function AdminKycReview({ id }: { id: number }) {
   }, [id, round])
   // a new link each time: the old one may have expired
   const reload = () => { setPhotoFailed(false); setItem(null); setRound((r) => r + 1) }
+  const [approving, setApproving] = useState(false)
 
   const decide = async (action: 'approve' | 'reject') => {
     if (action === 'reject') {
@@ -67,8 +68,11 @@ function AdminKycReview({ id }: { id: number }) {
         return navigate('/admin/kyc', { replace: true, state: { reviewed: t(action === 'approve' ? 'admin.approved' : 'admin.rejected', { name }) } })
       }
       const code = problemCode(problem)
+      if (code === 'VALIDATION_FAILED' && action === 'reject') return setReasonError(t('admin.reasonInvalid'))
       setRejecting(false)
-      if (code === 'KYC_ALREADY_REVIEWED') { reload(); return setError(t('admin.alreadyReviewed')) }
+      setApproving(false)
+      // quiet refresh: the page stays (no skeleton), so the closing dialog hands focus back to its button
+      if (code === 'KYC_ALREADY_REVIEWED') { setRound((r) => r + 1); return setError(t('admin.alreadyReviewed')) }
       setError(t(code === 'KYC_OWN_SUBMISSION' ? 'admin.own' : code === 'RESOURCE_BUSY' ? 'admin.busy' : 'admin.decideFailed'))
     } catch {
       setError(t('admin.decideFailed'))
@@ -93,7 +97,7 @@ function AdminKycReview({ id }: { id: number }) {
       <h1>{item.fullName || item.username}</h1>
       {error && <Alert tone="danger" title={error} />}
       <dl className="summary">
-        <dt>{t('admin.username')}</dt><dd>@{item.username}</dd>
+        <dt>{t('admin.username')}</dt><dd>{item.username ? `@${item.username}` : '—'}</dd>
         <dt>{t('profile.email')}</dt><dd>{item.email}</dd>
         <dt>{t('verify.type')}</dt><dd>{t(`verify.doc.${item.documentType ?? 'ID_CARD'}`)}</dd>
         <dt>{t('admin.sentAt')}</dt><dd>{formatWhen(item.submittedAt)}</dd>
@@ -107,10 +111,17 @@ function AdminKycReview({ id }: { id: number }) {
             referrerPolicy="no-referrer" onError={() => setPhotoFailed(true)} />}
       {item.status === 'PENDING' && (
         <div className="transfer-actions">
-          <Button loading={busy === 'approve'} disabled={busy !== null} onClick={() => void decide('approve')}>{t('admin.approve')}</Button>
+          <Button disabled={busy !== null} onClick={() => setApproving(true)}>{t('admin.approve')}</Button>
           <Button variant="danger" disabled={busy !== null} onClick={() => { setReasonError(null); setRejecting(true) }}>{t('admin.reject')}</Button>
         </div>
       )}
+      <Dialog open={approving} onClose={() => setApproving(false)} title={t('admin.approveTitle')} dismissable={busy === null}
+        actions={<>
+          <Button variant="secondary" disabled={busy !== null} onClick={() => setApproving(false)}>{t('sessions.keep')}</Button>
+          <Button loading={busy === 'approve'} onClick={() => void decide('approve')}>{t('admin.approve')}</Button>
+        </>}>
+        <p>{t('admin.approveBody', { name: item.fullName || item.username || '' })}</p>
+      </Dialog>
       <Dialog open={rejecting} onClose={() => setRejecting(false)} title={t('admin.rejectTitle')} dismissable={busy === null}
         actions={<>
           <Button variant="secondary" disabled={busy !== null} onClick={() => setRejecting(false)}>{t('sessions.keep')}</Button>

@@ -74,3 +74,29 @@ test('a date of birth that is today or later is refused', async () => {
   expect(await screen.findByText('Date of birth must be in the past.')).toBeInTheDocument()
   expect(posted).toHaveLength(0)
 })
+
+test('adds a photo, shows it, and removes it', async () => {
+  let photo: string | null = null
+  vi.stubGlobal('fetch', async (req: Request) => {
+    const url = new URL(req.url)
+    if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
+    if (url.pathname === '/api/profile/me') return ok({ ...saved, photoUrl: photo })
+    if (url.pathname === '/api/profile/photo' && req.method === 'POST') { photo = 'https://s.test/me.png'; return ok({ ...saved, photoUrl: photo }) }
+    if (url.pathname === '/api/profile/photo' && req.method === 'DELETE') { photo = null; return ok(null) }
+    return json(404, {})
+  })
+  open()
+  const input = await screen.findByLabelText('Add photo')
+  fireEvent.change(input, { target: { files: [new File([new Uint8Array(10)], 'me.png', { type: 'image/png' })] } })
+  expect(await screen.findByAltText('Your profile photo')).toHaveAttribute('src', 'https://s.test/me.png')
+  fireEvent.click(screen.getByRole('button', { name: 'Remove photo' }))
+  await vi.waitFor(() => expect(screen.queryByAltText('Your profile photo')).toBeNull())
+  expect(screen.getByLabelText('Add photo')).toBeInTheDocument()
+})
+
+test('a photo needs a saved profile; wrong files are refused before sending', async () => {
+  me = () => ok({ fullName: 'Nigar', email: 'nigar@example.test' })
+  open()
+  expect(await screen.findByText('Save your profile first, then add a photo.')).toBeInTheDocument()
+  expect(screen.getByLabelText('Add photo')).toBeDisabled()
+})

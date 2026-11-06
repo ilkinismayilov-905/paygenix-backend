@@ -84,26 +84,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/user/media": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Upload media file
-         * @description Uploads a generic media file (e.g., document, image) to the cloud storage and returns its generated object key (uploads/{userId}/{uuid}.{ext}).
-         */
-        post: operations["uploadMedia"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/transfer": {
         parameters: {
             query?: never;
@@ -207,10 +187,14 @@ export interface paths {
         put?: never;
         /**
          * Upload profile photo
-         * @description Uploads or updates the profile picture for the authenticated user.
+         * @description JPEG, PNG, WebP or GIF, at most 5 MB. Replaces the current photo. Needs a saved profile. The response's photoUrl works for 10 minutes; GET /api/profile/me gives a fresh one.
          */
         post: operations["uploadProfileImage"];
-        delete?: never;
+        /**
+         * Remove profile photo
+         * @description Idempotent.
+         */
+        delete: operations["removeProfileImage"];
         options?: never;
         head?: never;
         patch?: never;
@@ -624,26 +608,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/user/media-download": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get media download URL
-         * @description Generates a temporary download URL for one of the caller's own uploaded media objects.
-         */
-        get: operations["downloadMedia"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/transfer/{id}": {
         parameters: {
             query?: never;
@@ -753,7 +717,7 @@ export interface paths {
         };
         /**
          * Get my profile
-         * @description The caller's own profile. Before the first save only fullName and email are set; objectName is the photo key for GET /api/user/media-download.
+         * @description The caller's own profile. Before the first save only fullName and email are set; photoUrl is a 10-minute link to the photo, if there is one.
          */
         get: operations["getMyProfile"];
         put?: never;
@@ -836,6 +800,26 @@ export interface paths {
          * @description status: NOT_SUBMITTED, PENDING (waiting for review), APPROVED (verified) or REJECTED (rejectionReason says why; send a new document). The other fields describe the latest submission.
          */
         get: operations["me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fee rates (T-129)
+         * @description commissionPercent is added to every transfer; cashbackPercent of every phone payment comes back to the card. Amounts round half-even to 2 decimals.
+         */
+        get: operations["fees"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1102,14 +1086,6 @@ export interface components {
         SetPinRequest: {
             pin: string;
         };
-        ApiResponseDataString: {
-            /** Format: date-time */
-            timestamp?: string;
-            /** Format: int32 */
-            status?: number;
-            message?: string;
-            data?: string;
-        };
         TransferRequest: {
             /**
              * Format: int64
@@ -1189,6 +1165,7 @@ export interface components {
             /** @enum {string} */
             gender?: "MALE" | "FEMALE";
             objectName?: string;
+            photoUrl?: string;
         };
         EmailChangeRequest: {
             email: string;
@@ -1210,6 +1187,14 @@ export interface components {
              * @example 10.00
              */
             amount: string;
+        };
+        ApiResponseDataString: {
+            /** Format: date-time */
+            timestamp?: string;
+            /** Format: int32 */
+            status?: number;
+            message?: string;
+            data?: string;
         };
         ConfirmPaymentRequest: {
             flowId: string;
@@ -1504,7 +1489,7 @@ export interface components {
             cashbackPercent?: string;
             cashbackValue?: string;
             /** @enum {string} */
-            status?: "PENDING" | "COMPLETED";
+            status?: "PENDING" | "COMPLETED" | "EXPIRED";
             /** Format: date-time */
             createdAt?: string;
         };
@@ -1522,6 +1507,18 @@ export interface components {
             /** Format: date */
             effectiveDate?: string;
             content?: string;
+        };
+        ApiResponseDataFeesResponse: {
+            /** Format: date-time */
+            timestamp?: string;
+            /** Format: int32 */
+            status?: number;
+            message?: string;
+            data?: components["schemas"]["FeesResponse"];
+        };
+        FeesResponse: {
+            commissionPercent?: string;
+            cashbackPercent?: string;
         };
         ApiResponseDataListCardResponse: {
             /** Format: date-time */
@@ -1823,54 +1820,6 @@ export interface operations {
             };
         };
     };
-    uploadMedia: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "multipart/form-data": {
-                    /**
-                     * Format: binary
-                     * @description The media file to be uploaded
-                     */
-                    file: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Media uploaded successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseDataString"];
-                };
-            };
-            /** @description Invalid file name */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseDataString"];
-                };
-            };
-            /** @description Media storage unavailable (MEDIA_UPLOAD_FAILED); see Retry-After */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseDataString"];
-                };
-            };
-        };
-    };
     getTransfers: {
         parameters: {
             query?: never;
@@ -2157,14 +2106,14 @@ export interface operations {
                 "multipart/form-data": {
                     /**
                      * Format: binary
-                     * @description The image file to upload (PNG, JPG, etc.)
+                     * @description The image file to upload
                      */
                     file: string;
                 };
             };
         };
         responses: {
-            /** @description Profile photo uploaded successfully */
+            /** @description Photo saved */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2173,7 +2122,7 @@ export interface operations {
                     "*/*": components["schemas"]["ApiResponseDataEditProfileResponse"];
                 };
             };
-            /** @description Invalid file format or size */
+            /** @description No file or not an image (VALIDATION_FAILED) */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -2182,13 +2131,51 @@ export interface operations {
                     "*/*": components["schemas"]["ApiResponseDataEditProfileResponse"];
                 };
             };
-            /** @description Internal server error during file upload */
-            500: {
+            /** @description No saved profile yet (PROFILE_REQUIRED) */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseDataEditProfileResponse"];
+                };
+            };
+            /** @description Larger than 5 MB (PHOTO_TOO_LARGE) */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataEditProfileResponse"];
+                };
+            };
+            /** @description Storage unavailable (MEDIA_UPLOAD_FAILED), with Retry-After */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataEditProfileResponse"];
+                };
+            };
+        };
+    };
+    removeProfileImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataVoid"];
                 };
             };
         };
@@ -3290,50 +3277,6 @@ export interface operations {
             };
         };
     };
-    downloadMedia: {
-        parameters: {
-            query: {
-                /**
-                 * @description The unique storage object name/key
-                 * @example uploads/1/3f2b9c1e-7a4d-4e8a-9b1c-2d5e6f7a8b9c.jpg
-                 */
-                objectName: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Download URL generated successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseDataString"];
-                };
-            };
-            /** @description Media object not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseDataString"];
-                };
-            };
-            /** @description Media storage unavailable (MEDIA_UNAVAILABLE); see Retry-After */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseDataString"];
-                };
-            };
-        };
-    };
     getTransferById: {
         parameters: {
             query?: never;
@@ -3603,6 +3546,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseDataKycStatusResponse"];
+                };
+            };
+        };
+    };
+    fees: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataFeesResponse"];
                 };
             };
         };

@@ -110,3 +110,13 @@ fieldset.field { border: 0; margin: 0; padding: 0; min-width: 0; }
 .promo-list li { display: grid; grid-template-columns: 4rem 1fr auto; gap: var(--space-3); align-items: center; }
 .promo-thumb { width: 4rem; height: 6rem; object-fit: cover; border-radius: var(--radius-md); background: var(--surface-sunken); }
 .promo-meta { display: grid; gap: var(--space-1); }
+
+/* profile photo */
+.profile-photo { display: grid; grid-template-columns: auto 1fr; gap: var(--space-2) var(--space-4); align-items: center; }
+.profile-photo > .alert { grid-column: 1 / -1; }
+.profile-photo-img, .profile-photo-fallback .avatar { width: 5rem; height: 5rem; border-radius: 50%; object-fit: cover; font-size: var(--text-xl); }
+.profile-photo-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.profile-photo-actions .field-hint { flex-basis: 100%; margin: 0; }
+.profile-photo-actions label.btn { cursor: pointer; }
+.profile-photo-actions label.is-disabled { opacity: 0.5; cursor: not-allowed; }
+.profile-photo-actions input:focus-visible + label { outline: 3px solid var(--focus); outline-offset: 2px; }

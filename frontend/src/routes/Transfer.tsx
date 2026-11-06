@@ -4,8 +4,9 @@ import { Controller, useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { api, retryAfterMinutes } from '../api/client'
 import { t } from '../i18n'
-import { Button, PinInput, TextField, type Currency } from '../ui'
+import { Button, formatMoney, PinInput, TextField, type Currency } from '../ui'
 import { amountSchema, cardLabel, pickCard, problemCode, pinSchema, useOwnCards } from './money'
+import { addAmounts, percentOf, useFees } from './fees'
 import { CardsGate, MoneyDone, MoneyError } from './MoneyViews'
 
 type Done = { amount: string; currency: Currency; last4: string }
@@ -33,6 +34,9 @@ export default function Transfer() {
 
   const fromCardId = useWatch({ control, name: 'fromCardId' })
   const from = Array.isArray(cards) ? pickCard(cards, fromCardId) : undefined
+  const fees = useFees()
+  const typed = amountSchema.safeParse(useWatch({ control, name: 'amount' }))
+  const fee = fees && typed.success ? percentOf(typed.data, fees.commissionPercent) : null
 
   const send = async (form: Form) => {
     setError(null)
@@ -95,9 +99,12 @@ export default function Transfer() {
           </div>
           <TextField label={t('transfer.to')} inputMode="numeric" autoComplete="off" placeholder="0000 0000 0000 0000"
             error={errors.toCardNumber?.message} {...register('toCardNumber')} />
-          {/* shortcut: the fee rate is server config (FEE_COMMISSION_PERCENT) with no endpoint; show the number with T-129 */}
-          <TextField label={t('money.amount')} inputMode="decimal" autoComplete="off" placeholder="0.00"
-            suffix={from?.currency} hint={t('transfer.feeHint')} error={errors.amount?.message} {...register('amount')} />
+          <TextField label={t('money.amount')} inputMode="decimal" autoComplete="off" placeholder="0.00" suffix={from?.currency}
+            hint={fee && typed.success && from?.currency
+              ? t('transfer.feeTotal', { percent: fees!.commissionPercent, fee: formatMoney(fee, from.currency as Currency),
+                  total: formatMoney(addAmounts(typed.data, fee), from.currency as Currency) })
+              : fees ? t('transfer.feeRate', { percent: fees.commissionPercent }) : t('transfer.feeHint')}
+            error={errors.amount?.message} {...register('amount')} />
           <Controller name="pin" control={control} render={({ field }) => (
             <PinInput ref={field.ref} label={t('money.pin')} value={field.value} onChange={field.onChange} error={errors.pin?.message} />
           )} />

@@ -8,6 +8,7 @@ import { t } from '../i18n'
 import { Alert, Button, ErrorState, Skeleton, TextField } from '../ui'
 import { problemCode } from './money'
 import { toPhone } from './phone'
+import { ProfilePhoto } from './ProfilePhoto'
 
 /** Today as yyyy-mm-dd in the user's own time zone (toISOString would give the UTC date: wrong in Baku 00:00–04:00). */
 const localToday = () => new Date().toLocaleDateString('sv')
@@ -31,6 +32,9 @@ export default function Profile() {
   const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading')
   const [round, setRound] = useState(0)
   const [email, setEmail] = useState('')
+  const [photo, setPhoto] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false) // the server keeps a photo only for a saved profile
+  const [name, setName] = useState('')
   const [result, setResult] = useState<'saved' | 'failed' | 'invalid' | null>(null)
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } =
     useForm<Input, unknown, Form>({ resolver: zodResolver(schema), defaultValues: { fullName: '', phoneNumber: '', dateOfBirth: '', gender: undefined } })
@@ -43,6 +47,9 @@ export default function Profile() {
         const p = data?.data
         if (!response.ok || !p) { setState('failed'); return }
         setEmail(p.email ?? '')
+        setPhoto(p.photoUrl ?? null)
+        setSaved(Boolean(p.phoneNumber))
+        setName(p.fullName ?? '')
         reset({ fullName: p.fullName ?? '', phoneNumber: p.phoneNumber ?? '', dateOfBirth: toInputDate(p.dateOfBirth), gender: p.gender })
         setState('ready')
       })
@@ -55,6 +62,7 @@ export default function Profile() {
     try {
       const { response, error } = await api.POST('/api/profile', { body: form })
       setResult(response.ok ? 'saved' : problemCode(error) === 'VALIDATION_FAILED' ? 'invalid' : 'failed')
+      if (response.ok) { setSaved(true); setName(form.fullName) }
     } catch {
       setResult('failed')
     }
@@ -69,6 +77,8 @@ export default function Profile() {
         <ErrorState title={t('profile.loadFailed')}
           action={<Button variant="secondary" onClick={() => { setState('loading'); setRound((r) => r + 1) }}>{t('error.retry')}</Button>} />
       ) : (
+        <>
+        <ProfilePhoto name={name} url={photo} saved={saved} onChange={setPhoto} />
         <form className="auth-form" onSubmit={(e) => void handleSubmit(save)(e)} noValidate>
           {result === 'saved' && <Alert tone="success" title={t('profile.saved')} />}
           {result === 'invalid' && <Alert tone="danger" title={t('profile.invalid')} />}
@@ -88,6 +98,7 @@ export default function Profile() {
           </fieldset>
           <Button type="submit" block loading={isSubmitting}>{t('profile.save')}</Button>
         </form>
+        </>
       )}
       <nav className="home-section" aria-labelledby="security">
         <h2 id="security">{t('profile.security')}</h2>
