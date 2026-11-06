@@ -23,6 +23,7 @@ All `/api/**` calls except the public ones need `Authorization: Bearer <access t
 | Cards list | `/cards` | `GET /api/cards/me`, `POST /api/cards` (issue virtual card; the full number is shown only in this response) |
 | Card detail | `/cards/:id` | `GET /api/cards/{id}`, `GET /api/cards/me/activity?cardId=`, `DELETE /api/cards/{id}` (409 CARD_HAS_BALANCE) |
 | Transfer | `/transfer` | `GET /api/fees` (fee and total shown as typed), `POST /api/transfer` {fromCardId, toCardNumber, amount, pin} with `Idempotency-Key`, response has `currency`; 403 INVALID_PIN, 429 PIN_LOCKED + Retry-After, 409 INSUFFICIENT_BALANCE / RESOURCE_BUSY (retry with the same key), 422 IDEMPOTENCY_KEY_REUSED |
+| Top up | `/top-up` (from dashboard and card detail, `?card=`), `/top-up/return?session=` | `POST /api/topups` {cardId, amount 1.00-10000.00} with `Idempotency-Key` → browser goes to Stripe Checkout (test mode); back on the return page `GET /api/topups/session/{id}` is polled until not PENDING (SUCCEEDED, EXPIRED, REFUND_NEEDED). 503 TOP_UP_UNAVAILABLE when Stripe is not configured |
 | Payment | `/pay` | `POST /api/payment/initiate` {phoneNumber, fromCardId, amount} → `POST /api/payment/confirm` (both with `Idempotency-Key`); confirm: same PIN errors, 409 PAYMENT_ALREADY_PROCESSED / INSUFFICIENT_BALANCE, 410 PAYMENT_EXPIRED (not confirmed within 15 min), 422 IDEMPOTENCY_KEY_REUSED; cashback rate from `GET /api/fees` |
 | Stories viewer | full-screen dialog on the dashboard | `GET /api/stories/feed` (one brand group, presigned `mediaUrl`), `POST /api/stories/{id}/view` when shown; starts at the first unseen, images 5 s, videos to the end |
 | Admin: promo stories | `/admin/stories` (admins only; linked from Review) | `GET /api/admin/stories` (live, with views), `POST /api/admin/stories?hours=1..168` multipart `file` (image or video ≤ 10 MB), `DELETE /api/admin/stories/{id}` |
@@ -52,7 +53,7 @@ All `/api/**` calls except the public ones need `Authorization: Bearer <access t
 | Gap | Effect | Task |
 |---|---|---|
 | A user cannot list their own transfers, payments or transactions: `GET /api/transfer`, `/api/transaction`, `/api/payment/history` are admin-only | no activity list on dashboard or card detail | closed by T-073: `GET /api/cards/me/activity` (ledger entries, no counterparty yet) |
-| No way to fund a card | balances stay 0 outside seeded data | T-064 Stripe top-up (owner) |
+| No way to fund a card | — | closed by T-064: Stripe Checkout top-up, credited by the signed webhook (needs STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET) |
 | Transfer and payment took the full 16-digit `fromCardNumber` | — | closed by T-112: `fromCardId` |
 | No endpoint to read one's own profile (`GET /api/profile` is admin-only, `/api/auth/me` has only id, username, roles) | profile form cannot be prefilled | T-113 |
 | No KYC review / admin API | — | closed by T-070, T-071: document upload to a private bucket, admin review |
