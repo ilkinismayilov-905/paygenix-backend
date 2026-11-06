@@ -72,6 +72,14 @@ cd frontend && npm run typecheck && npm run lint && npm test
 
 ## Deploying
 
-Manual only (see `.github/workflows`). Run Flyway migrations with the old version stopped (single instance), put nginx in
-front for TLS and same-origin `/api`, and set `TRUSTED_PROXIES`, `CORS_ALLOWED_ORIGINS` and `FRONTEND_URL` to the real
-values.
+`docker compose up -d --build` starts Postgres, Redis, the API (published on 127.0.0.1 only) and **paygenix-web**:
+nginx with the frontend build, the same-origin `/api` and Google sign-in proxy, a strict CSP and long-lived caching for
+hashed assets ([`frontend/nginx/`](frontend/nginx)). The API trusts `X-Forwarded-*` only from the web container's fixed
+address.
+
+- Terminate TLS in front of the web container (or add an `ssl` server to its config): the refresh cookie is `Secure`.
+- Set `FRONTEND_URL`, `APP_BASE_URL`, `CORS_ALLOWED_ORIGINS` and `GOOGLE_REDIRECT_URI` to the public https origin.
+- Create the storage buckets (`stories`, `profile`, private `kyc`); set `MEDIA_ORIGIN` if storage is not on https.
+- Run new Flyway migrations with the old version stopped (single instance).
+
+The GitHub deploy workflow is manual only.
