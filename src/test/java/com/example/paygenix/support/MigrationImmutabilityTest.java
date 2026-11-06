@@ -24,7 +24,8 @@ class MigrationImmutabilityTest {
         List<String> lines = Files.readAllLines(Path.of("src/test/resources/migration-checksums.txt"));
         for (String line : lines) {
             String[] parts = line.split(" ");
-            byte[] content = Files.readAllBytes(DIR.resolve(parts[0]));
+            // line endings do not count (a Windows checkout may have CRLF; Flyway ignores them too)
+            byte[] content = Files.readString(DIR.resolve(parts[0])).replace("\r\n", "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
             String sha = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(content));
             assertThat(sha).as("%s changed after it was released; add a new migration instead", parts[0]).isEqualTo(parts[1]);
         }
