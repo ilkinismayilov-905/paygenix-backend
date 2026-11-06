@@ -64,46 +64,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Submit verification details
-         * @description Submits the required parameters and details to verify the user's account.
-         */
-        post: operations["verifyAccount"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/verify/photo": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Upload verification photo
-         * @description Uploads an identity document or selfie for the final step of account verification.
-         */
-        post: operations["uploadVerificationImage"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/user/pin": {
         parameters: {
             query?: never;
@@ -416,6 +376,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/kyc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send an identity document
+         * @description multipart/form-data: documentType (ID_CARD, PASSPORT, DRIVING_LICENCE) and document, one JPEG, PNG or WebP photo of at most 5 MB. It waits for an admin's review.
+         */
+        post: operations["submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/change-pin": {
         parameters: {
             query?: never;
@@ -574,6 +554,46 @@ export interface paths {
          * @description İstifadəçi adı və şifrə ilə sistemə daxil olaraq JWT token əldə edir.
          */
         post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/kyc/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject
+         * @description reason (1-500 characters) is shown to the user and emailed; they may send a new document.
+         */
+        post: operations["reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/kyc/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve
+         * @description The user becomes verified and is told by email.
+         */
+        post: operations["approve"];
         delete?: never;
         options?: never;
         head?: never;
@@ -820,6 +840,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/kyc/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My verification
+         * @description status: NOT_SUBMITTED, PENDING (waiting for review), APPROVED (verified) or REJECTED (rejectionReason says why; send a new document). The other fields describe the latest submission.
+         */
+        get: operations["me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cards/{id}": {
         parameters: {
             query?: never;
@@ -939,7 +979,7 @@ export interface paths {
          * Cari istifadəçi məlumatları
          * @description Token-ə əsasən sistemə daxil olmuş istifadəçinin profil məlumatlarını qaytarır.
          */
-        get: operations["me"];
+        get: operations["me_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -960,6 +1000,46 @@ export interface paths {
          * @description Servisin aktiv olub-olmadığını yoxlamaq üçün sadə endpoint.
          */
         get: operations["loginWeb"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/kyc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Submissions by status
+         * @description PENDING oldest first, the others newest first. No document links here.
+         */
+        get: operations["list_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/kyc/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One submission
+         * @description documentUrl is a presigned link to the photo, valid for 5 minutes.
+         */
+        get: operations["get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1034,13 +1114,6 @@ export interface components {
         };
         FullNameRequest: {
             fullName: string;
-        };
-        VerifyRequest: {
-            fullName: string;
-            /** Format: date */
-            dateOfBirth: string;
-            /** @enum {string} */
-            gender: "MALE" | "FEMALE";
         };
         SetPinRequest: {
             pin: string;
@@ -1199,6 +1272,24 @@ export interface components {
         LegalAcceptanceRequest: {
             documents: components["schemas"]["LegalDocumentRef"][];
         };
+        ApiResponseDataKycStatusResponse: {
+            /** Format: date-time */
+            timestamp?: string;
+            /** Format: int32 */
+            status?: number;
+            message?: string;
+            data?: components["schemas"]["KycStatusResponse"];
+        };
+        KycStatusResponse: {
+            status?: string;
+            /** @enum {string} */
+            documentType?: "ID_CARD" | "PASSPORT" | "DRIVING_LICENCE";
+            /** Format: date-time */
+            submittedAt?: string;
+            /** Format: date-time */
+            reviewedAt?: string;
+            rejectionReason?: string;
+        };
         ChangePinRequest: {
             newPin: string;
             reEnterNewPin: string;
@@ -1269,6 +1360,36 @@ export interface components {
         LoginRequest: {
             email: string;
             password: string;
+        };
+        KycRejectRequest: {
+            reason: string;
+        };
+        ApiResponseDataKycReviewItem: {
+            /** Format: date-time */
+            timestamp?: string;
+            /** Format: int32 */
+            status?: number;
+            message?: string;
+            data?: components["schemas"]["KycReviewItem"];
+        };
+        KycReviewItem: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            userId?: number;
+            username?: string;
+            fullName?: string;
+            email?: string;
+            /** @enum {string} */
+            documentType?: "ID_CARD" | "PASSPORT" | "DRIVING_LICENCE";
+            /** @enum {string} */
+            status?: "PENDING" | "APPROVED" | "REJECTED";
+            /** Format: date-time */
+            submittedAt?: string;
+            /** Format: date-time */
+            reviewedAt?: string;
+            rejectionReason?: string;
+            documentUrl?: string;
         };
         ApiResponseDataListUserResponse: {
             /** Format: date-time */
@@ -1361,6 +1482,7 @@ export interface components {
             /** @enum {string} */
             category?: "TRANSACTION_FAILED" | "CARD_NOT_WORKING" | "TRANSFER_DELAYED" | "INCORRECT_AMOUNT_CHARGED" | "MISSING_TRANSACTION" | "SECURITY_CONCERN";
             message?: string;
+            referenceId?: string;
             /** @enum {string} */
             status?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "REJECTED";
             /** Format: date-time */
@@ -1502,6 +1624,22 @@ export interface components {
             expiresAt?: number;
             pendingLegalDocuments?: components["schemas"]["LegalDocumentRef"][];
         };
+        ApiResponseDataKycReviewPage: {
+            /** Format: date-time */
+            timestamp?: string;
+            /** Format: int32 */
+            status?: number;
+            message?: string;
+            data?: components["schemas"]["KycReviewPage"];
+        };
+        KycReviewPage: {
+            items?: components["schemas"]["KycReviewItem"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            hasNext?: boolean;
+        };
     };
     responses: never;
     parameters: never;
@@ -1634,87 +1772,6 @@ export interface operations {
         responses: {
             /** @description OK */
             200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseDataVoid"];
-                };
-            };
-        };
-    };
-    verifyAccount: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VerifyRequest"];
-            };
-        };
-        responses: {
-            /** @description Verification parameters processed successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseDataVoid"];
-                };
-            };
-            /** @description Invalid verification details provided */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseDataVoid"];
-                };
-            };
-            /** @description Unauthorized access */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseDataVoid"];
-                };
-            };
-        };
-    };
-    uploadVerificationImage: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "multipart/form-data": {
-                    /**
-                     * Format: binary
-                     * @description Identity document or photo to upload
-                     */
-                    file: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Verification photo uploaded successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseDataVoid"];
-                };
-            };
-            /** @description Invalid file format or empty file */
-            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2604,6 +2661,80 @@ export interface operations {
             };
         };
     };
+    submit: {
+        parameters: {
+            query: {
+                documentType: "ID_CARD" | "PASSPORT" | "DRIVING_LICENCE";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    document: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Sent; status is PENDING */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataKycStatusResponse"];
+                };
+            };
+            /** @description Missing type or photo, or not JPEG/PNG/WebP (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataKycStatusResponse"];
+                };
+            };
+            /** @description Already verified (KYC_ALREADY_VERIFIED) or a document is waiting for review (KYC_ALREADY_PENDING) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataKycStatusResponse"];
+                };
+            };
+            /** @description Photo larger than 5 MB (DOCUMENT_TOO_LARGE) */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataKycStatusResponse"];
+                };
+            };
+            /** @description More than 5 documents today (KYC_SUBMIT_LIMIT), with Retry-After */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataKycStatusResponse"];
+                };
+            };
+            /** @description Document storage unavailable (MEDIA_UPLOAD_FAILED), with Retry-After */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataKycStatusResponse"];
+                };
+            };
+        };
+    };
     initiatePinChange: {
         parameters: {
             query?: never;
@@ -2991,6 +3122,117 @@ export interface operations {
             };
         };
     };
+    reject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KycRejectRequest"];
+            };
+        };
+        responses: {
+            /** @description Rejected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataKycReviewItem"];
+                };
+            };
+            /** @description No reason or longer than 500 characters (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataKycReviewItem"];
+                };
+            };
+            /** @description Your own submission (KYC_OWN_SUBMISSION) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataKycReviewItem"];
+                };
+            };
+            /** @description No such submission (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataKycReviewItem"];
+                };
+            };
+            /** @description Already reviewed (KYC_ALREADY_REVIEWED) or being reviewed right now (RESOURCE_BUSY) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataKycReviewItem"];
+                };
+            };
+        };
+    };
+    approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Approved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataKycReviewItem"];
+                };
+            };
+            /** @description Your own submission (KYC_OWN_SUBMISSION) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataKycReviewItem"];
+                };
+            };
+            /** @description No such submission (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataKycReviewItem"];
+                };
+            };
+            /** @description Already reviewed (KYC_ALREADY_REVIEWED) or being reviewed right now (RESOURCE_BUSY) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataKycReviewItem"];
+                };
+            };
+        };
+    };
     getAllUsers: {
         parameters: {
             query?: never;
@@ -3358,6 +3600,26 @@ export interface operations {
             };
         };
     };
+    me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataKycStatusResponse"];
+                };
+            };
+        };
+    };
     getCardById: {
         parameters: {
             query?: never;
@@ -3542,7 +3804,7 @@ export interface operations {
             };
         };
     };
-    me: {
+    me_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -3578,6 +3840,70 @@ export interface operations {
                 };
                 content: {
                     "*/*": string;
+                };
+            };
+        };
+    };
+    list_1: {
+        parameters: {
+            query?: {
+                status?: "PENDING" | "APPROVED" | "REJECTED";
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataKycReviewPage"];
+                };
+            };
+        };
+    };
+    get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The submission with its document link */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataKycReviewItem"];
+                };
+            };
+            /** @description No such submission (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataKycReviewItem"];
+                };
+            };
+            /** @description Document storage unavailable (MEDIA_UNAVAILABLE) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataKycReviewItem"];
                 };
             };
         };

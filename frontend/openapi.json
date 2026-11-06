@@ -30,9 +30,6 @@
     "name" : "Card Management",
     "description" : "Virtual cards: issue, list and close"
   }, {
-    "name" : "Account Verification",
-    "description" : "APIs for verifying user identity and uploading verification documents"
-  }, {
     "name" : "Transfer Management",
     "description" : "APIs for executing and viewing money transfers"
   }, {
@@ -42,8 +39,14 @@
     "name" : "Onboarding",
     "description" : "APIs for user registration and onboarding workflow"
   }, {
+    "name" : "Admin: identity verification",
+    "description" : "Review identity documents (admins only)"
+  }, {
     "name" : "Stories",
     "description" : "APIs for uploading, viewing, and managing temporary stories"
+  }, {
+    "name" : "Identity verification",
+    "description" : "Send an identity document for manual review"
   }, {
     "name" : "Problem Reporting",
     "description" : "APIs for submitting and viewing user problem reports/tickets"
@@ -224,109 +227,6 @@
         "responses" : {
           "200" : {
             "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "bearerAuth" : [ ]
-        } ]
-      }
-    },
-    "/api/verify" : {
-      "post" : {
-        "tags" : [ "Account Verification" ],
-        "summary" : "Submit verification details",
-        "description" : "Submits the required parameters and details to verify the user's account.",
-        "operationId" : "verifyAccount",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/VerifyRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "Verification parameters processed successfully",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
-                }
-              }
-            }
-          },
-          "400" : {
-            "description" : "Invalid verification details provided",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
-                }
-              }
-            }
-          },
-          "401" : {
-            "description" : "Unauthorized access",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "bearerAuth" : [ ]
-        } ]
-      }
-    },
-    "/api/verify/photo" : {
-      "post" : {
-        "tags" : [ "Account Verification" ],
-        "summary" : "Upload verification photo",
-        "description" : "Uploads an identity document or selfie for the final step of account verification.",
-        "operationId" : "uploadVerificationImage",
-        "requestBody" : {
-          "content" : {
-            "multipart/form-data" : {
-              "schema" : {
-                "type" : "object",
-                "properties" : {
-                  "file" : {
-                    "type" : "string",
-                    "format" : "binary",
-                    "description" : "Identity document or photo to upload"
-                  }
-                },
-                "required" : [ "file" ]
-              }
-            }
-          }
-        },
-        "responses" : {
-          "200" : {
-            "description" : "Verification photo uploaded successfully",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseDataVoid"
-                }
-              }
-            }
-          },
-          "400" : {
-            "description" : "Invalid file format or empty file",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -1446,6 +1346,104 @@
         } ]
       }
     },
+    "/api/kyc" : {
+      "post" : {
+        "tags" : [ "Identity verification" ],
+        "summary" : "Send an identity document",
+        "description" : "multipart/form-data: documentType (ID_CARD, PASSPORT, DRIVING_LICENCE) and document, one JPEG, PNG or WebP photo of at most 5 MB. It waits for an admin's review.",
+        "operationId" : "submit",
+        "parameters" : [ {
+          "name" : "documentType",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "ID_CARD", "PASSPORT", "DRIVING_LICENCE" ]
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "document" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  }
+                },
+                "required" : [ "document" ]
+              }
+            }
+          }
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Sent; status is PENDING",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataKycStatusResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Missing type or photo, or not JPEG/PNG/WebP (VALIDATION_FAILED)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataKycStatusResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Already verified (KYC_ALREADY_VERIFIED) or a document is waiting for review (KYC_ALREADY_PENDING)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataKycStatusResponse"
+                }
+              }
+            }
+          },
+          "413" : {
+            "description" : "Photo larger than 5 MB (DOCUMENT_TOO_LARGE)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataKycStatusResponse"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "More than 5 documents today (KYC_SUBMIT_LIMIT), with Retry-After",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataKycStatusResponse"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "Document storage unavailable (MEDIA_UPLOAD_FAILED), with Retry-After",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataKycStatusResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
     "/api/change-pin" : {
       "post" : {
         "tags" : [ "PIN Management" ],
@@ -1913,6 +1911,150 @@
         }
       }
     },
+    "/api/admin/kyc/{id}/reject" : {
+      "post" : {
+        "tags" : [ "Admin: identity verification" ],
+        "summary" : "Reject",
+        "description" : "reason (1-500 characters) is shown to the user and emailed; they may send a new document.",
+        "operationId" : "reject",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/KycRejectRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Rejected",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataKycReviewItem"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "No reason or longer than 500 characters (VALIDATION_FAILED)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataKycReviewItem"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Your own submission (KYC_OWN_SUBMISSION)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataKycReviewItem"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such submission (NOT_FOUND)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataKycReviewItem"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Already reviewed (KYC_ALREADY_REVIEWED) or being reviewed right now (RESOURCE_BUSY)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataKycReviewItem"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/admin/kyc/{id}/approve" : {
+      "post" : {
+        "tags" : [ "Admin: identity verification" ],
+        "summary" : "Approve",
+        "description" : "The user becomes verified and is told by email.",
+        "operationId" : "approve",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Approved",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataKycReviewItem"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Your own submission (KYC_OWN_SUBMISSION)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataKycReviewItem"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such submission (NOT_FOUND)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataKycReviewItem"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Already reviewed (KYC_ALREADY_REVIEWED) or being reviewed right now (RESOURCE_BUSY)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataKycReviewItem"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
     "/api/user" : {
       "get" : {
         "tags" : [ "User Management" ],
@@ -2353,6 +2495,29 @@
         }
       }
     },
+    "/api/kyc/me" : {
+      "get" : {
+        "tags" : [ "Identity verification" ],
+        "summary" : "My verification",
+        "description" : "status: NOT_SUBMITTED, PENDING (waiting for review), APPROVED (verified) or REJECTED (rejectionReason says why; send a new document). The other fields describe the latest submission.",
+        "operationId" : "me",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataKycStatusResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
     "/api/cards/{id}" : {
       "get" : {
         "tags" : [ "Card Management" ],
@@ -2600,7 +2765,7 @@
         "tags" : [ "Authentication" ],
         "summary" : "Cari istifadəçi məlumatları",
         "description" : "Token-ə əsasən sistemə daxil olmuş istifadəçinin profil məlumatlarını qaytarır.",
-        "operationId" : "me",
+        "operationId" : "me_1",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -2636,6 +2801,112 @@
             }
           }
         }
+      }
+    },
+    "/api/admin/kyc" : {
+      "get" : {
+        "tags" : [ "Admin: identity verification" ],
+        "summary" : "Submissions by status",
+        "description" : "PENDING oldest first, the others newest first. No document links here.",
+        "operationId" : "list_1",
+        "parameters" : [ {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "PENDING",
+            "enum" : [ "PENDING", "APPROVED", "REJECTED" ]
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20,
+            "maximum" : 50,
+            "minimum" : 1
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataKycReviewPage"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/api/admin/kyc/{id}" : {
+      "get" : {
+        "tags" : [ "Admin: identity verification" ],
+        "summary" : "One submission",
+        "description" : "documentUrl is a presigned link to the photo, valid for 5 minutes.",
+        "operationId" : "get",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "The submission with its document link",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataKycReviewItem"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No such submission (NOT_FOUND)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataKycReviewItem"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "Document storage unavailable (MEDIA_UNAVAILABLE)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataKycReviewItem"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
       }
     },
     "/api/stories/{storyId}" : {
@@ -2813,25 +3084,6 @@
           }
         },
         "required" : [ "fullName" ]
-      },
-      "VerifyRequest" : {
-        "type" : "object",
-        "properties" : {
-          "fullName" : {
-            "type" : "string",
-            "maxLength" : 100,
-            "minLength" : 0
-          },
-          "dateOfBirth" : {
-            "type" : "string",
-            "format" : "date"
-          },
-          "gender" : {
-            "type" : "string",
-            "enum" : [ "MALE", "FEMALE" ]
-          }
-        },
-        "required" : [ "dateOfBirth", "fullName", "gender" ]
       },
       "SetPinRequest" : {
         "type" : "object",
@@ -3226,6 +3478,48 @@
         },
         "required" : [ "documents" ]
       },
+      "ApiResponseDataKycStatusResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/KycStatusResponse"
+          }
+        }
+      },
+      "KycStatusResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "documentType" : {
+            "type" : "string",
+            "enum" : [ "ID_CARD", "PASSPORT", "DRIVING_LICENCE" ]
+          },
+          "submittedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "reviewedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "rejectionReason" : {
+            "type" : "string"
+          }
+        }
+      },
       "ChangePinRequest" : {
         "type" : "object",
         "properties" : {
@@ -3413,6 +3707,80 @@
           }
         },
         "required" : [ "email", "password" ]
+      },
+      "KycRejectRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "reason" ]
+      },
+      "ApiResponseDataKycReviewItem" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/KycReviewItem"
+          }
+        }
+      },
+      "KycReviewItem" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "userId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "username" : {
+            "type" : "string"
+          },
+          "fullName" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "documentType" : {
+            "type" : "string",
+            "enum" : [ "ID_CARD", "PASSPORT", "DRIVING_LICENCE" ]
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "APPROVED", "REJECTED" ]
+          },
+          "submittedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "reviewedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "rejectionReason" : {
+            "type" : "string"
+          },
+          "documentUrl" : {
+            "type" : "string"
+          }
+        }
       },
       "ApiResponseDataListUserResponse" : {
         "type" : "object",
@@ -3649,6 +4017,9 @@
             "enum" : [ "TRANSACTION_FAILED", "CARD_NOT_WORKING", "TRANSFER_DELAYED", "INCORRECT_AMOUNT_CHARGED", "MISSING_TRANSACTION", "SECURITY_CONCERN" ]
           },
           "message" : {
+            "type" : "string"
+          },
+          "referenceId" : {
             "type" : "string"
           },
           "status" : {
@@ -4001,6 +4372,47 @@
             "items" : {
               "$ref" : "#/components/schemas/LegalDocumentRef"
             }
+          }
+        }
+      },
+      "ApiResponseDataKycReviewPage" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/KycReviewPage"
+          }
+        }
+      },
+      "KycReviewPage" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/KycReviewItem"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "hasNext" : {
+            "type" : "boolean"
           }
         }
       }

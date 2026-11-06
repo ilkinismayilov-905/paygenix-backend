@@ -117,7 +117,7 @@ public class EmailChangeService {
         }
         User user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User not found"));
         editProfileRepository.findByUserId(userId).ifPresent(profile -> profile.setEmail(newEmail));
-        if (user.getProvider() == User.AuthProvider.GOOGLE && user.getUsername().equals(user.getEmail())) {
+        if (user.getProvider() == User.AuthProvider.GOOGLE && user.getPublicUsername().equals(user.getEmail())) {
             user.setUsername(newEmail); // Google accounts use the email as username; keep them in step
         }
         String oldEmail = user.getEmail();

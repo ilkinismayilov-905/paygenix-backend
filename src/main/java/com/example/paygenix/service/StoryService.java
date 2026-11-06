@@ -134,7 +134,7 @@ public class StoryService {
 
             groups.add(new StoryGroupResponse(
                     user.getId(),
-                    user.getUsername(),   // JOIN FETCH sayəsində hazırdır
+                    user.getPublicUsername(),   // JOIN FETCH sayəsində hazırdır
                     hasUnseen,
                     latestStoryAt,
                     items

@@ -51,7 +51,7 @@ class GoogleSignInTest extends IntegrationTest {
         assertThat(user.getProviderId()).isEqualTo(sub);
         assertThat(user.getPinHash()).isNull();
         assertThat(user.getPasswordHash()).isNull();
-        assertThat(user.getVerificationStatus()).isEqualTo(User.VerificationStatus.PENDING);
+        assertThat(user.getVerificationStatus()).isEqualTo(User.VerificationStatus.UNVERIFIED);
     }
 
     @Test
