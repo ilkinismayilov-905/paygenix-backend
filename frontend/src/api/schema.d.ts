@@ -108,6 +108,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/topups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a top-up
+         * @description Opens a Stripe Checkout for 1.00-10000.00 in the card's currency. Send the browser to checkoutUrl; Stripe brings it back to FRONTEND_URL/top-up/return?session=... The card is credited only when Stripe confirms the payment (webhook). A retry with the same Idempotency-Key returns the same checkout.
+         */
+        post: operations["start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stories/{storyId}/view": {
         parameters: {
             query?: never;
@@ -688,6 +708,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/topups/session/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A top-up by its checkout session
+         * @description For the return page: PENDING until Stripe's webhook arrives (poll a few times), then SUCCEEDED, EXPIRED or REFUND_NEEDED.
+         */
+        get: operations["bySession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stories/feed": {
         parameters: {
             query?: never;
@@ -1118,6 +1158,38 @@ export interface components {
             amount?: string;
             /** @enum {string} */
             currency?: "AZN" | "USD" | "EUR";
+        };
+        TopUpRequest: {
+            /** Format: int64 */
+            cardId: number;
+            /**
+             * @description Decimal string; a JSON number is also accepted
+             * @example 25.00
+             */
+            amount: string;
+        };
+        ApiResponseDataTopUpResponse: {
+            /** Format: date-time */
+            timestamp?: string;
+            /** Format: int32 */
+            status?: number;
+            message?: string;
+            data?: components["schemas"]["TopUpResponse"];
+        };
+        TopUpResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            cardId?: number;
+            amount?: string;
+            currency?: string;
+            /** @enum {string} */
+            status?: "PENDING" | "SUCCEEDED" | "EXPIRED" | "REFUND_NEEDED";
+            checkoutUrl?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            completedAt?: string;
         };
         CreateProblemReportRequest: {
             /** @enum {string} */
@@ -1926,6 +1998,69 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseDataTransferResponse"];
+                };
+            };
+        };
+    };
+    start: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated unique key (e.g. UUID) */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TopUpRequest"];
+            };
+        };
+        responses: {
+            /** @description Checkout opened; status PENDING */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataTopUpResponse"];
+                };
+            };
+            /** @description Amount out of range (VALIDATION_FAILED) or bad Idempotency-Key (INVALID_IDEMPOTENCY_KEY) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataTopUpResponse"];
+                };
+            };
+            /** @description Not one of the caller's open cards (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataTopUpResponse"];
+                };
+            };
+            /** @description Idempotency-Key used for a different top-up (IDEMPOTENCY_KEY_REUSED) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataTopUpResponse"];
+                };
+            };
+            /** @description Stripe not configured or unreachable (TOP_UP_UNAVAILABLE), with Retry-After */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataTopUpResponse"];
                 };
             };
         };
@@ -3399,6 +3534,37 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseDataListTransactionsResponse"];
+                };
+            };
+        };
+    };
+    bySession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The top-up */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataTopUpResponse"];
+                };
+            };
+            /** @description Not the caller's top-up (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataTopUpResponse"];
                 };
             };
         };

@@ -16,8 +16,8 @@ import java.util.Locale;
  * so parallel guesses cannot all slip past the limit. Unknown emails are counted the same way, so the
  * lock does not reveal whether an account exists. The window is fixed, not sliding, so guessing inside a
  * window does not extend it.
- * shortcut: anyone who knows an email can lock it again every 15 minutes (accepted DoS); add per-IP limits
- * once trusted-proxy config exists (T-076). Without Redis login fails closed with 500 (see T-064).
+ * shortcut: anyone who knows an email can lock it again every 15 minutes (accepted DoS); the client IP is reliable now
+ * (T-076), so a per-IP limit can be added next to this one. Without Redis login fails closed with 500.
  */
 @Service
 @RequiredArgsConstructor

@@ -116,7 +116,7 @@ public class OnboardingService {
     public void setUsername(String flowId, String username, String clientIp) {
         // flow first, so only a sign-up at this step can ask whether a username is taken
         OnboardingFlow flow = getFlow(flowId, OnboardingFlow.Step.FULLNAME_SET);
-        // shortcut: clientIp is request.getRemoteAddr(); behind a proxy every client shares it — fix with T-076
+        // clientIp is the real client behind a trusted proxy (server.forward-headers-strategy, T-076)
         limitUsernameChecks("onb:username:ip:" + clientIp, MAX_USERNAME_CHECKS_PER_IP);
         limitUsernameChecks("onb:username:flow:" + flowId, MAX_USERNAME_CHECKS_PER_FLOW);
         if (userRepo.existsByUsername(username)) {

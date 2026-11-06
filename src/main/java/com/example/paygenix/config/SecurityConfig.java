@@ -75,6 +75,8 @@ public class SecurityConfig {
                                 "/api/auth/logout",
                                 "/api/auth/oauth/exchange",
                                 "/actuator/health",
+                                // Stripe has no token; the handler checks the Stripe-Signature (T-064)
+                                "/api/stripe/webhook",
                                 // only served when SWAGGER_ENABLED=true
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",

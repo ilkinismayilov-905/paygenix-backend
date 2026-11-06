@@ -5,6 +5,6 @@ public enum LedgerKind {
     TRANSFER,
     PAYMENT,
     CASHBACK,
-    TOP_UP, // card funding (Stripe, T-062); used by tests until then
+    TOP_UP, // card funding through Stripe Checkout (T-064, TopUpService)
     OPENING_BALANCE
 }
