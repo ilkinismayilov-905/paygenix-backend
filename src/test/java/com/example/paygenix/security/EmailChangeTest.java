@@ -256,7 +256,7 @@ class EmailChangeTest extends IntegrationTest {
 
         User changed = userRepository.findById(user.getId()).orElseThrow();
         assertThat(changed.getEmail()).isEqualTo(newEmail);
-        assertThat(changed.getUsername()).isEqualTo(newEmail);
+        assertThat(changed.getPublicUsername()).isEqualTo(newEmail);
     }
 
     @Test

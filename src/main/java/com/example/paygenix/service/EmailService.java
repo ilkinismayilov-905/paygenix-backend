@@ -51,4 +51,16 @@ public class EmailService {
                 + "\nIf this was not you, do not share this code with anyone and change your PIN.");
         mailSender.send(message);
     }
+
+    // Result of an identity review (T-070). The reason is the reviewer's text for the user.
+    public void sendKycDecision(String to, boolean approved, String reason) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject(approved ? "Paygenix – your identity is verified" : "Paygenix – we could not verify your identity");
+        message.setText(approved
+                ? "We checked your document and your Paygenix account is now verified."
+                : "We could not verify your identity with the document you sent: " + reason
+                        + "\nOpen Paygenix and send a new photo of your document.");
+        mailSender.send(message);
+    }
 }

@@ -78,7 +78,7 @@ public class AuthController {
         if (authentication != null && authentication.getPrincipal() instanceof User user) {
             UserMeResponse responseData = new UserMeResponse(
                     user.getId(),
-                    user.getUsername(),
+                    user.getPublicUsername(),
                     user.getRoles(),
                     user.getExpiresIn(),
                     legalAcceptanceService.pending(user.getId())

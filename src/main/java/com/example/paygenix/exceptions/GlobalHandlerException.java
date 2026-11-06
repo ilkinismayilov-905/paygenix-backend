@@ -87,14 +87,6 @@ public class GlobalHandlerException extends ResponseEntityExceptionHandler {
         return error(HttpStatus.CONFLICT, ex.getMessage(), "INSUFFICIENT_BALANCE");
     }
 
-    @ExceptionHandler(VerificationFailedException.class)
-    public ResponseEntity<ProblemDetail> handleVerificationFailed(VerificationFailedException ex) {
-        String details = "Mismatched fields: " + ex.getMismatchedFields().stream()
-                .map(Object::toString)
-                .collect(Collectors.joining(", "));
-        return error(HttpStatus.BAD_REQUEST, details, "VERIFICATION_FAILED");
-    }
-
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ProblemDetail> handleBadCredentials(BadCredentialsException ex) {
         return error(HttpStatus.UNAUTHORIZED, "Email or password is incorrect", "UNAUTHORIZED");

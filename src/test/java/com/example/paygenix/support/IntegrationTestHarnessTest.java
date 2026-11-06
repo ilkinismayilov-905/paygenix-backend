@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 class IntegrationTestHarnessTest extends IntegrationTest {
 
@@ -22,7 +23,9 @@ class IntegrationTestHarnessTest extends IntegrationTest {
         User user = createUser();
 
         mockMvc.perform(get("/api/auth/me").header("Authorization", bearer(user)))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                // the chosen @username, not the email (User.getUsername() is the email, for Spring Security)
+                .andExpect(jsonPath("$.data.username").value(user.getPublicUsername()));
     }
 
     @Test

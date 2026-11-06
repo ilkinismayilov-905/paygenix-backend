@@ -83,7 +83,9 @@ public class User implements UserDetails {
     // the provider's stable subject id (Google `sub`); null for LOCAL
     private String providerId;
 
+    // VERIFIED once an admin approved an identity document (KycService)
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private VerificationStatus verificationStatus;
 
     @Pattern(regexp = "^\\+?[0-9]{10,15}$")
@@ -112,7 +114,9 @@ public class User implements UserDetails {
 
     @PrePersist
     void prePersist() {
-        verificationStatus = VerificationStatus.PENDING;
+        if (verificationStatus == null) {
+            verificationStatus = VerificationStatus.UNVERIFIED;
+        }
         if (provider == null) {
             provider = AuthProvider.LOCAL;
         }
@@ -124,8 +128,7 @@ public class User implements UserDetails {
     }
 
     public enum VerificationStatus {
-        PENDING,
-        IDENTITY_VERIFIED,
+        UNVERIFIED,
         VERIFIED
     }
     public enum AuthProvider {
@@ -145,9 +148,15 @@ public class User implements UserDetails {
         return passwordHash;
     }
 
+    /** The login name for Spring Security and the token subject: the email. The chosen @username is getPublicUsername(). */
     @Override
     public String getUsername() {
         return email;
+    }
+
+    /** The @username the user picked at sign-up (the email for Google accounts); what other people and admins see. */
+    public String getPublicUsername() {
+        return username;
     }
 
     public String getDisplayName() {

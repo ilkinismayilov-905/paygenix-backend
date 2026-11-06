@@ -1,10 +1,7 @@
 package com.example.paygenix.security;
 
-import com.example.paygenix.entity.EditProfile;
 import com.example.paygenix.entity.OnboardingFlow;
 import com.example.paygenix.entity.User;
-import com.example.paygenix.enums.Gender;
-import com.example.paygenix.repository.EditProfileRepository;
 import com.example.paygenix.repository.OnboardingFlowRepository;
 import com.example.paygenix.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
@@ -12,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
-import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,22 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 // SEC-26: every request body is validated before it reaches a service.
 class DtoValidationTest extends IntegrationTest {
 
-    @Autowired EditProfileRepository editProfileRepository;
     @Autowired OnboardingFlowRepository flowRepository;
-
-    @Test
-    void verifyWithMissingFieldsIsRejected() throws Exception {
-        User user = createUser();
-        editProfileRepository.save(EditProfile.builder().email(user.getEmail()).fullName(user.getFullname())
-                .phoneNumber("+994501234567").dateOfBirth(LocalDate.of(1990, 1, 1)).gender(Gender.MALE).user(user).build());
-
-        send(post("/api/verify"), bearer(user), "{\"fullName\":\"" + user.getFullname() + "\"}")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
-
-        assertThat(userRepository.findById(user.getId()).orElseThrow().getVerificationStatus())
-                .isNotEqualTo(User.VerificationStatus.IDENTITY_VERIFIED);
-    }
 
     @Test
     void profileRejectsBlankNameAndFutureBirthDate() throws Exception {
