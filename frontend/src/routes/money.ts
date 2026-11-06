@@ -43,7 +43,7 @@ export function useOwnCards() {
 
 /**
  * The card a form really uses: the chosen one, or the first when none is chosen yet or the chosen one left the list
- * (closed) — the same card the browser shows in the select in both cases.
+ * (closed). The selects show this card (they are controlled by it), so what is shown is what is used.
  */
 export const pickCard = (cards: Card[], id: string): Card | undefined => cards.find((c) => String(c.id) === id) ?? cards[0]
 

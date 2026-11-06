@@ -121,6 +121,7 @@ test.each([
 
 test('shows the fee and the total for the typed amount', async () => {
   render(<RouterProvider router={createMemoryRouter(routes, { initialEntries: ['/transfer'] })} />)
+  expect(await screen.findByLabelText('From card')).toHaveValue('7') // the card used is the card shown, never a blank select
   expect(await screen.findByText('A 2% fee is added to this amount.')).toBeInTheDocument()
   fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10,5' } })
   expect(await screen.findByText('Fee 2%: ₼0.21. Total: ₼10.71.')).toBeInTheDocument()
