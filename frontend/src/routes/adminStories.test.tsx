@@ -3,6 +3,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { signedIn, signedOut } from '../auth/session'
 import { routes } from '../router'
+import { multipartParts } from '../test/multipart'
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
@@ -11,7 +12,7 @@ const ok = (data: unknown) => json(200, { data })
 let live: { id: number; mediaType: string; mediaUrl: string; expiresAt: string; views: number }[]
 let publish: () => Response
 let remove: () => Response
-const posted: { hours: string | null; size: number }[] = []
+const posted: { hours: string | null; type: string | null }[] = []
 beforeEach(() => {
   posted.length = 0
   signedIn('session')
@@ -23,8 +24,8 @@ beforeEach(() => {
     if (url.pathname === '/api/v1/auth/me') return ok({ id: 1, username: 'admin', roles: ['ADMIN_ROLE'], pendingLegalDocuments: [] })
     if (url.pathname === '/api/v1/admin/stories' && req.method === 'GET') return ok(live)
     if (url.pathname === '/api/v1/admin/stories' && req.method === 'POST') {
-      const f = (await req.clone().formData()).get('file') as Blob
-      posted.push({ hours: url.searchParams.get('hours'), size: f.size })
+      const f = (await multipartParts(req)).file
+      posted.push({ hours: url.searchParams.get('hours'), type: f?.type ?? null })
       return publish()
     }
     if (url.pathname === '/api/v1/admin/stories/5' && req.method === 'DELETE') return remove()
@@ -44,7 +45,7 @@ test('publishes a file for the chosen time and reloads the live list', async () 
   live = [...live, { id: 6, mediaType: 'VIDEO', mediaUrl: 'https://s.test/6.mp4', expiresAt: '2026-11-09T10:00:00Z', views: 0 }]
   fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
   expect(await screen.findByText(/Published/)).toBeInTheDocument()
-  expect(posted).toEqual([{ hours: '72', size: 100 }])
+  expect(posted).toEqual([{ hours: '72', type: 'video/mp4' }])
   expect(await screen.findByText('0 views')).toBeInTheDocument()
 })
 

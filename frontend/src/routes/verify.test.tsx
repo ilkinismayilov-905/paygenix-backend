@@ -3,6 +3,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { signedIn, signedOut } from '../auth/session'
 import { routes } from '../router'
+import { multipartParts } from '../test/multipart'
 
 const json = (status: number, body: unknown, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...headers } })
@@ -10,7 +11,7 @@ const ok = (data: unknown) => json(200, { data })
 
 let me: () => Response
 let submit: () => Response
-const sent: { type: string | null; file: FormDataEntryValue | null }[] = []
+const sent: { type: string | null; file: { filename?: string; type?: string; size: number } | null }[] = []
 beforeEach(() => {
   sent.length = 0
   signedIn('session')
@@ -23,8 +24,8 @@ beforeEach(() => {
     if (url.pathname === '/api/v1/auth/me') return ok({ id: 1, username: 'nigar', roles: ['USER_ROLE'], pendingLegalDocuments: [] })
     if (url.pathname === '/api/v1/kyc/me') return me()
     if (url.pathname === '/api/v1/kyc' && req.method === 'POST') {
-      const form = await req.clone().formData()
-      sent.push({ type: url.searchParams.get('documentType'), file: form.get('document') })
+      const parts = await multipartParts(req)
+      sent.push({ type: url.searchParams.get('documentType'), file: parts.document ?? null })
       return submit()
     }
     return json(404, {})
@@ -46,7 +47,8 @@ test('sends the document type and photo, then shows it waits for review', async 
   expect(await screen.findByText('We are checking your document.')).toBeInTheDocument()
   expect(sent).toHaveLength(1)
   expect(sent[0]!.type).toBe('PASSPORT')
-  expect((sent[0]!.file as Blob).size).toBe(1000) // jsdom's File loses its name crossing into Node's FormData
+  // the part is sent with its type; its bytes are not checked here (see test/multipart.ts)
+  expect(sent[0]!.file).toMatchObject({ type: 'image/jpeg' })
 })
 
 test('type and photo are required; wrong or large photos are refused before sending', async () => {
