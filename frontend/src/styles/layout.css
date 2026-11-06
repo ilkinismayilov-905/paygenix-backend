@@ -39,6 +39,13 @@ a.btn { text-decoration: none; }
 
 /* profile */
 .shell-nav { display: flex; gap: var(--space-1); }
+.shell-nav .btn { white-space: nowrap; }
+/* phones: the logo alone names the app, so the four nav items fit on one line */
+@media (max-width: 30rem) {
+  .shell-header { padding-inline: var(--space-3); }
+  .shell-nav .btn-sm { padding-inline: var(--space-2); }
+  .shell-brand-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
 .radio-row { display: flex; gap: var(--space-5); accent-color: var(--primary); }
 .radio-row label { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 2.75rem; cursor: pointer; }
 /* links like Change email / Change PIN / Devices: one row each, finger-sized */
@@ -60,3 +67,14 @@ fieldset.field { border: 0; margin: 0; padding: 0; min-width: 0; }
 .cards-list > li { min-width: 0; }
 @media (min-width: 40rem) { .cards-list { grid-template-columns: 1fr 1fr; } }
 .cards-pan { color: var(--text); font-weight: var(--weight-semibold); font-size: var(--text-xl); letter-spacing: 0.06em; font-variant-numeric: tabular-nums; user-select: all; }
+
+/* identity verification and reviews */
+.radio-stack { flex-direction: column; gap: 0; }
+.file-input { font: inherit; color: var(--text); max-width: 100%; }
+.file-input::file-selector-button {
+  font: inherit; margin-right: var(--space-3); padding: var(--space-2) var(--space-4); cursor: pointer;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); color: var(--text);
+}
+.doc-preview { max-width: 100%; max-height: 14rem; border-radius: var(--radius-md); border: 1px solid var(--border); justify-self: start; }
+.doc-photo { width: 100%; height: auto; border-radius: var(--radius-lg); border: 1px solid var(--border); background: var(--surface); }
+.tabs { display: flex; flex-wrap: wrap; gap: var(--space-2); }

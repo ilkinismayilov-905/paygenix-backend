@@ -1,5 +1,5 @@
 import { createBrowserRouter } from 'react-router'
-import { PublicOnly, RequireAuth } from './routes/guards'
+import { PublicOnly, RequireAdmin, RequireAuth } from './routes/guards'
 import RouteError from './routes/RouteError'
 
 const page = (load: () => Promise<{ default: React.ComponentType }>) => async () => ({ Component: (await load()).default })
@@ -36,6 +36,14 @@ export const routes = [
             { path: '/settings/email', lazy: page(() => import('./routes/ChangeEmail')) },
             { path: '/settings/sessions', lazy: page(() => import('./routes/Sessions')) },
             { path: '/help/report', lazy: page(() => import('./routes/ReportProblem')) },
+            { path: '/settings/verify', lazy: page(() => import('./routes/Verify')) },
+            {
+              element: <RequireAdmin />,
+              children: [
+                { path: '/admin/kyc', lazy: page(() => import('./routes/AdminKyc')) },
+                { path: '/admin/kyc/:id', lazy: page(() => import('./routes/AdminKycReview')) },
+              ],
+            },
           ],
         }],
       },

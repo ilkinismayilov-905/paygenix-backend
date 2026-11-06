@@ -42,12 +42,17 @@ export function shownVersions(docs: Partial<Record<LegalType, LegalDoc>>): Legal
   return all.filter((d): d is Doc => typeof d === 'object').map(({ type, version }) => ({ type, version }))
 }
 
-/** What the signed-in user still has to accept; null when it could not be checked. */
-export async function loadPendingLegal(): Promise<LegalRef[] | null> {
+export type Me = { pending: LegalRef[]; admin: boolean }
+
+/** What the signed-in user still has to accept, and whether they are an admin; null when it could not be checked. */
+export async function loadMe(): Promise<Me | null> {
   try {
     const { data, response } = await api.GET('/api/auth/me')
-    return response.ok ? data?.data?.pendingLegalDocuments ?? [] : null
+    if (!response.ok) return null
+    return { pending: data?.data?.pendingLegalDocuments ?? [], admin: data?.data?.roles?.includes('ADMIN_ROLE') ?? false }
   } catch {
     return null
   }
 }
+
+export const loadPendingLegal = async (): Promise<LegalRef[] | null> => (await loadMe())?.pending ?? null

@@ -95,6 +95,7 @@ export default function Profile() {
           <li><Link to="/settings/email">{t('changeEmail.link')}</Link></li>
           <li><Link to="/settings/pin">{t('changePin.link')}</Link></li>
           <li><Link to="/settings/sessions">{t('sessions.link')}</Link></li>
+          <li><Link to="/settings/verify">{t('verify.link')}</Link></li>
         </ul>
       </nav>
       <nav className="home-section" aria-labelledby="help">
