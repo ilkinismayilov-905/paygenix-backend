@@ -12,6 +12,7 @@ public record ProblemReportResponse(
         Long userId,
         ReportCategory category,
         String message,
+        String referenceId,
         ReportStatus status,
         Instant createdAt
 ) {
