@@ -17,11 +17,17 @@ public class MinioConfig {
     @Value("${minio.secret-key}")
     private String secretKey;
 
+    // Known up front, so presigning is pure signing: without it the client asks the server for the bucket's region
+    // first, and a storage outage turned every presign (the whole story feed) into a 503.
+    @Value("${minio.region:us-east-1}")
+    private String region;
+
     @Bean
     public MinioClient minioClient() {
         return MinioClient.builder()
                 .endpoint(url)
                 .credentials(accessKey, secretKey)
+                .region(region)
                 .build();
     }
 }
