@@ -1153,8 +1153,28 @@
               }
             }
           },
+          "410" : {
+            "description" : "Not confirmed within 15 minutes of starting (PAYMENT_EXPIRED); start again",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataPaymentResponse"
+                }
+              }
+            }
+          },
           "422" : {
-            "description" : "Idempotency-Key already used for a different request",
+            "description" : "Idempotency-Key already used for a different request, or the operator refused the number (PHONE_TOPUP_REJECTED; nothing charged)",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataPaymentResponse"
+                }
+              }
+            }
+          },
+          "504" : {
+            "description" : "The operator did not answer (PROVIDER_TIMEOUT); nothing charged, confirm again",
             "content" : {
               "*/*" : {
                 "schema" : {

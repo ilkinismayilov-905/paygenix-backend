@@ -14,6 +14,7 @@ texts are not legal documents.
 | Accounts | Email sign-up with a code, password login, Google sign-in (one-time code exchange), per-device sessions with rotating refresh tokens in an httpOnly cookie, sign out one device or everywhere |
 | Security | 6-digit transaction PIN with lockout, change PIN and change email by emailed codes (the old address confirms too), rate limits in Redis, RFC 9457 problem details with stable `code`s, RBAC for admin APIs |
 | Money | Double-entry ledger (every movement sums to zero), configurable commission and cashback, idempotency keys on every money request, row locking against overspending, decimal strings end to end |
+| Phone payments | Pay a phone number through an operator adapter; a mock operator refuses numbers ending in 000 and times out on 999, and nothing is charged then |
 | Cards | Virtual cards with Luhn-valid numbers; only an HMAC and the last four digits are stored; the full number is shown once |
 | Top-ups | Stripe Checkout; the balance changes only after a signature-verified webhook, exactly once |
 | Verification | Identity document upload to a private bucket, manual admin review (approve / reject with a reason), decision by email |

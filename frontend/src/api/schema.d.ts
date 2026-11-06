@@ -2577,7 +2577,16 @@ export interface operations {
                     "*/*": components["schemas"]["ApiResponseDataPaymentResponse"];
                 };
             };
-            /** @description Idempotency-Key already used for a different request */
+            /** @description Not confirmed within 15 minutes of starting (PAYMENT_EXPIRED); start again */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataPaymentResponse"];
+                };
+            };
+            /** @description Idempotency-Key already used for a different request, or the operator refused the number (PHONE_TOPUP_REJECTED; nothing charged) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2588,6 +2597,15 @@ export interface operations {
             };
             /** @description Too many wrong PINs; PIN checks locked for 15 minutes (PIN_LOCKED); see Retry-After */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDataPaymentResponse"];
+                };
+            };
+            /** @description The operator did not answer (PROVIDER_TIMEOUT); nothing charged, confirm again */
+            504: {
                 headers: {
                     [name: string]: unknown;
                 };

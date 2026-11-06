@@ -154,3 +154,18 @@ test('Change details starts a new flow with a new key and an empty PIN', async (
   await screen.findByRole('heading', { name: 'Payment made' })
   expect(confirms()[0]!.body.flowId).toBe('flow-2')
 })
+
+test('an operator timeout keeps the confirm step and key; a refusal goes back to the form', async () => {
+  confirm = () => json(504, { code: 'PROVIDER_TIMEOUT' })
+  await details()
+  await screen.findByRole('heading', { name: 'Confirm payment' })
+  enterPin()
+  pay()
+  expect(await screen.findByText(/did not answer. Nothing was charged/)).toBeInTheDocument()
+  confirm = () => json(422, { code: 'PHONE_TOPUP_REJECTED' })
+  enterPin()
+  pay()
+  expect(await screen.findByText(/did not accept this number/)).toBeInTheDocument()
+  expect(screen.getByLabelText('Phone number')).toBeInTheDocument()
+  expect(confirms()[1]!.key).toBe(confirms()[0]!.key)
+})
