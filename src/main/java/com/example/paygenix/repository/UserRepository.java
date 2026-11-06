@@ -23,4 +23,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE u.id = :id")
     Optional<User> findByIdForUpdate(Long id);
 
+
+    // pattern: a lower-case LIKE pattern with \ escaping (AdminService)
+    @Query("SELECT u FROM User u WHERE lower(u.email) LIKE :pattern ESCAPE '\\' OR lower(u.username) LIKE :pattern ESCAPE '\\'")
+    org.springframework.data.domain.Slice<User> search(@org.springframework.data.repository.query.Param("pattern") String pattern,
+                                                        org.springframework.data.domain.Pageable pageable);
 }

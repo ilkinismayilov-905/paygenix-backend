@@ -18,6 +18,7 @@ texts are not legal documents.
 | Cards | Virtual cards with Luhn-valid numbers; only an HMAC and the last four digits are stored; the full number is shown once |
 | Top-ups | Stripe Checkout; the balance changes only after a signature-verified webhook, exactly once |
 | Verification | Identity document upload to a private bucket, manual admin review (approve / reject with a reason), decision by email |
+| Admin | Identity reviews, promo stories, problem reports by status, find and lock or unlock users (locking signs them out everywhere) |
 | Stories | Promo stories published by admins, viewed in a full-screen viewer, view counts |
 | Legal | Versioned Terms and Privacy; money moves wait until the current versions are accepted |
 
@@ -48,7 +49,7 @@ Optional pieces, each switched off cleanly when not configured:
 - **Google sign-in** (`GOOGLE_*`).
 - **Stripe top-ups** (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`): without them top-ups answer `503 TOP_UP_UNAVAILABLE`. Locally: `stripe listen --forward-to localhost:8000/api/stripe/webhook` prints the webhook secret. Pay with the test card `4242 4242 4242 4242`.
 
-An admin is a user with the `ADMIN_ROLE` row in `user_roles`; the frontend then shows **Review** (identity documents, promo stories).
+An admin is a user with the `ADMIN_ROLE` row in `user_roles`; the frontend then shows **Review** (identity documents, promo stories, problem reports, users).
 
 ## Tests
 
