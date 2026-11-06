@@ -238,3 +238,31 @@ test('Google errors are explained', async () => {
   expect(await screen.findByRole('alert')).toHaveTextContent('An account with this email already exists')
   expect(fetchMock).not.toHaveBeenCalled()
 })
+
+test('after an ended session sign-in returns to the page; after the user\'s own sign-out it goes home', async () => {
+  const signInAgain = async () => {
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = urlOf(input)
+      if (url.endsWith('/api/auth/login')) return json(200, { data: { token: 'again' } })
+      if (url.endsWith('/api/auth/me')) return json(200, { data: { id: 1, username: 'nigar', pendingLegalDocuments: [] } })
+      if (url.endsWith('/api/cards/me')) return json(200, { data: [] })
+      return json(200, { data: { items: [], hasNext: false } })
+    })
+    fireEvent.input(await screen.findByLabelText('Email'), { target: { value: 'aysel@example.test' } })
+    fireEvent.input(screen.getByLabelText('Password'), { target: { value: 'secret-pass' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+  }
+  const router = createMemoryRouter(routes, { initialEntries: ['/cards'] })
+
+  signedOut(true) // the session ended (refresh rejected)
+  render(<RouterProvider router={router} />)
+  await signInAgain()
+  await vi.waitFor(() => expect(getAccessToken()).toBe('again'))
+  await screen.findByRole('heading', { name: 'Your cards' })
+  expect(router.state.location.pathname).toBe('/cards')
+
+  signedOut() // the user's own sign-out
+  await signInAgain()
+  await screen.findByRole('heading', { name: 'Welcome to Paygenix' })
+  expect(router.state.location.pathname).toBe('/')
+})

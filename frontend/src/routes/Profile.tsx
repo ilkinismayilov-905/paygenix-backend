@@ -73,7 +73,7 @@ export default function Profile() {
           {result === 'saved' && <Alert tone="success" title={t('profile.saved')} />}
           {result === 'invalid' && <Alert tone="danger" title={t('profile.invalid')} />}
           {result === 'failed' && <Alert tone="danger" title={t('profile.failed')} />}
-          <TextField label={t('profile.email')} value={email} readOnly hint={t('profile.emailHint')} />
+          <TextField label={t('profile.email')} value={email} readOnly />
           <TextField label={t('profile.fullName')} autoComplete="name" error={errors.fullName?.message} {...register('fullName')} />
           <TextField label={t('pay.phone')} type="tel" inputMode="tel" autoComplete="tel" placeholder="+994 50 123 45 67"
             error={errors.phoneNumber?.message} {...register('phoneNumber')} />
@@ -89,7 +89,14 @@ export default function Profile() {
           <Button type="submit" block loading={isSubmitting}>{t('profile.save')}</Button>
         </form>
       )}
-      <p><Link to="/settings/pin">{t('changePin.link')}</Link></p>
+      <nav className="home-section" aria-labelledby="security">
+        <h2 id="security">{t('profile.security')}</h2>
+        <ul className="settings-links">
+          <li><Link to="/settings/email">{t('changeEmail.link')}</Link></li>
+          <li><Link to="/settings/pin">{t('changePin.link')}</Link></li>
+          <li><Link to="/settings/sessions">{t('sessions.link')}</Link></li>
+        </ul>
+      </nav>
     </main>
   )
 }

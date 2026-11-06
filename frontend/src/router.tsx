@@ -30,6 +30,8 @@ export const routes = [
             { path: '/settings/profile', lazy: page(() => import('./routes/Profile')) },
             { path: '/pin/setup', lazy: page(() => import('./routes/PinSetup')) },
             { path: '/settings/pin', lazy: page(() => import('./routes/ChangePin')) },
+            { path: '/settings/email', lazy: page(() => import('./routes/ChangeEmail')) },
+            { path: '/settings/sessions', lazy: page(() => import('./routes/Sessions')) },
           ],
         }],
       },

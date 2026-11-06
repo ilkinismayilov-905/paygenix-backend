@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { safeReturnPath } from '../auth/returnPath'
-import { refresh, sessionExpired, useAuthStatus } from '../auth/session'
+import { refresh, sessionExpired, signedOutByUser, useAuthStatus } from '../auth/session'
 import { t } from '../i18n'
 import { Alert, Button } from '../ui'
 
@@ -22,14 +22,18 @@ function Unavailable() {
   )
 }
 
-/** Signed-in area: waits for the startup refresh, then sends signed-out users to sign-in and back afterwards. */
+/**
+ * Signed-in area: waits for the startup refresh, then sends signed-out users to sign-in and back afterwards —
+ * unless they signed out themselves: then the next sign-in starts at home, not on the page they left.
+ */
 export function RequireAuth() {
   const status = useAuthStatus()
   const location = useLocation()
   if (status === 'unknown') return <Checking />
   if (status === 'unavailable') return <Unavailable />
   if (status === 'signed-out') {
-    return <Navigate to="/sign-in" replace state={{ from: location.pathname + location.search, expired: sessionExpired() }} />
+    const from = signedOutByUser() ? undefined : location.pathname + location.search
+    return <Navigate to="/sign-in" replace state={{ from, expired: sessionExpired() }} />
   }
   return <Outlet />
 }
