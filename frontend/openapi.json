@@ -492,6 +492,16 @@
               }
             }
           },
+          "409" : {
+            "description" : "The key's top-up is already paid or expired (TOP_UP_FINISHED); use a new key",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDataTopUpResponse"
+                }
+              }
+            }
+          },
           "422" : {
             "description" : "Idempotency-Key used for a different top-up (IDEMPOTENCY_KEY_REUSED)",
             "content" : {

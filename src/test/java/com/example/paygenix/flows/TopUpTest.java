@@ -79,8 +79,9 @@ class TopUpTest extends IntegrationTest {
                 .andExpect(jsonPath("$.data.status").value("PENDING"))
                 .andExpect(jsonPath("$.data.amount").value("25.50"))
                 .andExpect(jsonPath("$.data.currency").value("AZN")));
-        verify(gateway).open(eq(user.getId()), eq(new BigDecimal("25.50")), eq(Currency.AZN), eq("topup-" + user.getId() + "-k1"),
-                eq("http://localhost:3000/top-up/return?session={CHECKOUT_SESSION_ID}"), anyString());
+        verify(gateway).open(eq(user.getId()), eq(new BigDecimal("25.50")), eq(Currency.AZN), eq("topup-" + user.getId() + "-" + java.util.HexFormat.of().formatHex(
+                        java.security.MessageDigest.getInstance("SHA-256").digest("k1".getBytes()))),
+                eq("http://localhost:3000/top-up/return?session={CHECKOUT_SESSION_ID}"), eq("http://localhost:3000/top-up/return?cancelled=1"));
         assertThat(balanceOf(pan)).isEqualByComparingTo("0");
 
         String paid = event("checkout.session.completed", session, "paid", 2550, "azn");
@@ -95,6 +96,15 @@ class TopUpTest extends IntegrationTest {
                 .andExpect(jsonPath("$.data.items[0].kind").value("TOP_UP"))
                 .andExpect(jsonPath("$.data.items[0].amount").value("25.50"));
         assertBooksBalanced();
+
+        // its checkout is used up: the same key cannot reopen it
+        start(user, cardId, "25.50", "k1").andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("TOP_UP_FINISHED"));
+    }
+
+    @Test
+    void aMalformedSignatureHeaderIsABadRequest() throws Exception {
+        mockMvc.perform(post("/api/stripe/webhook").header("Stripe-Signature", "t=abc,v1=00")
+                .contentType(MediaType.APPLICATION_JSON).content("{}")).andExpect(status().isBadRequest());
     }
 
     @Test

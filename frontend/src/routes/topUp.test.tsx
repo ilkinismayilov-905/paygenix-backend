@@ -69,11 +69,23 @@ test('the return page waits for the webhook, then shows the money added', async 
 
 test('a cancelled checkout says nothing was charged', async () => {
   byId = () => ok({ id: 1, status: 'PENDING', amount: '25.50', currency: 'AZN' })
-  open('/top-up/return?session=cs_1&cancelled=1')
+  open('/top-up/return?cancelled=1')
   expect(await screen.findByText('The payment was cancelled. Nothing was charged.')).toBeInTheDocument()
 })
 
 test('an unknown session says so', async () => {
   open('/top-up/return?session=cs_other')
   expect(await screen.findByText('This top-up could not be found.')).toBeInTheDocument()
+})
+
+test('a finished top-up replay starts over with a new key', async () => {
+  start = () => json(409, { code: 'TOP_UP_FINISHED' })
+  open('/top-up')
+  fireEvent.change(await screen.findByLabelText('Amount'), { target: { value: '10' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Continue to payment' }))
+  expect(await screen.findByText(/already finished/)).toBeInTheDocument()
+  start = () => json(201, { data: { id: 2, status: 'PENDING', checkoutUrl: 'https://checkout.stripe.test/cs_2' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Continue to payment' }))
+  await vi.waitFor(() => expect(assign).toHaveBeenCalled())
+  expect(posted[1]!.key).not.toBe(posted[0]!.key)
 })

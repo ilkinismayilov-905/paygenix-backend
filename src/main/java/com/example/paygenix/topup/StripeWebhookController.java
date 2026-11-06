@@ -43,7 +43,7 @@ public class StripeWebhookController {
         }
         try {
             Webhook.Signature.verifyHeader(payload, signature == null ? "" : signature, secret, TOLERANCE_SECONDS);
-        } catch (SignatureVerificationException e) {
+        } catch (SignatureVerificationException | RuntimeException e) { // a malformed header (t=abc) throws NumberFormatException
             log.warn("Stripe webhook with a bad signature refused");
             return ResponseEntity.badRequest().build();
         }

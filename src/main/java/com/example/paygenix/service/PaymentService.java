@@ -91,11 +91,12 @@ public class PaymentService {
         // someone else's flow gets the same 404 as an unknown id
         PaymentOnboarding onboarding = poRepository.findByIdAndUserId(flowId, payer.getId())
                 .orElseThrow(() -> new NotFoundException("Payment not found"));
+        // a completed payment stays "already processed" however late the retry: "start again" would make the user pay twice
+        if (onboarding.getPaymentStatus() == PaymentStatus.COMPLETED) {
+            throw new PaymentAlreadyProcessedException();
+        }
         if (onboarding.getPaymentStatus() == PaymentStatus.EXPIRED || isExpired(onboarding, Instant.now())) {
             throw new ApiException(HttpStatus.GONE, "PAYMENT_EXPIRED", "This payment was not confirmed in time; start again");
-        }
-        if (onboarding.getPaymentStatus() != PaymentStatus.PENDING) {
-            throw new PaymentAlreadyProcessedException();
         }
 
         pinValidationService.validatePin(payer.getId(), pin);

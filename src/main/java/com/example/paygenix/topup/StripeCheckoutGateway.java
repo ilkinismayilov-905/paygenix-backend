@@ -14,16 +14,12 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Locale;
 
 /** Stripe Checkout in test mode. Without STRIPE_SECRET_KEY top-ups answer 503 TOP_UP_UNAVAILABLE; the app still runs. */
 @Component
 @Slf4j
 public class StripeCheckoutGateway implements CheckoutGateway {
-
-    // an abandoned top-up expires (webhook) after it
-    static final Duration CHECKOUT_LIFETIME = Duration.ofHours(1);
 
     private final StripeClient client;
 
@@ -36,12 +32,13 @@ public class StripeCheckoutGateway implements CheckoutGateway {
         if (client == null) {
             throw unavailable();
         }
+        // Only values that follow from the request: Stripe refuses a reused idempotency key with other parameters, so a
+        // retry must send exactly the same ones (no "now"-based expiry; Stripe's default 24 h applies).
         SessionCreateParams params = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.PAYMENT)
                 .setSuccessUrl(successUrl)
                 .setCancelUrl(cancelUrl)
                 .setClientReferenceId(String.valueOf(userId))
-                .setExpiresAt(Instant.now().plus(CHECKOUT_LIFETIME).getEpochSecond())
                 .addLineItem(SessionCreateParams.LineItem.builder()
                         .setQuantity(1L)
                         .setPriceData(SessionCreateParams.LineItem.PriceData.builder()

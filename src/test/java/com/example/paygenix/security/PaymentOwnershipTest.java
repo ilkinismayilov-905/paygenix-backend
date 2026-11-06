@@ -211,6 +211,18 @@ class PaymentOwnershipTest extends IntegrationTest {
         confirm(payer, flow, PIN).andExpect(status().isGone());
     }
 
+    // a late retry of a payment that went through must not say "start again" (the user would pay twice)
+    @Test
+    void aCompletedPaymentStaysAlreadyProcessedAfterTheExpiry() throws Exception {
+        User payer = createUser();
+        String card = issueCard(payer, "AZN");
+        setBalance(card, "100.00");
+        String flow = initiate(payer, card, "10.00");
+        confirm(payer, flow, PIN).andExpect(status().isOk());
+        jdbc.update("UPDATE payment_onboarding SET creation_date = now() - interval '16 minutes' WHERE id = ?", flow);
+        confirm(payer, flow, PIN).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("PAYMENT_ALREADY_PROCESSED"));
+    }
+
     private String initiate(User payer, String card, String amount) throws Exception {
         String body = initiateRequest(payer, card, amount).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();

@@ -95,7 +95,7 @@ public class EditProfileService {
         try {
             String[] previous = new String[1];
             saved = transactionTemplate.execute(tx -> {
-                EditProfile ep = editProfileRepository.findByUserId(userId).orElseThrow(EditProfileService::profileRequired);
+                EditProfile ep = editProfileRepository.findByUserIdForUpdate(userId).orElseThrow(EditProfileService::profileRequired);
                 previous[0] = ep.getObjectName();
                 ep.setMediaType(MediaType.IMAGE);
                 ep.setObjectName(objectName);
@@ -114,7 +114,7 @@ public class EditProfileService {
 
     @CacheEvict(cacheNames = CacheNames.EDIT_PROFILE_ALL, allEntries = true)
     public void removeProfilePhoto(Long userId) {
-        String removed = transactionTemplate.execute(tx -> editProfileRepository.findByUserId(userId).map(ep -> {
+        String removed = transactionTemplate.execute(tx -> editProfileRepository.findByUserIdForUpdate(userId).map(ep -> {
             String old = ep.getObjectName();
             ep.setObjectName(null);
             ep.setMediaType(null);

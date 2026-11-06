@@ -37,6 +37,7 @@ public class TopUpController {
             @ApiResponse(responseCode = "201", description = "Checkout opened; status PENDING"),
             @ApiResponse(responseCode = "400", description = "Amount out of range (VALIDATION_FAILED) or bad Idempotency-Key (INVALID_IDEMPOTENCY_KEY)"),
             @ApiResponse(responseCode = "404", description = "Not one of the caller's open cards (NOT_FOUND)"),
+            @ApiResponse(responseCode = "409", description = "The key's top-up is already paid or expired (TOP_UP_FINISHED); use a new key"),
             @ApiResponse(responseCode = "422", description = "Idempotency-Key used for a different top-up (IDEMPOTENCY_KEY_REUSED)"),
             @ApiResponse(responseCode = "503", description = "Stripe not configured or unreachable (TOP_UP_UNAVAILABLE), with Retry-After")
     })
