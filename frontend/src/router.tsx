@@ -17,6 +17,9 @@ export const routes = [
         ],
       },
       { path: '/oauth2/callback', lazy: page(() => import('./routes/OAuthCallback')) },
+      // readable signed in or not, and before pending Terms are accepted
+      { path: '/legal/terms', lazy: async () => ({ Component: (await import('./routes/LegalPage')).Terms }) },
+      { path: '/legal/privacy', lazy: async () => ({ Component: (await import('./routes/LegalPage')).Privacy }) },
       {
         element: <RequireAuth />,
         children: [{
@@ -32,6 +35,7 @@ export const routes = [
             { path: '/settings/pin', lazy: page(() => import('./routes/ChangePin')) },
             { path: '/settings/email', lazy: page(() => import('./routes/ChangeEmail')) },
             { path: '/settings/sessions', lazy: page(() => import('./routes/Sessions')) },
+            { path: '/help/report', lazy: page(() => import('./routes/ReportProblem')) },
           ],
         }],
       },

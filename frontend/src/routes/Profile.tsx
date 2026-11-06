@@ -97,6 +97,14 @@ export default function Profile() {
           <li><Link to="/settings/sessions">{t('sessions.link')}</Link></li>
         </ul>
       </nav>
+      <nav className="home-section" aria-labelledby="help">
+        <h2 id="help">{t('profile.help')}</h2>
+        <ul className="settings-links">
+          <li><Link to="/help/report">{t('report.link')}</Link></li>
+          <li><Link to="/legal/terms">{t('signUp.terms')}</Link></li>
+          <li><Link to="/legal/privacy">{t('signUp.privacy')}</Link></li>
+        </ul>
+      </nav>
     </main>
   )
 }

@@ -30,8 +30,8 @@ All `/api/**` calls except the public ones need `Authorization: Bearer <access t
 | Change PIN | `/settings/pin` (link on Profile) | `POST /api/change-pin` (429 OTP_SEND_TOO_FREQUENT, 60 s) → `/{flowId}/otp` {otp} (400 INVALID_OTP / OTP_EXPIRED, 429 TOO_MANY_ATTEMPTS) → `/{flowId}/pin` {newPin, reEnterNewPin} (400 PIN_UNCHANGED); 410 FLOW_EXPIRED / 404 / 409 INVALID_STEP → start again. No current PIN asked: the email code is the proof |
 | Devices (sessions) | `/settings/sessions` (link on Profile) | `GET /api/auth/sessions` (device named from the User-Agent), `DELETE /api/auth/sessions/{id}` (404: already gone, counts as done), `DELETE /api/auth/sessions` (sign out everywhere, asks first) |
 | Verify identity | `/settings/verify` | `POST /api/verify`, `POST /api/verify/photo` (no review flow yet, see gaps) |
-| Report a problem | `/help/report` | `POST /api/reports` |
-| Terms / Privacy | `/legal/terms`, `/legal/privacy` | `GET /api/legal/terms`, `GET /api/legal/privacy` |
+| Report a problem | `/help/report` (link on Profile) | `POST /api/reports` {category, message ≤ 2000, referenceId?} → report number |
+| Terms / Privacy | `/legal/terms`, `/legal/privacy` (public; linked from sign-in and Profile) | `GET /api/legal/terms`, `GET /api/legal/privacy` (404 → not published yet) |
 | Accept updated Terms/Privacy | shown by the app shell instead of the page while `GET /api/auth/me` lists `pendingLegalDocuments` | `POST /api/legal/acceptances` {documents} (409 LEGAL_VERSION_OUTDATED → re-read /me). Until accepted, transfers and payments answer 403 LEGAL_ACCEPTANCE_REQUIRED |
 
 ## System states
