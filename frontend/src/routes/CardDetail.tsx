@@ -91,6 +91,7 @@ function CardDetail({ id }: { id: number }) {
       <h1>{t('card.title', { last4 })}</h1>
       <CardTile maskedNumber={card.maskedNumber ?? ''} holder={card.cardHolderName ?? ''} expires={card.expirationDate}
         network={card.cardNetwork ?? ''} currency={card.currency as Currency} balance={card.amount!} />
+      <Link className="btn btn-primary" to={`/top-up?card=${card.id}`}>{t('home.topUp')}</Link>
 
       {activity.items === 'failed'
         ? <ErrorState title={t('card.activityFailed')} action={<Button variant="secondary" onClick={activity.retry}>{t('error.retry')}</Button>} />

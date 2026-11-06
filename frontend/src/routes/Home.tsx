@@ -40,6 +40,7 @@ export default function Home() {
         <div className="home-actions">
           <Link className="btn btn-primary" to="/transfer">{t('home.send')}</Link>
           <Link className="btn btn-secondary" to="/pay">{t('home.pay')}</Link>
+          <Link className="btn btn-secondary" to="/top-up">{t('home.topUp')}</Link>
         </div>
       )}
 
@@ -50,7 +51,8 @@ export default function Home() {
           {cards === null ? (
             <div aria-busy="true" aria-label={t('home.cards')}><Skeleton height="10rem" radius="var(--radius-lg)" /></div>
           ) : cards.length === 0 ? (
-            <EmptyState title={t('home.noCards')} body={t('home.noCardsBody')} />
+            <EmptyState title={t('home.noCards')} body={t('home.noCardsBody')}
+              action={<Link className="btn btn-primary" to="/cards">{t('cards.issue')}</Link>} />
           ) : (
             <div className="home-cards" role="group" aria-label={t('home.cards')}>
               {cards.map((c) => (
