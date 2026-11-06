@@ -64,6 +64,7 @@ export default function SignIn() {
         {/* A full-page navigation: Spring runs the Google redirect and returns to /oauth2/callback. */}
         <a className="btn btn-secondary btn-block" href="/oauth2/authorization/google">{t('signIn.google')}</a>
         <p className="muted">{t('signIn.noAccount')} <Link to="/sign-up">{t('signIn.createAccount')}</Link></p>
+        <p className="muted auth-legal"><Link to="/legal/terms">{t('signUp.terms')}</Link> · <Link to="/legal/privacy">{t('signUp.privacy')}</Link></p>
       </div>
     </main>
   )
