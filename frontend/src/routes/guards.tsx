@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Navigate, Outlet, useLocation } from 'react-router'
+import { Navigate, Outlet, useLocation, useOutletContext } from 'react-router'
 import { safeReturnPath } from '../auth/returnPath'
 import { refresh, sessionExpired, signedOutByUser, useAuthStatus } from '../auth/session'
 import { t } from '../i18n'
 import { Alert, Button } from '../ui'
+import NotFound from './NotFound'
 
 function Checking() {
   return <main className="center-screen" aria-busy="true"><p className="muted" role="status">{t('auth.loading')}</p></main>
@@ -46,4 +47,10 @@ export function PublicOnly() {
   if (status === 'unavailable') return <Unavailable />
   if (status === 'signed-in') return <Navigate to={safeReturnPath(state?.from)} replace />
   return <Outlet />
+}
+
+/** Admin pages: others see the not-found page, so the admin area is not advertised. The API enforces the role itself. */
+export function RequireAdmin() {
+  const shell = useOutletContext<{ admin: boolean } | undefined>()
+  return shell?.admin ? <Outlet context={shell} /> : <NotFound />
 }
