@@ -6,6 +6,7 @@ import { Button, CardTile, EmptyState, ErrorState, Skeleton, type Currency } fro
 import { useActivity } from './activity'
 import { ActivitySection } from './ActivitySection'
 import { useOwnCards } from './money'
+import { StoriesRow } from './Stories'
 
 /** Cards and the first activity page; one retry reloads both. */
 function useHome() {
@@ -34,6 +35,7 @@ export default function Home() {
   return (
     <main className="page">
       <h1>{name ? t('home.hello', { name }) : t('home.title')}</h1>
+      <StoriesRow />
       {Array.isArray(cards) && cards.length > 0 && (
         <div className="home-actions">
           <Link className="btn btn-primary" to="/transfer">{t('home.send')}</Link>
