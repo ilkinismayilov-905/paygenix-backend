@@ -35,7 +35,7 @@ export default function SignIn() {
   const onSubmit = handleSubmit(async (form) => {
     setError(null)
     try {
-      const { data, error: problem, response } = await api.POST('/api/auth/login', { body: form })
+      const { data, error: problem, response } = await api.POST('/api/v1/auth/login', { body: form })
       if (data?.data?.token) {
         signedIn(data.data.token) // PublicOnly then redirects to where the user was going
         return

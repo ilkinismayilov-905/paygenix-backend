@@ -12,7 +12,7 @@ type Status = NonNullable<Review['status']>
 const STATUSES: Status[] = ['PENDING', 'APPROVED', 'REJECTED']
 const PAGE_SIZE = 20
 
-/** Admin: identity documents by status (GET /api/admin/kyc), pending ones oldest first. */
+/** Admin: identity documents by status (GET /api/v1/admin/kyc), pending ones oldest first. */
 export default function AdminKyc() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -27,7 +27,7 @@ export default function AdminKyc() {
   const generation = useRef(0) // bumped per tab switch: a "show more" answer from before it is dropped
 
   const load = useCallback(async (s: Status, page: number) => {
-    const { data, response } = await api.GET('/api/admin/kyc', { params: { query: { status: s, page, size: PAGE_SIZE } } })
+    const { data, response } = await api.GET('/api/v1/admin/kyc', { params: { query: { status: s, page, size: PAGE_SIZE } } })
     const p = data?.data
     if (!response.ok || !p || !Array.isArray(p.items)) throw new Error('kyc')
     return { items: p.items, next: p.hasNext ? page + 1 : null }

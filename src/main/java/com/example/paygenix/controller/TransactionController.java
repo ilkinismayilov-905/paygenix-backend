@@ -20,7 +20,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/transaction")
+@RequestMapping("/api/v1/transaction")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Transaction Management", description = "APIs for viewing and filtering financial transaction history")

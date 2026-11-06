@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 
 public record TransferRequest(
         @NotNull(message = "Source card is required") @Positive
-        @Schema(description = "Id of one of the caller's cards (GET /api/cards/me)")
+        @Schema(description = "Id of one of the caller's cards (GET /api/v1/cards/me)")
         Long fromCardId,
         @NotBlank @Pattern(regexp = "\\d{16}", message = "Card number must be 16 digits")
         String toCardNumber,

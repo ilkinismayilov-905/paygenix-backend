@@ -20,7 +20,7 @@ function useFirstName() {
   const [name, setName] = useState<string | null>(null)
   useEffect(() => {
     let live = true
-    void api.GET('/api/profile/me')
+    void api.GET('/api/v1/profile/me')
       .then(({ data }) => { if (live) setName(data?.data?.fullName?.trim().split(/\s+/)[0] || null) })
       .catch(() => {})
     return () => { live = false }

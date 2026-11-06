@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// Profile photos: stored in the profile bucket, shown to the owner through a presigned link in GET /api/profile/me.
+// Profile photos: stored in the profile bucket, shown to the owner through a presigned link in GET /api/v1/profile/me.
 class ProfilePhotoTest extends IntegrationTest {
 
     @MockitoBean MinioClient minio;
@@ -38,12 +38,12 @@ class ProfilePhotoTest extends IntegrationTest {
     }
 
     private ResultActions upload(User user, String type, int bytes) throws Exception {
-        return mockMvc.perform(multipart("/api/profile/photo").file(com.example.paygenix.support.TestFiles.file("file", type, bytes))
+        return mockMvc.perform(multipart("/api/v1/profile/photo").file(com.example.paygenix.support.TestFiles.file("file", type, bytes))
                 .header("Authorization", bearer(user)));
     }
 
     private void saveProfile(User user) throws Exception {
-        mockMvc.perform(post("/api/profile").header("Authorization", bearer(user)).contentType("application/json")
+        mockMvc.perform(post("/api/v1/profile").header("Authorization", bearer(user)).contentType("application/json")
                         .content("""
                                 {"fullName":"Nigar Aliyeva","phoneNumber":"+994501234567","dateOfBirth":"02-03-1995","gender":"FEMALE"}"""))
                 .andExpect(status().isCreated());
@@ -62,7 +62,7 @@ class ProfilePhotoTest extends IntegrationTest {
         String first = put.getValue().object();
         assertThat(first).matches("profiles/" + user.getId() + "/[0-9a-f-]{36}\\.png");
 
-        mockMvc.perform(get("/api/profile/me").header("Authorization", bearer(user)))
+        mockMvc.perform(get("/api/v1/profile/me").header("Authorization", bearer(user)))
                 .andExpect(jsonPath("$.data.photoUrl").value("https://storage.test/p?sig=1"));
 
         upload(user, "image/jpeg", 100).andExpect(status().isOk());
@@ -70,8 +70,8 @@ class ProfilePhotoTest extends IntegrationTest {
         verify(minio).removeObject(removed.capture());
         assertThat(removed.getValue().object()).isEqualTo(first);
 
-        mockMvc.perform(delete("/api/profile/photo").header("Authorization", bearer(user))).andExpect(status().isOk());
-        mockMvc.perform(get("/api/profile/me").header("Authorization", bearer(user)))
+        mockMvc.perform(delete("/api/v1/profile/photo").header("Authorization", bearer(user))).andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/profile/me").header("Authorization", bearer(user)))
                 .andExpect(jsonPath("$.data.photoUrl").doesNotExist());
     }
 
@@ -92,7 +92,7 @@ class ProfilePhotoTest extends IntegrationTest {
         saveProfile(user);
         upload(user, "image/png", 100).andExpect(status().isOk());
         when(minio.getPresignedObjectUrl(any(GetPresignedObjectUrlArgs.class))).thenThrow(new RuntimeException("down"));
-        mockMvc.perform(get("/api/profile/me").header("Authorization", bearer(user)))
+        mockMvc.perform(get("/api/v1/profile/me").header("Authorization", bearer(user)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.fullName").value("Nigar Aliyeva"))
                 .andExpect(jsonPath("$.data.photoUrl").doesNotExist());
@@ -101,9 +101,9 @@ class ProfilePhotoTest extends IntegrationTest {
     @Test
     void theGenericUploadAndDownloadEndpointsAreGone() throws Exception {
         User user = createUser();
-        mockMvc.perform(multipart("/api/user/media").file(new MockMultipartFile("file", "x", "image/png", new byte[]{1}))
+        mockMvc.perform(multipart("/api/v1/user/media").file(new MockMultipartFile("file", "x", "image/png", new byte[]{1}))
                 .header("Authorization", bearer(user))).andExpect(status().isNotFound());
-        mockMvc.perform(get("/api/user/media-download").param("objectName", "uploads/1/x.png")
+        mockMvc.perform(get("/api/v1/user/media-download").param("objectName", "uploads/1/x.png")
                 .header("Authorization", bearer(user))).andExpect(status().isNotFound());
     }
 }

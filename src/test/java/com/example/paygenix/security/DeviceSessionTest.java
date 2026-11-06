@@ -101,7 +101,7 @@ class DeviceSessionTest extends IntegrationTest {
         jdbc.update("UPDATE user_sessions SET created_at = now() - make_interval(secs => ?) - interval '1 minute' WHERE id = ?",
                 maxLifetime, sessionId(old));
 
-        mockMvc.perform(get("/api/auth/sessions").header("Authorization", "Bearer " + phone.token()))
+        mockMvc.perform(get("/api/v1/auth/sessions").header("Authorization", "Bearer " + phone.token()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(1))
                 .andExpect(jsonPath("$.data[0].deviceName").value("phone"));
@@ -126,7 +126,7 @@ class DeviceSessionTest extends IntegrationTest {
 
     @Test
     void malformedSessionIdIsABadRequest() throws Exception {
-        mockMvc.perform(delete("/api/auth/sessions/not-a-uuid").header("Authorization", bearer(createUser())))
+        mockMvc.perform(delete("/api/v1/auth/sessions/not-a-uuid").header("Authorization", bearer(createUser())))
                 .andExpect(status().isBadRequest());
     }
 
@@ -145,7 +145,7 @@ class DeviceSessionTest extends IntegrationTest {
         JwtTokenResponse phone = sessionService.start(user, "phone");
         sessionService.start(user, "laptop");
 
-        mockMvc.perform(get("/api/auth/sessions").header("Authorization", "Bearer " + phone.token()))
+        mockMvc.perform(get("/api/v1/auth/sessions").header("Authorization", "Bearer " + phone.token()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(2))
                 .andExpect(jsonPath("$.data[?(@.deviceName == 'phone')].current").value(true))
@@ -158,7 +158,7 @@ class DeviceSessionTest extends IntegrationTest {
         JwtTokenResponse phone = sessionService.start(user, "phone");
         JwtTokenResponse laptop = sessionService.start(user, "laptop");
 
-        mockMvc.perform(delete("/api/auth/sessions/" + jwtService.extractSessionId(laptop.token()))
+        mockMvc.perform(delete("/api/v1/auth/sessions/" + jwtService.extractSessionId(laptop.token()))
                         .header("Authorization", "Bearer " + phone.token()))
                 .andExpect(status().isOk());
 
@@ -171,7 +171,7 @@ class DeviceSessionTest extends IntegrationTest {
     void cannotRevokeAnotherUsersSession() throws Exception {
         JwtTokenResponse victim = sessionService.start(createUser(), "phone");
 
-        mockMvc.perform(delete("/api/auth/sessions/" + jwtService.extractSessionId(victim.token()))
+        mockMvc.perform(delete("/api/v1/auth/sessions/" + jwtService.extractSessionId(victim.token()))
                         .header("Authorization", bearer(createUser())))
                 .andExpect(status().isNotFound());
 
@@ -185,7 +185,7 @@ class DeviceSessionTest extends IntegrationTest {
         JwtTokenResponse laptop = sessionService.start(user, "laptop");
         JwtTokenResponse other = sessionService.start(createUser(), "phone");
 
-        mockMvc.perform(delete("/api/auth/sessions").header("Authorization", "Bearer " + phone.token()))
+        mockMvc.perform(delete("/api/v1/auth/sessions").header("Authorization", "Bearer " + phone.token()))
                 .andExpect(status().isOk());
 
         assertThat(meStatus("Bearer " + phone.token())).isIn(302, 401);
@@ -197,13 +197,13 @@ class DeviceSessionTest extends IntegrationTest {
     @Test
     void loginRecordsTheUserAgentAsDeviceName() throws Exception {
         User user = createUser();
-        String body = mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+        String body = mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .header("User-Agent", "Paygenix-iOS/1.0")
                         .content("{\"email\":\"" + user.getEmail() + "\",\"password\":\"" + PASSWORD + "\"}"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         String access = JsonPath.read(body, "$.data.token");
 
-        mockMvc.perform(get("/api/auth/sessions").header("Authorization", "Bearer " + access))
+        mockMvc.perform(get("/api/v1/auth/sessions").header("Authorization", "Bearer " + access))
                 .andExpect(jsonPath("$.data[0].deviceName").value("Paygenix-iOS/1.0"));
     }
 
@@ -216,7 +216,7 @@ class DeviceSessionTest extends IntegrationTest {
     }
 
     private int meStatus(String authorization) throws Exception {
-        return mockMvc.perform(get("/api/auth/me").header("Authorization", authorization))
+        return mockMvc.perform(get("/api/v1/auth/me").header("Authorization", authorization))
                 .andReturn().getResponse().getStatus();
     }
 

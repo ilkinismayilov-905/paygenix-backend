@@ -47,7 +47,7 @@ export default function Pay() {
     const key = attempt.current?.body === same ? attempt.current.key : crypto.randomUUID()
     attempt.current = { body: same, key }
     try {
-      const { data, error: problem, response } = await api.POST('/api/payment/initiate',
+      const { data, error: problem, response } = await api.POST('/api/v1/payment/initiate',
         { body, params: { header: { 'Idempotency-Key': key } } })
       if (response.ok && typeof data?.data === 'string' && data.data) {
         attempt.current = null
@@ -73,7 +73,7 @@ export default function Pay() {
     if (!pinSchema.safeParse(pin).success) { setPinError(t('money.pinInvalid')); return }
     setError(null); setPinError(undefined); setConfirming(true)
     try {
-      const { data, error: problem, response } = await api.POST('/api/payment/confirm',
+      const { data, error: problem, response } = await api.POST('/api/v1/payment/confirm',
         { body: { flowId: flow.id, pin }, params: { header: { 'Idempotency-Key': flow.key } } })
       const r = data?.data
       if (response.ok && r?.amount && r.currency) {

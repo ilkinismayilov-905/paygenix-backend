@@ -30,7 +30,7 @@ class HousekeepingTest extends IntegrationTest {
     // T-129: the screens show the configured rates
     @Test
     void feeRatesAreReadable() throws Exception {
-        mockMvc.perform(get("/api/fees").header("Authorization", bearer(createUser())))
+        mockMvc.perform(get("/api/v1/fees").header("Authorization", bearer(createUser())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.commissionPercent").value("2"))
                 .andExpect(jsonPath("$.data.cashbackPercent").value("0.5"));

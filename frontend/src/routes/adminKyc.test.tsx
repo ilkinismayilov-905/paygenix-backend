@@ -27,10 +27,10 @@ beforeEach(() => {
   decide = () => ok(item(1, { status: 'APPROVED' }))
   vi.stubGlobal('fetch', async (req: Request) => {
     const url = new URL(req.url)
-    if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'admin', roles, pendingLegalDocuments: [] })
-    if (url.pathname === '/api/admin/kyc') return list(url.searchParams.get('status')!, Number(url.searchParams.get('page')))
-    if (/^\/api\/admin\/kyc\/\d+$/.test(url.pathname)) return detail()
-    if (/^\/api\/admin\/kyc\/\d+\/(approve|reject)$/.test(url.pathname)) {
+    if (url.pathname === '/api/v1/auth/me') return ok({ id: 1, username: 'admin', roles, pendingLegalDocuments: [] })
+    if (url.pathname === '/api/v1/admin/kyc') return list(url.searchParams.get('status')!, Number(url.searchParams.get('page')))
+    if (/^\/api\/v1\/admin\/kyc\/\d+$/.test(url.pathname)) return detail()
+    if (/^\/api\/v1\/admin\/kyc\/\d+\/(approve|reject)$/.test(url.pathname)) {
       decisions.push({ path: url.pathname, body: req.headers.get('Content-Type')?.includes('json') ? await req.clone().json() : null })
       return decide()
     }
@@ -72,7 +72,7 @@ test('approve asks first, then goes back to the list with a notice', async () =>
   fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
   fireEvent.click(within(await screen.findByRole('dialog', { name: 'Approve this document?' })).getByRole('button', { name: 'Approve' }))
   expect(await screen.findByText('Person 1 is verified.')).toBeInTheDocument()
-  expect(decisions).toEqual([{ path: '/api/admin/kyc/1/approve', body: null }])
+  expect(decisions).toEqual([{ path: '/api/v1/admin/kyc/1/approve', body: null }])
 })
 
 test('reject needs a reason, sends it trimmed', async () => {
@@ -85,7 +85,7 @@ test('reject needs a reason, sends it trimmed', async () => {
   fireEvent.change(within(dialog).getByLabelText('Reason for the user'), { target: { value: '  The photo is blurred.  ' } })
   fireEvent.click(within(dialog).getByRole('button', { name: 'Reject' }))
   expect(await screen.findByText('The document of Person 1 was rejected.')).toBeInTheDocument()
-  expect(decisions).toEqual([{ path: '/api/admin/kyc/1/reject', body: { reason: 'The photo is blurred.' } }])
+  expect(decisions).toEqual([{ path: '/api/v1/admin/kyc/1/reject', body: { reason: 'The photo is blurred.' } }])
 })
 
 test('own submission and an earlier review say so', async () => {

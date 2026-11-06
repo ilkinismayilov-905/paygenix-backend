@@ -17,10 +17,10 @@ beforeEach(() => {
   transfer = () => ok({ fromCardNumber: '**** **** **** 2207', toCardNumber: '**** **** **** 4455', amount: '10.50', currency: 'AZN' })
   vi.stubGlobal('fetch', async (req: Request) => {
     const url = new URL(req.url)
-    if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
-    if (url.pathname === '/api/cards/me') return ok([card])
-    if (url.pathname === '/api/fees') return ok({ commissionPercent: '2', cashbackPercent: '0.5' })
-    if (url.pathname === '/api/transfer') {
+    if (url.pathname === '/api/v1/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
+    if (url.pathname === '/api/v1/cards/me') return ok([card])
+    if (url.pathname === '/api/v1/fees') return ok({ commissionPercent: '2', cashbackPercent: '0.5' })
+    if (url.pathname === '/api/v1/transfer') {
       sent.push({ key: req.headers.get('Idempotency-Key'), body: await req.clone().json() })
       return transfer(req)
     }

@@ -19,9 +19,9 @@ beforeEach(() => {
   activity = () => ok({ items: [item(2, '-10.20')], page: 0, size: 20, hasNext: false })
   vi.stubGlobal('fetch', async (req: Request) => {
     const url = new URL(req.url)
-    if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
-    if (url.pathname === '/api/cards/me') return cards()
-    if (url.pathname === '/api/cards/me/activity') return activity(url.searchParams.get('page'))
+    if (url.pathname === '/api/v1/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
+    if (url.pathname === '/api/v1/cards/me') return cards()
+    if (url.pathname === '/api/v1/cards/me/activity') return activity(url.searchParams.get('page'))
     return json(404, {})
   })
 })

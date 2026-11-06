@@ -63,7 +63,7 @@ class JwtFilterOutageTest {
     }
 
     private static MockHttpServletRequest request() {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/user/me");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/user/me");
         request.addHeader("Authorization", "Bearer token");
         return request;
     }

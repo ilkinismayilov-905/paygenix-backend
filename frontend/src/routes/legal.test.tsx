@@ -18,9 +18,9 @@ const path = (r: Request) => new URL(r.url).pathname
 test('a new Terms version is accepted before the app opens', async () => {
   const sent: unknown[] = []
   fetchMock.mockImplementation(async (req: Request) => {
-    if (path(req) === '/api/auth/me') return me([{ type: 'TERMS', version: '2' }])
-    if (path(req) === '/api/legal/terms') return json(200, { data: { type: 'TERMS', version: '2', content: 'New terms' } })
-    if (path(req) === '/api/legal/acceptances') { sent.push(await req.json()); return json(200, { data: null }) }
+    if (path(req) === '/api/v1/auth/me') return me([{ type: 'TERMS', version: '2' }])
+    if (path(req) === '/api/v1/legal/terms') return json(200, { data: { type: 'TERMS', version: '2', content: 'New terms' } })
+    if (path(req) === '/api/v1/legal/acceptances') { sent.push(await req.json()); return json(200, { data: null }) }
     return json(200, { data: { type: 'PRIVACY', version: '1', content: '' } })
   })
   renderHome()
@@ -39,13 +39,13 @@ test('a new Terms version is accepted before the app opens', async () => {
 test('a version published while accepting is shown instead', async () => {
   let accepts = 0
   fetchMock.mockImplementation(async (req: Request) => {
-    if (path(req) === '/api/auth/me') return me(accepts === 0 ? [{ type: 'TERMS', version: '2' }] : [{ type: 'TERMS', version: '3' }])
-    if (path(req) === '/api/legal/acceptances') { accepts++; return json(409, { code: 'LEGAL_VERSION_OUTDATED' }) }
-    if (path(req) === '/api/legal/terms') return json(200, { data: { type: 'TERMS', version: '2', content: 'Terms 2' } })
+    if (path(req) === '/api/v1/auth/me') return me(accepts === 0 ? [{ type: 'TERMS', version: '2' }] : [{ type: 'TERMS', version: '3' }])
+    if (path(req) === '/api/v1/legal/acceptances') { accepts++; return json(409, { code: 'LEGAL_VERSION_OUTDATED' }) }
+    if (path(req) === '/api/v1/legal/terms') return json(200, { data: { type: 'TERMS', version: '2', content: 'Terms 2' } })
     return json(404, {})
   })
   renderHome()
-  await vi.waitFor(() => expect(fetchMock.mock.calls.some(([r]) => path(r as Request) === '/api/legal/terms')).toBe(true))
+  await vi.waitFor(() => expect(fetchMock.mock.calls.some(([r]) => path(r as Request) === '/api/v1/legal/terms')).toBe(true))
   fireEvent.click(await screen.findByRole('button', { name: 'Accept and continue' }))
   expect(await screen.findByRole('alert')).toHaveTextContent('A newer version was just published')
   expect(screen.getByText('(version 3)')).toBeInTheDocument()
@@ -59,13 +59,13 @@ test('when the check fails the app still opens (the backend keeps blocking payme
 
 test('an out-of-date text is reloaded instead of accepted', async () => {
   fetchMock.mockImplementation(async (req: Request) => {
-    if (path(req) === '/api/auth/me') return me([{ type: 'TERMS', version: '2' }])
-    if (path(req) === '/api/legal/terms') return json(200, { data: { type: 'TERMS', version: '1', content: 'Old' } })
+    if (path(req) === '/api/v1/auth/me') return me([{ type: 'TERMS', version: '2' }])
+    if (path(req) === '/api/v1/legal/terms') return json(200, { data: { type: 'TERMS', version: '1', content: 'Old' } })
     return json(404, {})
   })
   renderHome()
-  await vi.waitFor(() => expect(fetchMock.mock.calls.some(([r]) => path(r as Request) === '/api/legal/terms')).toBe(true))
+  await vi.waitFor(() => expect(fetchMock.mock.calls.some(([r]) => path(r as Request) === '/api/v1/legal/terms')).toBe(true))
   fireEvent.click(await screen.findByRole('button', { name: 'Accept and continue' }))
   expect(await screen.findByRole('alert')).toHaveTextContent('out of date')
-  expect(fetchMock.mock.calls.some(([r]) => path(r as Request) === '/api/legal/acceptances')).toBe(false)
+  expect(fetchMock.mock.calls.some(([r]) => path(r as Request) === '/api/v1/legal/acceptances')).toBe(false)
 })

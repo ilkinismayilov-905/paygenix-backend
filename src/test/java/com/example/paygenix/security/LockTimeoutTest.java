@@ -49,7 +49,7 @@ class LockTimeoutTest extends IntegrationTest {
 
         long started = System.nanoTime();
         try {
-            mockMvc.perform(post("/api/transfer").header("Authorization", bearer(sender))
+            mockMvc.perform(post("/api/v1/transfer").header("Authorization", bearer(sender))
                 .header("Idempotency-Key", UUID.randomUUID().toString())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"fromCardId\":" + cardOf(from).getId() + ",\"toCardNumber\":\"" + to

@@ -31,7 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/profile")
+@RequestMapping("/api/v1/profile")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Profile Management", description = "APIs for updating user profiles and profile pictures")
@@ -65,7 +65,7 @@ public class EditProfileController {
     }
 
     @Operation(summary = "Start an email change", description = "Needs the current PIN. Sends a 6-digit code to the new address and another to the current one. "
-            + "The email changes only after POST /api/profile/email/confirm with both codes (within 10 minutes); "
+            + "The email changes only after POST /api/v1/profile/email/confirm with both codes (within 10 minutes); "
             + "the old address is then notified.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Codes sent to the new and the current address"),
@@ -124,7 +124,7 @@ public class EditProfileController {
     }
 
     @Operation(summary = "Upload profile photo", description = "JPEG, PNG, WebP or GIF, at most 5 MB. Replaces the current "
-            + "photo. Needs a saved profile. The response's photoUrl works for 10 minutes; GET /api/profile/me gives a fresh one.")
+            + "photo. Needs a saved profile. The response's photoUrl works for 10 minutes; GET /api/v1/profile/me gives a fresh one.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Photo saved"),
             @ApiResponse(responseCode = "400", description = "No file or not an image (VALIDATION_FAILED)"),

@@ -53,12 +53,12 @@ class KycReviewTest extends IntegrationTest {
     }
 
     private ResultActions submit(User user, MockMultipartFile photo) throws Exception {
-        return mockMvc.perform(multipart("/api/kyc").file(photo).param("documentType", "ID_CARD")
+        return mockMvc.perform(multipart("/api/v1/kyc").file(photo).param("documentType", "ID_CARD")
                 .header("Authorization", bearer(user)));
     }
 
     private ResultActions kycOf(User user) throws Exception {
-        return mockMvc.perform(get("/api/kyc/me").header("Authorization", bearer(user)));
+        return mockMvc.perform(get("/api/v1/kyc/me").header("Authorization", bearer(user)));
     }
 
     private Long pendingIdOf(User user) {
@@ -99,7 +99,7 @@ class KycReviewTest extends IntegrationTest {
         submit(user, photo("image/jpeg", 0)).andExpect(status().isBadRequest());
         submit(user, photo("image/jpeg", 5 * 1024 * 1024 + 1)).andExpect(status().isPayloadTooLarge())
                 .andExpect(jsonPath("$.code").value("DOCUMENT_TOO_LARGE"));
-        mockMvc.perform(multipart("/api/kyc").file(photo("image/jpeg", 10)).param("documentType", "SELFIE")
+        mockMvc.perform(multipart("/api/v1/kyc").file(photo("image/jpeg", 10)).param("documentType", "SELFIE")
                 .header("Authorization", bearer(user))).andExpect(status().isBadRequest());
         verify(minio, never()).putObject(any());
         kycOf(user).andExpect(jsonPath("$.data.status").value("NOT_SUBMITTED"));
@@ -112,16 +112,16 @@ class KycReviewTest extends IntegrationTest {
         submit(user, photo("image/jpeg", 100)).andExpect(status().isCreated());
         Long id = pendingIdOf(user);
 
-        mockMvc.perform(get("/api/admin/kyc").header("Authorization", bearer(admin)))
+        mockMvc.perform(get("/api/v1/admin/kyc").header("Authorization", bearer(admin)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.items[?(@.id == %d)].username".formatted(id)).value(user.getPublicUsername()))
                 .andExpect(jsonPath("$.data.items[?(@.id == %d)].documentUrl".formatted(id)).value(org.hamcrest.Matchers.contains((Object) null)));
-        mockMvc.perform(get("/api/admin/kyc/{id}", id).header("Authorization", bearer(admin)))
+        mockMvc.perform(get("/api/v1/admin/kyc/{id}", id).header("Authorization", bearer(admin)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.documentUrl").value("https://storage.test/kyc/doc?sig=1"))
                 .andExpect(jsonPath("$.data.email").value(user.getEmail()));
 
-        mockMvc.perform(post("/api/admin/kyc/{id}/approve", id).header("Authorization", bearer(admin)))
+        mockMvc.perform(post("/api/v1/admin/kyc/{id}/approve", id).header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("APPROVED"));
 
         assertThat(userRepository.findById(user.getId()).orElseThrow().getVerificationStatus()).isEqualTo(User.VerificationStatus.VERIFIED);
@@ -129,7 +129,7 @@ class KycReviewTest extends IntegrationTest {
         verify(emailService, timeout(2000)).sendKycDecision(user.getEmail(), true, null);
         assertThat(jdbc.queryForObject("SELECT reviewed_by FROM kyc_submissions WHERE id = ?", Long.class, id)).isEqualTo(admin.getId());
 
-        mockMvc.perform(post("/api/admin/kyc/{id}/reject", id).header("Authorization", bearer(admin))
+        mockMvc.perform(post("/api/v1/admin/kyc/{id}/reject", id).header("Authorization", bearer(admin))
                         .contentType("application/json").content("{\"reason\":\"late\"}"))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("KYC_ALREADY_REVIEWED"));
         submit(user, photo("image/jpeg", 100)).andExpect(status().isConflict())
@@ -143,9 +143,9 @@ class KycReviewTest extends IntegrationTest {
         submit(user, photo("image/jpeg", 100));
         Long id = pendingIdOf(user);
 
-        mockMvc.perform(post("/api/admin/kyc/{id}/reject", id).header("Authorization", bearer(admin))
+        mockMvc.perform(post("/api/v1/admin/kyc/{id}/reject", id).header("Authorization", bearer(admin))
                 .contentType("application/json").content("{\"reason\":\" \"}")).andExpect(status().isBadRequest());
-        mockMvc.perform(post("/api/admin/kyc/{id}/reject", id).header("Authorization", bearer(admin))
+        mockMvc.perform(post("/api/v1/admin/kyc/{id}/reject", id).header("Authorization", bearer(admin))
                         .contentType("application/json").content("{\"reason\":\" The photo is blurred. \"}"))
                 .andExpect(status().isOk());
 
@@ -155,7 +155,7 @@ class KycReviewTest extends IntegrationTest {
         assertThat(userRepository.findById(user.getId()).orElseThrow().getVerificationStatus()).isEqualTo(User.VerificationStatus.UNVERIFIED);
 
         submit(user, photo("image/webp", 100)).andExpect(status().isCreated()).andExpect(jsonPath("$.data.status").value("PENDING"));
-        mockMvc.perform(get("/api/admin/kyc").param("status", "REJECTED").header("Authorization", bearer(admin)))
+        mockMvc.perform(get("/api/v1/admin/kyc").param("status", "REJECTED").header("Authorization", bearer(admin)))
                 .andExpect(jsonPath("$.data.items[?(@.id == %d)].rejectionReason".formatted(id)).value("The photo is blurred."));
     }
 
@@ -165,16 +165,16 @@ class KycReviewTest extends IntegrationTest {
         submit(user, photo("image/jpeg", 100));
         Long id = pendingIdOf(user);
 
-        mockMvc.perform(get("/api/admin/kyc").header("Authorization", bearer(user))).andExpect(status().isForbidden());
-        mockMvc.perform(get("/api/admin/kyc/{id}", id).header("Authorization", bearer(user))).andExpect(status().isForbidden());
-        mockMvc.perform(post("/api/admin/kyc/{id}/approve", id).header("Authorization", bearer(user))).andExpect(status().isForbidden());
-        mockMvc.perform(post("/api/admin/kyc/{id}/approve", id)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/admin/kyc").header("Authorization", bearer(user))).andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/v1/admin/kyc/{id}", id).header("Authorization", bearer(user))).andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/admin/kyc/{id}/approve", id).header("Authorization", bearer(user))).andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/admin/kyc/{id}/approve", id)).andExpect(status().isUnauthorized());
 
         User admin = createUser(Role.ADMIN_ROLE);
         submit(admin, photo("image/jpeg", 100));
-        mockMvc.perform(post("/api/admin/kyc/{id}/approve", pendingIdOf(admin)).header("Authorization", bearer(admin)))
+        mockMvc.perform(post("/api/v1/admin/kyc/{id}/approve", pendingIdOf(admin)).header("Authorization", bearer(admin)))
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("KYC_OWN_SUBMISSION"));
-        mockMvc.perform(post("/api/admin/kyc/{id}/approve", 999_999_999L).header("Authorization", bearer(admin)))
+        mockMvc.perform(post("/api/v1/admin/kyc/{id}/approve", 999_999_999L).header("Authorization", bearer(admin)))
                 .andExpect(status().isNotFound());
     }
 
@@ -211,7 +211,7 @@ class KycReviewTest extends IntegrationTest {
         User admin = createUser(Role.ADMIN_ROLE);
         for (int i = 0; i < 5; i++) {
             submit(user, photo("image/jpeg", 100)).andExpect(status().isCreated());
-            mockMvc.perform(post("/api/admin/kyc/{id}/reject", pendingIdOf(user)).header("Authorization", bearer(admin))
+            mockMvc.perform(post("/api/v1/admin/kyc/{id}/reject", pendingIdOf(user)).header("Authorization", bearer(admin))
                     .contentType("application/json").content("{\"reason\":\"blurred\"}")).andExpect(status().isOk());
         }
         submit(user, photo("image/jpeg", 100)).andExpect(status().isTooManyRequests())
@@ -222,7 +222,7 @@ class KycReviewTest extends IntegrationTest {
     void parallelSubmitsLeaveOnePending() throws Exception {
         User user = createUser();
         String auth = bearer(user);
-        Callable<Integer> one = () -> mockMvc.perform(multipart("/api/kyc").file(photo("image/jpeg", 100))
+        Callable<Integer> one = () -> mockMvc.perform(multipart("/api/v1/kyc").file(photo("image/jpeg", 100))
                 .param("documentType", "PASSPORT").header("Authorization", auth)).andReturn().getResponse().getStatus();
         try (var pool = Executors.newFixedThreadPool(4)) {
             var results = pool.invokeAll(IntStream.range(0, 4).mapToObj(i -> one).toList());
@@ -235,7 +235,7 @@ class KycReviewTest extends IntegrationTest {
 
     @Test
     void theOldSelfCheckIsGone() throws Exception {
-        mockMvc.perform(post("/api/verify").header("Authorization", bearer(createUser())).contentType("application/json")
+        mockMvc.perform(post("/api/v1/verify").header("Authorization", bearer(createUser())).contentType("application/json")
                 .content("{\"fullName\":\"x\",\"dateOfBirth\":\"01-01-1990\",\"gender\":\"MALE\"}")).andExpect(status().isNotFound());
         String body = kycOf(createUser()).andReturn().getResponse().getContentAsString();
         assertThat((String) JsonPath.read(body, "$.data.status")).isEqualTo("NOT_SUBMITTED");

@@ -87,7 +87,7 @@ class LoginAttemptLimitTest extends IntegrationTest {
     }
 
     private ResultActions login(String email, String password) throws Exception {
-        return mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+        return mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}"));
     }
 }

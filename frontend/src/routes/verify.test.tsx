@@ -20,9 +20,9 @@ beforeEach(() => {
   globalThis.URL.revokeObjectURL = () => {}
   vi.stubGlobal('fetch', async (req: Request) => {
     const url = new URL(req.url)
-    if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'nigar', roles: ['USER_ROLE'], pendingLegalDocuments: [] })
-    if (url.pathname === '/api/kyc/me') return me()
-    if (url.pathname === '/api/kyc' && req.method === 'POST') {
+    if (url.pathname === '/api/v1/auth/me') return ok({ id: 1, username: 'nigar', roles: ['USER_ROLE'], pendingLegalDocuments: [] })
+    if (url.pathname === '/api/v1/kyc/me') return me()
+    if (url.pathname === '/api/v1/kyc' && req.method === 'POST') {
       const form = await req.clone().formData()
       sent.push({ type: url.searchParams.get('documentType'), file: form.get('document') })
       return submit()

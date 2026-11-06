@@ -20,10 +20,10 @@ beforeEach(() => {
   pin = () => ok(null)
   vi.stubGlobal('fetch', async (req: Request) => {
     const url = new URL(req.url)
-    if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
-    if (url.pathname.startsWith('/api/change-pin')) {
+    if (url.pathname === '/api/v1/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
+    if (url.pathname.startsWith('/api/v1/change-pin')) {
       calls.push({ path: url.pathname, body: req.body ? await req.clone().json() : null })
-      if (url.pathname === '/api/change-pin') return start()
+      if (url.pathname === '/api/v1/change-pin') return start()
       return url.pathname.endsWith('/otp') ? otp() : pin()
     }
     return json(404, {})
@@ -52,9 +52,9 @@ test('code, new PIN and repeat change the PIN', async () => {
   await enterPin('246810', 'Change PIN')
   expect(await screen.findByRole('heading', { name: 'Your PIN is changed.' })).toHaveFocus()
   expect(calls).toEqual([
-    { path: '/api/change-pin', body: null },
-    { path: '/api/change-pin/flow-1/otp', body: { otp: '123456' } },
-    { path: '/api/change-pin/flow-1/pin', body: { newPin: '246810', reEnterNewPin: '246810' } },
+    { path: '/api/v1/change-pin', body: null },
+    { path: '/api/v1/change-pin/flow-1/otp', body: { otp: '123456' } },
+    { path: '/api/v1/change-pin/flow-1/pin', body: { newPin: '246810', reEnterNewPin: '246810' } },
   ])
 })
 
@@ -91,7 +91,7 @@ test('a new code starts a new flow and says so; offline keeps the step', async (
   fireEvent.change(screen.getByLabelText('Code'), { target: { value: '654321' } })
   click('Continue')
   await screen.findByRole('heading', { name: 'Choose a new PIN' })
-  expect(calls.at(-1)).toEqual({ path: '/api/change-pin/flow-2/otp', body: { otp: '654321' } })
+  expect(calls.at(-1)).toEqual({ path: '/api/v1/change-pin/flow-2/otp', body: { otp: '654321' } })
 })
 
 test('a code asked for too soon shows the wait', async () => {

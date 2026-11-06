@@ -89,7 +89,7 @@ class OwnActivityTest extends IntegrationTest {
         Cards card = cardOf(issueCard(owner, "AZN"));
         setBalance(card, "4.00");
         setBalance(card, "0.00");
-        mockMvc.perform(delete("/api/cards/" + card.getId()).header("Authorization", bearer(owner)))
+        mockMvc.perform(delete("/api/v1/cards/" + card.getId()).header("Authorization", bearer(owner)))
                 .andExpect(status().isOk());
 
         activity(owner, "").andExpect(jsonPath("$.data.items", hasSize(2)));
@@ -101,15 +101,15 @@ class OwnActivityTest extends IntegrationTest {
         activity(owner, "size=101").andExpect(status().isBadRequest());
         activity(owner, "size=0").andExpect(status().isBadRequest());
         activity(owner, "page=-1").andExpect(status().isBadRequest());
-        mockMvc.perform(get("/api/cards/me/activity")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/cards/me/activity")).andExpect(status().isUnauthorized());
     }
 
     private ResultActions activity(User user, String query) throws Exception {
-        return mockMvc.perform(get("/api/cards/me/activity?" + query).header("Authorization", bearer(user)));
+        return mockMvc.perform(get("/api/v1/cards/me/activity?" + query).header("Authorization", bearer(user)));
     }
 
     private ResultActions transfer(User caller, String from, String to, String amount) throws Exception {
-        return mockMvc.perform(post("/api/transfer").header("Authorization", bearer(caller))
+        return mockMvc.perform(post("/api/v1/transfer").header("Authorization", bearer(caller))
                 .header("Idempotency-Key", UUID.randomUUID().toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"fromCardId\":" + cardOf(from).getId() + ",\"toCardNumber\":\"" + to

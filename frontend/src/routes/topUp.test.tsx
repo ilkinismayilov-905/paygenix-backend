@@ -22,10 +22,10 @@ beforeEach(() => {
   vi.stubGlobal('location', { ...window.location, origin: window.location.origin, assign })
   vi.stubGlobal('fetch', async (req: Request) => {
     const url = new URL(req.url)
-    if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
-    if (url.pathname === '/api/cards/me') return ok(cards)
-    if (url.pathname === '/api/topups') { posted.push({ body: await req.clone().json(), key: req.headers.get('Idempotency-Key') }); return start() }
-    if (url.pathname === '/api/topups/session/cs_1') return byId()
+    if (url.pathname === '/api/v1/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
+    if (url.pathname === '/api/v1/cards/me') return ok(cards)
+    if (url.pathname === '/api/v1/topups') { posted.push({ body: await req.clone().json(), key: req.headers.get('Idempotency-Key') }); return start() }
+    if (url.pathname === '/api/v1/topups/session/cs_1') return byId()
     return json(404, {})
   })
 })

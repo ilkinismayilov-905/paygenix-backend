@@ -21,7 +21,7 @@ export default function AdminUsers() {
 
   useEffect(() => {
     let live = true
-    void api.GET('/api/admin/users', { params: { query: { query: submitted, size: 50 } } })
+    void api.GET('/api/v1/admin/users', { params: { query: { query: submitted, size: 50 } } })
       .then(({ data, response }) => { if (live) setItems(response.ok && Array.isArray(data?.data?.items) ? data.data.items : 'failed') })
       .catch(() => { if (live) setItems('failed') })
     return () => { live = false }
@@ -34,8 +34,8 @@ export default function AdminUsers() {
     try {
       const path = { params: { path: { id: target.id } } }
       const { data, error: problem, response } = lock
-        ? await api.POST('/api/admin/users/{id}/lock', path)
-        : await api.POST('/api/admin/users/{id}/unlock', path)
+        ? await api.POST('/api/v1/admin/users/{id}/lock', path)
+        : await api.POST('/api/v1/admin/users/{id}/unlock', path)
       if (response.ok && data?.data) {
         const updated = data.data
         setItems((list) => (Array.isArray(list) ? list.map((u) => (u.id === updated.id ? updated : u)) : list))

@@ -164,7 +164,7 @@ class PinAttemptLimitTest extends IntegrationTest {
     }
 
     private ResultActions transfer(User caller, String from, String to, String pin) throws Exception {
-        return mockMvc.perform(post("/api/transfer").header("Authorization", bearer(caller))
+        return mockMvc.perform(post("/api/v1/transfer").header("Authorization", bearer(caller))
                 .header("Idempotency-Key", UUID.randomUUID().toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"fromCardId\":" + cardOf(from).getId() + ",\"toCardNumber\":\"" + to

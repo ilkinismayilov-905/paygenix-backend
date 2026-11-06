@@ -9,13 +9,13 @@ type Group = components['schemas']['StoryGroupResponse']
 
 const IMAGE_SECONDS = 5
 
-/** Promo stories row on the dashboard (GET /api/stories/feed). Renders nothing while loading, on error or with no stories. */
+/** Promo stories row on the dashboard (GET /api/v1/stories/feed). Renders nothing while loading, on error or with no stories. */
 export function StoriesRow() {
   const [group, setGroup] = useState<Group | null>(null)
   const [open, setOpen] = useState(false)
   useEffect(() => {
     let live = true
-    void api.GET('/api/stories/feed')
+    void api.GET('/api/v1/stories/feed')
       .then(({ data, response }) => {
         const g = data?.data?.groups?.[0]
         if (live && response.ok && g?.stories?.length) setGroup(g)
@@ -71,7 +71,7 @@ function StoryViewer({ name, stories, onSeen, onClose }:
   useEffect(() => {
     if (!story.storyId || story.viewed) return
     const id = story.storyId
-    void api.POST('/api/stories/{storyId}/view', { params: { path: { storyId: id } } })
+    void api.POST('/api/v1/stories/{storyId}/view', { params: { path: { storyId: id } } })
       .then(({ response }) => { if (response.ok) onSeen(id) }).catch(() => {})
   }, [story.storyId, story.viewed, onSeen])
 

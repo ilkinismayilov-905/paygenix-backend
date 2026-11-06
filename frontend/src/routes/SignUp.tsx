@@ -71,7 +71,7 @@ export default function SignUp() {
   const restart = () => { setFlow(null); setSecret({ password: '', pin: '' }); go('email') }
 
   const startFlow = async (email: string) => {
-    const r = await call(() => api.POST('/api/onboarding/email', { body: { email } }))
+    const r = await call(() => api.POST('/api/v1/onboarding/email', { body: { email } }))
     if (r.failure) return setError(r.failure)
     const resent = step === 'code'
     setFlow({ email, flowId: r.data.data ?? '' })
@@ -84,7 +84,7 @@ export default function SignUp() {
     code: (
       <CodeStep email={flow?.email ?? ''} onBack={restart} onResend={() => startFlow(flow?.email ?? '')}
         onSubmit={async (otp) => {
-          const r = await call(() => api.POST('/api/onboarding/{flowId}/otp', { params: path(), body: { otp } }))
+          const r = await call(() => api.POST('/api/v1/onboarding/{flowId}/otp', { params: path(), body: { otp } }))
           if (r.failure) return setError(r.failure)
           setFlow((f) => f && { ...f, token: r.data.data ?? '' })
           go('name')
@@ -93,7 +93,7 @@ export default function SignUp() {
     name: (
       <TextStep field="fullName" label="signUp.fullName" autoComplete="name" max={100}
         onSubmit={async (fullName) => {
-          const r = await call(() => api.PUT('/api/onboarding/{flowId}/full-name', { params: path(), headers: auth(), body: { fullName } }))
+          const r = await call(() => api.PUT('/api/v1/onboarding/{flowId}/full-name', { params: path(), headers: auth(), body: { fullName } }))
           if (r.failure) return setError(r.failure)
           go('username')
         }} />
@@ -102,7 +102,7 @@ export default function SignUp() {
       <TextStep field="username" label="signUp.username" hint="signUp.usernameHint" autoComplete="username" max={30}
         pattern={/^[A-Za-z0-9._]{3,30}$/}
         onSubmit={async (username) => {
-          const r = await call(() => api.PUT('/api/onboarding/{flowId}/username', { params: path(), headers: auth(), body: { username } }))
+          const r = await call(() => api.PUT('/api/v1/onboarding/{flowId}/username', { params: path(), headers: auth(), body: { username } }))
           if (r.failure) return setError(r.failure)
           go('password')
         }} />
@@ -121,14 +121,14 @@ export default function SignUp() {
           legal.reload()
           return setError({ message: t('signUp.failed'), fatal: false })
         }
-        const r = await call(() => api.PUT('/api/onboarding/{flowId}/pin', { params: path(), headers: auth(), body: { pin, password, acceptedLegalDocuments } }))
+        const r = await call(() => api.PUT('/api/v1/onboarding/{flowId}/pin', { params: path(), headers: auth(), body: { pin, password, acceptedLegalDocuments } }))
         if (r.failure) {
           if (r.failure.code === 'VALIDATION_FAILED') go('password') // the PIN was checked here, so it is the password
           if (r.failure.code === 'LEGAL_VERSION_OUTDATED') legal.reload() // the new texts show under the alert
           return setError(r.failure)
         }
         // The account exists now; sign in with what was just typed so the user lands in the app.
-        const login = await call(() => api.POST('/api/auth/login', { body: { email: flow?.email ?? '', password } }))
+        const login = await call(() => api.POST('/api/v1/auth/login', { body: { email: flow?.email ?? '', password } }))
         if (login.data?.data?.token) signedIn(login.data.data.token) // PublicOnly then opens the app
         // The flow is finished on the server, so this screen cannot retry: sign-in takes over.
         else void navigate('/sign-in', { replace: true, state: { created: true } })

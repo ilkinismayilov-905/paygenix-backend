@@ -11,7 +11,7 @@ import java.util.Base64;
 
 /**
  * One-time code handed to the frontend after Google sign-in (SEC-9): the redirect URL carries this code, never a
- * token. The frontend trades it once, within a minute, for a session via POST /api/auth/oauth/exchange. Redis holds
+ * token. The frontend trades it once, within a minute, for a session via POST /api/v1/auth/oauth/exchange. Redis holds
  * only the code's hash and the user id.
  */
 @Service

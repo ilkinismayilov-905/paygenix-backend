@@ -47,7 +47,7 @@ export default function Transfer() {
     const key = attempt.current?.body === same ? attempt.current.key : crypto.randomUUID()
     attempt.current = { body: same, key }
     try {
-      const { data, error: problem, response } = await api.POST('/api/transfer',
+      const { data, error: problem, response } = await api.POST('/api/v1/transfer',
         { body, params: { header: { 'Idempotency-Key': key } } })
       const r = data?.data
       if (response.ok && r?.amount && r.currency) {

@@ -5,12 +5,12 @@ export type Fees = { commissionPercent: string; cashbackPercent: string }
 
 let cached: Promise<Fees | null> | null = null
 
-/** GET /api/fees, once per page load; null while loading or when it failed (screens then show the rate-less hint). */
+/** GET /api/v1/fees, once per page load; null while loading or when it failed (screens then show the rate-less hint). */
 export function useFees(): Fees | null {
   const [fees, setFees] = useState<Fees | null>(null)
   useEffect(() => {
     let live = true
-    cached ??= api.GET('/api/fees')
+    cached ??= api.GET('/api/v1/fees')
       .then(({ data, response }) => {
         const f = data?.data
         return response.ok && f?.commissionPercent && f.cashbackPercent ? { commissionPercent: f.commissionPercent, cashbackPercent: f.cashbackPercent } : null

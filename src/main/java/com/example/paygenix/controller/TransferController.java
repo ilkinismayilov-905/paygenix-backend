@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/transfer")
+@RequestMapping("/api/v1/transfer")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Transfer Management", description = "APIs for executing and viewing money transfers")

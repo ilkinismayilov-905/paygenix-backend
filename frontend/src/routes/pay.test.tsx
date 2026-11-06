@@ -23,9 +23,9 @@ beforeEach(() => {
   confirm = paid
   vi.stubGlobal('fetch', async (req: Request) => {
     const url = new URL(req.url)
-    if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
-    if (url.pathname === '/api/cards/me') return ok(cardList)
-    if (url.pathname.startsWith('/api/payment/')) {
+    if (url.pathname === '/api/v1/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
+    if (url.pathname === '/api/v1/cards/me') return ok(cardList)
+    if (url.pathname.startsWith('/api/v1/payment/')) {
       calls.push({ path: url.pathname, key: req.headers.get('Idempotency-Key'), body: await req.clone().json() })
       return url.pathname.endsWith('initiate') ? initiate() : confirm()
     }

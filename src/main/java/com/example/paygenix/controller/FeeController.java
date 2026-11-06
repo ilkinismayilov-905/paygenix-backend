@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/fees")
+@RequestMapping("/api/v1/fees")
 @RequiredArgsConstructor
 @Tag(name = "Fees", description = "Current fee rates")
 @SecurityRequirement(name = "bearerAuth")

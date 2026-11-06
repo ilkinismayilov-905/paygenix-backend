@@ -15,7 +15,7 @@ class HttpHardeningTest extends IntegrationTest {
 
     @Test
     void unauthenticatedApiCallIs401NotARedirect() throws Exception {
-        mockMvc.perform(get("/api/auth/me"))
+        mockMvc.perform(get("/api/v1/auth/me"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }
@@ -34,7 +34,7 @@ class HttpHardeningTest extends IntegrationTest {
 
     @Test
     void allowedOriginPassesPreflightWithoutCredentials() throws Exception {
-        mockMvc.perform(options("/api/transfer")
+        mockMvc.perform(options("/api/v1/transfer")
                         .header("Origin", "http://localhost:3000")
                         .header("Access-Control-Request-Method", "POST")
                         .header("Access-Control-Request-Headers", "Authorization, Content-Type, Idempotency-Key"))
@@ -46,7 +46,7 @@ class HttpHardeningTest extends IntegrationTest {
     // browsers hide response headers from scripts unless they are exposed; the client needs Retry-After on 429s
     @Test
     void retryAfterIsExposedToAllowedOrigins() throws Exception {
-        mockMvc.perform(get("/api/auth/me")
+        mockMvc.perform(get("/api/v1/auth/me")
                         .header("Origin", "http://localhost:3000")
                         .header("Authorization", bearer(createUser())))
                 .andExpect(status().isOk())
@@ -55,7 +55,7 @@ class HttpHardeningTest extends IntegrationTest {
 
     @Test
     void unknownOriginIsRefused() throws Exception {
-        mockMvc.perform(options("/api/auth/login")
+        mockMvc.perform(options("/api/v1/auth/login")
                         .header("Origin", "https://evil.example")
                         .header("Access-Control-Request-Method", "POST"))
                 .andExpect(status().isForbidden())
@@ -64,7 +64,7 @@ class HttpHardeningTest extends IntegrationTest {
 
     @Test
     void responsesCarrySecurityHeaders() throws Exception {
-        mockMvc.perform(get("/api/auth/me").header("Authorization", bearer(createUser())))
+        mockMvc.perform(get("/api/v1/auth/me").header("Authorization", bearer(createUser())))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Referrer-Policy", "no-referrer"))
                 .andExpect(header().string("Content-Security-Policy", "frame-ancestors 'none'"))

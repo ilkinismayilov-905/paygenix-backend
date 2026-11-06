@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/reports")
+@RequestMapping("/api/v1/reports")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Problem Reporting", description = "APIs for submitting and viewing user problem reports/tickets")

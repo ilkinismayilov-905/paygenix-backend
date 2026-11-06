@@ -1,7 +1,7 @@
 # ADR 0001: Frontend stack and repository layout
 
 - Status: accepted (owner, 2026-11-03)
-- Context: Phase 10. The backend is a Spring Boot REST API (`/api/**`, OpenAPI at `/v3/api-docs`) with JWT access tokens, rotating refresh tokens and device sessions.
+- Context: Phase 10. The backend is a Spring Boot REST API (`/api/v1/**`, OpenAPI at `/v3/api-docs`) with JWT access tokens, rotating refresh tokens and device sessions.
 
 ## Decision
 
@@ -31,13 +31,13 @@
 ## Auth and token storage
 
 - What the backend does today:
-  - `/api/auth/login`, `/api/auth/oauth/exchange` and `/api/auth/refresh-token` return the access token in the JSON body. The refresh token is only ever set as the httpOnly `pg_refresh` cookie (T-109, T-116).
-  - `/api/auth/refresh-token` reads only that cookie and needs an allowed `Origin` header.
+  - `/api/v1/auth/login`, `/api/v1/auth/oauth/exchange` and `/api/v1/auth/refresh-token` return the access token in the JSON body. The refresh token is only ever set as the httpOnly `pg_refresh` cookie (T-109, T-116).
+  - `/api/v1/auth/refresh-token` reads only that cookie and needs an allowed `Origin` header.
   - Refresh tokens rotate. Presenting an already-used one revokes the whole session (`REFRESH_TOKEN_REUSED`).
-  - Sign-out is `POST /api/auth/logout`: it revokes the cookie's session and clears the cookie (T-118). Other devices are signed out with `DELETE /api/auth/sessions/{id}`.
+  - Sign-out is `POST /api/v1/auth/logout`: it revokes the cookie's session and clears the cookie (T-118). Other devices are signed out with `DELETE /api/v1/auth/sessions/{id}`.
 - Plan:
   - The **access token stays in memory only**: never in localStorage or sessionStorage, so an XSS bug cannot read a stored token later.
-  - The **refresh token lives in an httpOnly, Secure, SameSite=Strict cookie scoped to `/api/auth`** (done in T-109):
+  - The **refresh token lives in an httpOnly, Secure, SameSite=Strict cookie scoped to `/api/v1/auth`** (done in T-109):
     - The refresh and logout endpoints also check `Origin`, because CSRF protection is off for the API.
     - Sign-out clears the cookie.
   - **Exactly one refresh at a time.** On a 401 the client starts one refresh. Every other request that gets a 401 waits for that same refresh, then retries once. If the refresh fails, the user goes to the sign-in screen.

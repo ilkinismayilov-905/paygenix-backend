@@ -72,7 +72,7 @@ export function refresh(): Promise<boolean> {
   }
   inflight ??= withRefreshLock(async () => {
     try {
-      const res = await fetch('/api/auth/refresh-token', {
+      const res = await fetch('/api/v1/auth/refresh-token', {
         method: 'POST', credentials: 'same-origin',
         // the Web Lock is held meanwhile, so a hung request must not block every tab
         signal: AbortSignal.timeout(15_000),

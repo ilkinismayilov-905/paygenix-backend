@@ -42,7 +42,7 @@ export default function Profile() {
 
   useEffect(() => {
     let live = true
-    void api.GET('/api/profile/me')
+    void api.GET('/api/v1/profile/me')
       .then(({ data, response }) => {
         if (!live) return
         const p = data?.data
@@ -61,7 +61,7 @@ export default function Profile() {
   const save = async (form: Form) => {
     setResult(null)
     try {
-      const { response, error } = await api.POST('/api/profile', { body: form })
+      const { response, error } = await api.POST('/api/v1/profile', { body: form })
       setResult(response.ok ? 'saved' : problemCode(error) === 'VALIDATION_FAILED' ? 'invalid' : 'failed')
       if (response.ok) { setSaved(true); setName(form.fullName) }
     } catch {

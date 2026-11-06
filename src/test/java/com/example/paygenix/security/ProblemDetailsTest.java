@@ -38,7 +38,7 @@ class ProblemDetailsTest extends IntegrationTest {
 
     @Test
     void validationErrorIsAProblemDocument() throws Exception {
-        mockMvc.perform(post("/api/auth/login").contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/api/v1/auth/login").contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"not-an-email\",\"password\":\"\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON))
@@ -50,7 +50,7 @@ class ProblemDetailsTest extends IntegrationTest {
 
     @Test
     void unauthenticatedIsAProblemDocument() throws Exception {
-        mockMvc.perform(get("/api/auth/me"))
+        mockMvc.perform(get("/api/v1/auth/me"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().contentTypeCompatibleWith(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
@@ -58,14 +58,14 @@ class ProblemDetailsTest extends IntegrationTest {
 
     @Test
     void missingRoleIsAProblemDocument() throws Exception {
-        mockMvc.perform(get("/api/user").header("Authorization", bearer(createUser())))
+        mockMvc.perform(get("/api/v1/user").header("Authorization", bearer(createUser())))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("FORBIDDEN"));
     }
 
     @Test
     void unknownPathIs404NotAHandlerFailure() throws Exception {
-        mockMvc.perform(get("/api/does-not-exist").header("Authorization", bearer(createUser())))
+        mockMvc.perform(get("/api/v1/does-not-exist").header("Authorization", bearer(createUser())))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"))
                 .andExpect(jsonPath("$.detail").value("Not found"));
@@ -73,7 +73,7 @@ class ProblemDetailsTest extends IntegrationTest {
 
     @Test
     void wrongMethodIs405() throws Exception {
-        mockMvc.perform(put("/api/auth/login").contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{}"))
+        mockMvc.perform(put("/api/v1/auth/login").contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isMethodNotAllowed())
                 .andExpect(jsonPath("$.code").value("METHOD_NOT_ALLOWED"));
     }
@@ -123,19 +123,19 @@ class ProblemDetailsTest extends IntegrationTest {
                 .build()).getId();
         User otherAdmin = createUser(Role.ADMIN_ROLE);
 
-        mockMvc.perform(delete("/api/admin/stories/" + storyId).header("Authorization", bearer(createUser())))
+        mockMvc.perform(delete("/api/v1/admin/stories/" + storyId).header("Authorization", bearer(createUser())))
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("FORBIDDEN"));
-        mockMvc.perform(delete("/api/admin/stories/999999999").header("Authorization", bearer(otherAdmin)))
+        mockMvc.perform(delete("/api/v1/admin/stories/999999999").header("Authorization", bearer(otherAdmin)))
                 .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("NOT_FOUND"));
     }
 
     private ResultActions submitEmail(String email) throws Exception {
-        return mockMvc.perform(post("/api/onboarding/email").contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+        return mockMvc.perform(post("/api/v1/onboarding/email").contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"" + email + "\"}"));
     }
 
     private ResultActions otp(String flowId, String otp) throws Exception {
-        return mockMvc.perform(post("/api/onboarding/" + flowId + "/otp").contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+        return mockMvc.perform(post("/api/v1/onboarding/" + flowId + "/otp").contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .content("{\"otp\":\"" + otp + "\"}"));
     }
 }

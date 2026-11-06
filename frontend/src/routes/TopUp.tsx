@@ -17,7 +17,7 @@ const schema = z.object({
 type Input = z.input<typeof schema>
 type Form = z.output<typeof schema>
 
-/** Top up a card: POST /api/topups opens a Stripe Checkout (test mode) and the browser goes there. */
+/** Top up a card: POST /api/v1/topups opens a Stripe Checkout (test mode) and the browser goes there. */
 export default function TopUp() {
   const [params] = useSearchParams()
   const { cards, retry } = useOwnCards()
@@ -37,7 +37,7 @@ export default function TopUp() {
     const key = attempt.current?.body === same ? attempt.current.key : crypto.randomUUID()
     attempt.current = { body: same, key }
     try {
-      const { data, error: problem, response } = await api.POST('/api/topups', {
+      const { data, error: problem, response } = await api.POST('/api/v1/topups', {
         body: { cardId: card.id, amount: form.amount },
         params: { header: { 'Idempotency-Key': key } },
       })

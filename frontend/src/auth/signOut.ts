@@ -8,7 +8,7 @@ import { broadcastSignOut, signedOut } from './session'
 export async function signOut(): Promise<boolean> {
   try {
     // Plain fetch, not the api client: a 401 here must not trigger a refresh.
-    const res = await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin', signal: AbortSignal.timeout(15_000) })
+    const res = await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin', signal: AbortSignal.timeout(15_000) })
     if (!res.ok) return false
   } catch {
     return false

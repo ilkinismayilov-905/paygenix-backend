@@ -9,7 +9,7 @@ import { PinStep } from './PinStep'
 
 type Step = 'pin' | 'pinRepeat' | 'done' | 'alreadySet'
 
-/** First PIN for accounts created without one (Google sign-up): create → repeat → POST /api/user/pin. */
+/** First PIN for accounts created without one (Google sign-up): create → repeat → POST /api/v1/user/pin. */
 export default function PinSetup() {
   const from = safeReturnPath((useLocation().state as { from?: unknown } | null)?.from)
   const [step, setStep] = useState<Step>('pin')
@@ -20,7 +20,7 @@ export default function PinSetup() {
     setError(null)
     if (repeat !== pin) { setStep('pin'); setError(t('signUp.pinMismatch')); return }
     try {
-      const { error: problem, response } = await api.POST('/api/user/pin', { body: { pin } })
+      const { error: problem, response } = await api.POST('/api/v1/user/pin', { body: { pin } })
       if (response.ok) { setStep('done'); return }
       if (problemCode(problem) === 'PIN_ALREADY_SET') { setStep('alreadySet'); return }
       if (problemCode(problem) === 'VALIDATION_FAILED') { setStep('pin'); setError(t('signUp.pinInvalid')); return }

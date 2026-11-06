@@ -26,13 +26,13 @@ class LegalAcceptanceTest extends IntegrationTest {
         String to = issueCard(createUser(), "AZN");
         setBalance(from, "100.00");
 
-        mockMvc.perform(get("/api/auth/me").header("Authorization", bearer(user)))
+        mockMvc.perform(get("/api/v1/auth/me").header("Authorization", bearer(user)))
                 .andExpect(jsonPath("$.data.pendingLegalDocuments", hasSize(2)))
                 .andExpect(jsonPath("$.data.pendingLegalDocuments[0].type").value("PRIVACY"))
                 .andExpect(jsonPath("$.data.pendingLegalDocuments[1].type").value("TERMS"));
         transfer(user, from, to).andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("LEGAL_ACCEPTANCE_REQUIRED"));
-        mockMvc.perform(post("/api/payment/initiate").header("Authorization", bearer(user))
+        mockMvc.perform(post("/api/v1/payment/initiate").header("Authorization", bearer(user))
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"phoneNumber\":\"+994501234567\",\"fromCardId\":" + cardOf(from).getId() + ",\"amount\":10.00}"))
@@ -42,7 +42,7 @@ class LegalAcceptanceTest extends IntegrationTest {
         accept(user, activeLegalDocumentsJson()).andExpect(status().isOk());
         accept(user, activeLegalDocumentsJson()).andExpect(status().isOk()); // repeat is harmless
 
-        mockMvc.perform(get("/api/auth/me").header("Authorization", bearer(user)))
+        mockMvc.perform(get("/api/v1/auth/me").header("Authorization", bearer(user)))
                 .andExpect(jsonPath("$.data.pendingLegalDocuments", hasSize(0)));
         transfer(user, from, to).andExpect(status().isOk());
     }
@@ -84,7 +84,7 @@ class LegalAcceptanceTest extends IntegrationTest {
 
     private void publishedVersionIsAskedAgain(User user, String from, String to, String version) throws Exception {
 
-        mockMvc.perform(get("/api/auth/me").header("Authorization", bearer(user)))
+        mockMvc.perform(get("/api/v1/auth/me").header("Authorization", bearer(user)))
                 .andExpect(jsonPath("$.data.pendingLegalDocuments", hasSize(1)))
                 .andExpect(jsonPath("$.data.pendingLegalDocuments[0].version").value(version));
         transfer(user, from, to).andExpect(status().isForbidden());
@@ -105,19 +105,19 @@ class LegalAcceptanceTest extends IntegrationTest {
 
     @Test
     void acceptingNeedsASignedInUser() throws Exception {
-        mockMvc.perform(post("/api/legal/acceptances").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/api/v1/legal/acceptances").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"documents\":" + activeLegalDocumentsJson() + "}"))
                 .andExpect(status().isUnauthorized());
     }
 
     private ResultActions accept(User user, String documentsJson) throws Exception {
-        return mockMvc.perform(post("/api/legal/acceptances").header("Authorization", bearer(user))
+        return mockMvc.perform(post("/api/v1/legal/acceptances").header("Authorization", bearer(user))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"documents\":" + documentsJson + "}"));
     }
 
     private ResultActions transfer(User user, String from, String to) throws Exception {
-        return mockMvc.perform(post("/api/transfer").header("Authorization", bearer(user))
+        return mockMvc.perform(post("/api/v1/transfer").header("Authorization", bearer(user))
                 .header("Idempotency-Key", UUID.randomUUID().toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"fromCardId\":" + cardOf(from).getId() + ",\"toCardNumber\":\"" + to + "\",\"amount\":1.00,\"pin\":\"" + PIN + "\"}"));

@@ -21,7 +21,7 @@ export default function AdminReports() {
 
   useEffect(() => {
     let live = true
-    void api.GET('/api/admin/reports', { params: { query: { status, size: 50 } } })
+    void api.GET('/api/v1/admin/reports', { params: { query: { status, size: 50 } } })
       .then(({ data, response }) => { if (live) setItems(response.ok && Array.isArray(data?.data?.items) ? data.data.items : 'failed') })
       .catch(() => { if (live) setItems('failed') })
     return () => { live = false }
@@ -32,7 +32,7 @@ export default function AdminReports() {
     const started = generation.current
     setBusy(r.id); setError(null)
     try {
-      const { response } = await api.PATCH('/api/admin/reports/{id}', { params: { path: { id: r.id } }, body: { status: next } })
+      const { response } = await api.PATCH('/api/v1/admin/reports/{id}', { params: { path: { id: r.id } }, body: { status: next } })
       if (generation.current !== started) return
       if (response.ok) setItems((list) => (Array.isArray(list) ? list.filter((x) => x.id !== r.id) : list)) // it left this tab
       else setError(t('admin.decideFailed'))

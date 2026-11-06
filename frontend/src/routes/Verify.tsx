@@ -16,13 +16,13 @@ const MAX_BYTES = 5 * 1024 * 1024 // KycService.MAX_DOCUMENT_BYTES
 const date = new Intl.DateTimeFormat('en', { dateStyle: 'medium' })
 const formatDate = (iso?: string) => (iso && !Number.isNaN(Date.parse(iso)) ? date.format(new Date(iso)) : '')
 
-/** Identity verification: one photo of an identity document, reviewed by a person (GET /api/kyc/me, POST /api/kyc). */
+/** Identity verification: one photo of an identity document, reviewed by a person (GET /api/v1/kyc/me, POST /api/v1/kyc). */
 export default function Verify() {
   const [kyc, setKyc] = useState<Kyc | null | 'failed'>(null)
   const [round, setRound] = useState(0)
   useEffect(() => {
     let live = true
-    void api.GET('/api/kyc/me')
+    void api.GET('/api/v1/kyc/me')
       .then(({ data, response }) => { if (live) setKyc(response.ok && data?.data?.status ? data.data : 'failed') })
       .catch(() => { if (live) setKyc('failed') })
     return () => { live = false }
@@ -85,7 +85,7 @@ function SubmitForm({ onSent, onStale }: { onSent: (k: Kyc) => void; onStale: ()
     const form = new FormData() // documentType goes in the query, as the contract says
     form.append('document', file)
     try {
-      const { data, error: problem, response } = await api.POST('/api/kyc', {
+      const { data, error: problem, response } = await api.POST('/api/v1/kyc', {
         params: { query: { documentType: type } },
         body: form as never, // multipart: sent as built, the browser sets the boundary
         bodySerializer: (b) => b as unknown as FormData,

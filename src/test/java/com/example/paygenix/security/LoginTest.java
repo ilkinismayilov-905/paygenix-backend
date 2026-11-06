@@ -33,10 +33,10 @@ class LoginTest extends IntegrationTest {
     @Test
     void pinIsNotAPassword() throws Exception {
         User user = createUser();
-        mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"" + user.getEmail() + "\",\"password\":\"" + PIN + "\"}"))
                 .andExpect(status().isUnauthorized());
-        mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"" + user.getEmail() + "\",\"password\":\"" + PASSWORD + "\"}"))
                 .andExpect(status().isOk());
     }

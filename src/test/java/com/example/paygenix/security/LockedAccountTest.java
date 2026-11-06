@@ -23,7 +23,7 @@ class LockedAccountTest extends IntegrationTest {
 
         login(user.getEmail(), PASSWORD).andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("ACCOUNT_LOCKED"));
-        mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + tokens.token()))
+        mockMvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + tokens.token()))
                 .andExpect(status().isUnauthorized());
         cookieRefresh(tokens.refreshToken())
                 .andExpect(status().isUnauthorized())
@@ -49,7 +49,7 @@ class LockedAccountTest extends IntegrationTest {
     }
 
     private ResultActions login(String email, String password) throws Exception {
-        return mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+        return mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}"));
     }
 }

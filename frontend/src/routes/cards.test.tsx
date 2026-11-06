@@ -26,15 +26,15 @@ beforeEach(() => {
   close = () => ok(null)
   vi.stubGlobal('fetch', async (req: Request) => {
     const url = new URL(req.url)
-    if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
-    if (url.pathname === '/api/cards/me') return ok(mine)
-    if (url.pathname === '/api/cards' && req.method === 'POST') issueKeys.push(req.headers.get('Idempotency-Key'))
-    if (url.pathname === '/api/cards' && req.method === 'POST') return issue(await req.clone().json())
-    if (url.pathname === '/api/cards/me/activity') {
+    if (url.pathname === '/api/v1/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
+    if (url.pathname === '/api/v1/cards/me') return ok(mine)
+    if (url.pathname === '/api/v1/cards' && req.method === 'POST') issueKeys.push(req.headers.get('Idempotency-Key'))
+    if (url.pathname === '/api/v1/cards' && req.method === 'POST') return issue(await req.clone().json())
+    if (url.pathname === '/api/v1/cards/me/activity') {
       activityAsked.push(url.searchParams.get('cardId'))
       return ok({ items: [{ id: 1, cardId: 7, last4: '2207', kind: 'TOP_UP', amount: '89.80', currency: 'AZN', createdAt: '2026-11-05T09:23:54Z' }], page: 0, size: 20, hasNext: false })
     }
-    const m = /^\/api\/cards\/(\w+)$/.exec(url.pathname)
+    const m = /^\/api\/v1\/cards\/(\w+)$/.exec(url.pathname)
     if (m && req.method === 'GET') return one(m[1]!)
     if (m && req.method === 'DELETE') return close()
     return json(404, {})

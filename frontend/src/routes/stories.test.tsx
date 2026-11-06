@@ -17,11 +17,11 @@ beforeEach(() => {
   feed = () => ok({ groups: [{ username: 'Paygenix', hasUnseen: true, stories: [story(1, { viewed: true }), story(2), story(3, { mediaType: 'VIDEO', mediaUrl: 'https://s.test/3.mp4' })] }] })
   vi.stubGlobal('fetch', async (req: Request) => {
     const url = new URL(req.url)
-    if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'nigar', roles: ['USER_ROLE'], pendingLegalDocuments: [] })
-    if (url.pathname === '/api/stories/feed') return feed()
-    if (/^\/api\/stories\/\d+\/view$/.test(url.pathname)) { viewed.push(url.pathname.split('/')[3]!); return ok(null) }
-    if (url.pathname === '/api/cards/me') return ok([])
-    if (url.pathname === '/api/cards/me/activity') return ok({ items: [], page: 0, size: 20, hasNext: false })
+    if (url.pathname === '/api/v1/auth/me') return ok({ id: 1, username: 'nigar', roles: ['USER_ROLE'], pendingLegalDocuments: [] })
+    if (url.pathname === '/api/v1/stories/feed') return feed()
+    if (/^\/api\/v1\/stories\/\d+\/view$/.test(url.pathname)) { viewed.push(url.pathname.split('/')[4]!); return ok(null) }
+    if (url.pathname === '/api/v1/cards/me') return ok([])
+    if (url.pathname === '/api/v1/cards/me/activity') return ok({ items: [], page: 0, size: 20, hasNext: false })
     return json(404, {})
   })
 })

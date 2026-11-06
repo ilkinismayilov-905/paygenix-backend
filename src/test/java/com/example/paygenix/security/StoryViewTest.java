@@ -58,6 +58,6 @@ class StoryViewTest extends IntegrationTest {
     }
 
     private ResultActions view(User viewer, Long storyId) throws Exception {
-        return mockMvc.perform(post("/api/stories/" + storyId + "/view").header("Authorization", bearer(viewer)));
+        return mockMvc.perform(post("/api/v1/stories/" + storyId + "/view").header("Authorization", bearer(viewer)));
     }
 }

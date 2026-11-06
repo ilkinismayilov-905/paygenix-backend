@@ -53,7 +53,7 @@ class OnboardingCompletionTest extends IntegrationTest {
     void outdatedLegalVersionCreatesNoUser() throws Exception {
         OnboardingFlow flow = newFlow();
 
-        mockMvc.perform(put("/api/onboarding/" + flow.getId() + "/pin")
+        mockMvc.perform(put("/api/v1/onboarding/" + flow.getId() + "/pin")
                         .header("Authorization", "Bearer " + jwtService.generateOnboardingToken(flow))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"pin\":\"" + PIN + "\",\"password\":\"" + PASSWORD
@@ -94,7 +94,7 @@ class OnboardingCompletionTest extends IntegrationTest {
     }
 
     private ResultActions setPin(OnboardingFlow flow, String password) throws Exception {
-        return mockMvc.perform(put("/api/onboarding/" + flow.getId() + "/pin")
+        return mockMvc.perform(put("/api/v1/onboarding/" + flow.getId() + "/pin")
                 .header("Authorization", "Bearer " + jwtService.generateOnboardingToken(flow))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"pin\":\"" + PIN + "\",\"password\":\"" + password + "\",\"acceptedLegalDocuments\":" + activeLegalDocumentsJson() + "}"));

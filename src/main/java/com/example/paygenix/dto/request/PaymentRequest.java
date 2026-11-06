@@ -19,7 +19,7 @@ public record PaymentRequest(
         String phoneNumber,
 
         @NotNull(message = "Source card is required") @Positive
-        @Schema(description = "Id of one of the caller's cards (GET /api/cards/me)")
+        @Schema(description = "Id of one of the caller's cards (GET /api/v1/cards/me)")
         Long fromCardId,
         @NotNull @DecimalMin(value = "0.01", message = "Amount must be at least 0.01")
         @Digits(integer = 15, fraction = 2, message = "Amount can have at most 2 decimal places")

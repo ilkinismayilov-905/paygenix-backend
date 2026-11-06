@@ -36,16 +36,16 @@ class RedisCacheTest extends IntegrationTest {
                 .phoneNumber("+994501234567").dateOfBirth(LocalDate.of(1990, 1, 1)).gender(Gender.MALE).user(user).build());
         String admin = bearer(createUser(Role.ADMIN_ROLE));
 
-        mockMvc.perform(get("/api/profile").header("Authorization", admin)).andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/profile").header("Authorization", admin)).andExpect(status().isOk());
 
-        mockMvc.perform(post("/api/profile").header("Authorization", bearer(user))
+        mockMvc.perform(post("/api/v1/profile").header("Authorization", bearer(user))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"fullName\":\"Cached Name\"}"))
                 .andExpect(status().isCreated());
 
         // first call fills the cache, second one is read back from Redis
         assertThat(redis.hasKey("editProfileAll::all")).isFalse();
         for (int i = 0; i < 2; i++) {
-            mockMvc.perform(get("/api/profile").header("Authorization", admin))
+            mockMvc.perform(get("/api/v1/profile").header("Authorization", admin))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data[*].fullName", hasItem("Cached Name")));
             assertThat(redis.hasKey("editProfileAll::all")).isTrue();
@@ -62,7 +62,7 @@ class RedisCacheTest extends IntegrationTest {
 
         // T-110: public, no Authorization header
         for (int i = 0; i < 2; i++) {
-            mockMvc.perform(get("/api/legal/terms"))
+            mockMvc.perform(get("/api/v1/legal/terms"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.content").value("Terms text"));
             assertThat(redis.hasKey("legalDocument::TERMS")).isTrue();
@@ -76,17 +76,17 @@ class RedisCacheTest extends IntegrationTest {
         jdbc.update("UPDATE legal_documents SET is_active = false WHERE type = 'PRIVACY'");
         jdbc.update("INSERT INTO legal_documents (type, version, effective_date, content, is_active) "
                 + "VALUES ('PRIVACY', '1.0', CURRENT_DATE, 'Privacy text', true)");
-        mockMvc.perform(get("/api/legal/privacy"))
+        mockMvc.perform(get("/api/v1/legal/privacy"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content").value("Privacy text"));
         // a stale token does not block a public page
-        mockMvc.perform(get("/api/legal/privacy").header("Authorization", "Bearer garbage")).andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/legal/privacy").header("Authorization", "Bearer garbage")).andExpect(status().isOk());
     }
 
     @Test
     void onlyTheTwoLegalPagesArePublic() throws Exception {
-        mockMvc.perform(get("/api/legal/other")).andExpect(status().isUnauthorized());
-        mockMvc.perform(get("/api/auth/sessions")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/legal/other")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/auth/sessions")).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -95,7 +95,7 @@ class RedisCacheTest extends IntegrationTest {
         Long active = jdbc.queryForObject("SELECT max(id) FROM legal_documents WHERE type = 'TERMS' AND is_active", Long.class);
         jdbc.update("UPDATE legal_documents SET is_active = false WHERE type = 'TERMS'");
         try {
-            mockMvc.perform(get("/api/legal/terms")).andExpect(status().isNotFound());
+            mockMvc.perform(get("/api/v1/legal/terms")).andExpect(status().isNotFound());
         } finally {
             // other tests sign up with the active documents
             jdbc.update("UPDATE legal_documents SET is_active = true WHERE id = ?", active);

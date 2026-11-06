@@ -10,14 +10,14 @@ import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * The refresh token as an httpOnly cookie scoped to /api/auth (ADR 0001), so page scripts never see it.
+ * The refresh token as an httpOnly cookie scoped to /api/v1/auth (ADR 0001), so page scripts never see it.
  * CSRF protection is off for the API, so a refresh that relies on the cookie must also come from an allowed Origin.
  */
 @Component
 public class RefreshCookie {
 
     public static final String NAME = "pg_refresh";
-    private static final String PATH = "/api/auth";
+    private static final String PATH = "/api/v1/auth";
 
     private final Duration maxAge;
     private final boolean secure;

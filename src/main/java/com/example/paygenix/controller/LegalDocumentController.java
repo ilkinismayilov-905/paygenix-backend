@@ -19,7 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/legal")
+@RequestMapping("/api/v1/legal")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Legal Documents", description = "APIs for retrieving active Terms of Service and Privacy Policy")
@@ -59,7 +59,7 @@ public class LegalDocumentController {
     @Operation(
             summary = "Accept the current legal documents",
             description = "Records that the caller accepted the given Terms/Privacy versions (the ones listed in "
-                    + "pendingLegalDocuments of GET /api/auth/me). Until every active document is accepted, transfers and "
+                    + "pendingLegalDocuments of GET /api/v1/auth/me). Until every active document is accepted, transfers and "
                     + "payments answer 403 LEGAL_ACCEPTANCE_REQUIRED. Accepting the same version again changes nothing.",
             security = @SecurityRequirement(name = "bearerAuth")
     )

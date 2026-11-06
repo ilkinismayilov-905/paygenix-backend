@@ -11,8 +11,8 @@ import { MoneyError } from './MoneyViews'
 import { pinSchema, problemCode } from './money'
 
 /**
- * Change email: new address + current PIN (POST /api/profile/email) → the code sent to the new address and the one
- * sent to the current address (POST /api/profile/email/confirm). The change signs out every device, this one too.
+ * Change email: new address + current PIN (POST /api/v1/profile/email) → the code sent to the new address and the one
+ * sent to the current address (POST /api/v1/profile/email/confirm). The change signs out every device, this one too.
  */
 type Step = 'start' | 'codes' | 'done'
 
@@ -66,7 +66,7 @@ function StartForm({ defaultEmail, onSent, onError }: { defaultEmail: string; on
   const send = async (form: StartForm) => {
     onError(null)
     try {
-      const { error: problem, response } = await api.POST('/api/profile/email', { body: form })
+      const { error: problem, response } = await api.POST('/api/v1/profile/email', { body: form })
       if (response.ok) return onSent(form.email)
       const minutes = retryAfterMinutes(response)
       switch (problemCode(problem)) {
@@ -105,7 +105,7 @@ function CodesForm({ email, onDone, onError, onBack }:
   const confirm = async (form: z.output<typeof codesSchema>) => {
     onError(null)
     try {
-      const { error: problem, response } = await api.POST('/api/profile/email/confirm', { body: form })
+      const { error: problem, response } = await api.POST('/api/v1/profile/email/confirm', { body: form })
       if (response.ok) return onDone()
       const c = problemCode(problem)
       if (c === 'INVALID_OTP') {

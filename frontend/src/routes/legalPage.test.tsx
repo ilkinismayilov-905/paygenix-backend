@@ -12,9 +12,9 @@ beforeEach(() => {
   terms = () => json(200, { data: { type: 'TERMS', version: '3', effectiveDate: '2026-11-05', content: 'Be nice.' } })
   vi.stubGlobal('fetch', async (input: Request | string) => {
     const url = new URL(typeof input === 'string' ? `http://localhost${input}` : input.url)
-    if (url.pathname === '/api/auth/refresh-token') return json(401, { code: 'INVALID_REFRESH_TOKEN' })
-    if (url.pathname === '/api/legal/terms') return terms()
-    if (url.pathname === '/api/legal/privacy') return json(404, { code: 'NOT_FOUND' })
+    if (url.pathname === '/api/v1/auth/refresh-token') return json(401, { code: 'INVALID_REFRESH_TOKEN' })
+    if (url.pathname === '/api/v1/legal/terms') return terms()
+    if (url.pathname === '/api/v1/legal/privacy') return json(404, { code: 'NOT_FOUND' })
     return json(404, {})
   })
 })

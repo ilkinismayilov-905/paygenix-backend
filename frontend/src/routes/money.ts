@@ -31,7 +31,7 @@ export function useOwnCards() {
   const [round, setRound] = useState(0)
   useEffect(() => {
     let live = true
-    void api.GET('/api/cards/me')
+    void api.GET('/api/v1/cards/me')
       .then(({ data, response }) => {
         if (live) setCards(response.ok && Array.isArray(data?.data) && data.data.every((c) => c.id && c.amount && c.currency) ? data.data : 'failed')
       })

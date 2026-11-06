@@ -45,7 +45,7 @@ class VirtualCardsTest extends IntegrationTest {
         assertThat(row.get("last4")).isEqualTo(pan.substring(12));
         assertThat(output.getAll()).doesNotContain(pan);
 
-        mockMvc.perform(get("/api/cards/" + id).header("Authorization", bearer(owner)))
+        mockMvc.perform(get("/api/v1/cards/" + id).header("Authorization", bearer(owner)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.maskedNumber").value("**** **** **** " + pan.substring(12)))
                 .andExpect(jsonPath("$.data.currency").value("AZN"));
@@ -58,7 +58,7 @@ class VirtualCardsTest extends IntegrationTest {
         issue(a, "USD");
         issue(createUser(), "EUR");
 
-        mockMvc.perform(get("/api/cards/me").header("Authorization", bearer(a)))
+        mockMvc.perform(get("/api/v1/cards/me").header("Authorization", bearer(a)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(2));
     }
@@ -70,8 +70,8 @@ class VirtualCardsTest extends IntegrationTest {
         Long id = cardRepository.findByOwnerId(owner.getId()).getFirst().getId();
         String intruder = bearer(createUser());
 
-        mockMvc.perform(get("/api/cards/" + id).header("Authorization", intruder)).andExpect(status().isNotFound());
-        mockMvc.perform(delete("/api/cards/" + id).header("Authorization", intruder)).andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/v1/cards/" + id).header("Authorization", intruder)).andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/v1/cards/" + id).header("Authorization", intruder)).andExpect(status().isNotFound());
         assertThat(cardRepository.findById(id)).isPresent();
     }
 
@@ -82,18 +82,18 @@ class VirtualCardsTest extends IntegrationTest {
         Cards card = cardRepository.findByOwnerId(owner.getId()).getFirst();
         setBalance(card, "5.00");
 
-        mockMvc.perform(delete("/api/cards/" + card.getId()).header("Authorization", bearer(owner)))
+        mockMvc.perform(delete("/api/v1/cards/" + card.getId()).header("Authorization", bearer(owner)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("CARD_HAS_BALANCE"));
 
         setBalance(card, "0.00");
-        mockMvc.perform(delete("/api/cards/" + card.getId()).header("Authorization", bearer(owner)))
+        mockMvc.perform(delete("/api/v1/cards/" + card.getId()).header("Authorization", bearer(owner)))
                 .andExpect(status().isOk());
         assertThat(cardRepository.findById(card.getId())).isEmpty();
         // closed, not deleted: the row and its ledger account stay linked for the history
         assertThat(jdbc.queryForObject("SELECT closed_at IS NOT NULL FROM cards WHERE id = ?", Boolean.class, card.getId())).isTrue();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM ledger_accounts WHERE card_id = ?", Integer.class, card.getId())).isEqualTo(1);
-        mockMvc.perform(delete("/api/cards/" + card.getId()).header("Authorization", bearer(owner)))
+        mockMvc.perform(delete("/api/v1/cards/" + card.getId()).header("Authorization", bearer(owner)))
                 .andExpect(status().isNotFound());
     }
 
@@ -104,10 +104,10 @@ class VirtualCardsTest extends IntegrationTest {
         setBalance(cardOf(from), "100.00");
         User recipient = createUser();
         String closed = issue(recipient, "AZN");
-        mockMvc.perform(delete("/api/cards/" + cardOf(closed).getId()).header("Authorization", bearer(recipient)))
+        mockMvc.perform(delete("/api/v1/cards/" + cardOf(closed).getId()).header("Authorization", bearer(recipient)))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(post("/api/transfer").header("Authorization", bearer(sender))
+        mockMvc.perform(post("/api/v1/transfer").header("Authorization", bearer(sender))
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fromCardId\":" + cardOf(from).getId() + ",\"toCardNumber\":\"" + closed + "\",\"amount\":10.00,\"pin\":\"" + PIN + "\"}"))
@@ -127,7 +127,7 @@ class VirtualCardsTest extends IntegrationTest {
         Cards to = cardRepository.findByOwnerId(recipient.getId()).getFirst();
         setBalance(from, "100.00");
 
-        mockMvc.perform(post("/api/transfer").header("Authorization", bearer(sender))
+        mockMvc.perform(post("/api/v1/transfer").header("Authorization", bearer(sender))
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fromCardId\":" + cardOf(fromPan).getId() + ",\"toCardNumber\":\"" + toPan + "\",\"amount\":10.00,\"pin\":\"" + PIN + "\"}"))
@@ -141,7 +141,7 @@ class VirtualCardsTest extends IntegrationTest {
 
     @Test
     void missingCardNumberIsRejectedNotServerError() throws Exception {
-        mockMvc.perform(post("/api/transfer").header("Authorization", bearer(createUser()))
+        mockMvc.perform(post("/api/v1/transfer").header("Authorization", bearer(createUser()))
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"amount\":10.00,\"pin\":\"" + PIN + "\"}"))
@@ -150,7 +150,7 @@ class VirtualCardsTest extends IntegrationTest {
     }
 
     private String issue(User owner, String currency) throws Exception {
-        String body = mockMvc.perform(post("/api/cards").header("Authorization", bearer(owner))
+        String body = mockMvc.perform(post("/api/v1/cards").header("Authorization", bearer(owner))
                         .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"currency\":\"" + currency + "\"}"))

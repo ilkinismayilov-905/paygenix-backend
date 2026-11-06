@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/stories")
+@RequestMapping("/api/v1/stories")
 @RequiredArgsConstructor
 @Tag(name = "Stories", description = "Promo stories on the dashboard")
 @SecurityRequirement(name = "bearerAuth")

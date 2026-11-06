@@ -16,8 +16,8 @@ beforeEach(() => {
   report = () => json(201, { data: { id: 42, status: 'OPEN' } })
   vi.stubGlobal('fetch', async (req: Request) => {
     const url = new URL(req.url)
-    if (url.pathname === '/api/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
-    if (url.pathname === '/api/reports' && req.method === 'POST') { posted.push(await req.clone().json()); return report() }
+    if (url.pathname === '/api/v1/auth/me') return ok({ id: 1, username: 'nigar', pendingLegalDocuments: [] })
+    if (url.pathname === '/api/v1/reports' && req.method === 'POST') { posted.push(await req.clone().json()); return report() }
     return json(404, {})
   })
 })

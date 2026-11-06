@@ -19,7 +19,7 @@ export function useActivity(cardId?: number) {
   const roundRef = useRef(0) // a "show more" answer from before a retry is dropped
 
   const page = useCallback(async (n: number) => {
-    const { data, response } = await api.GET('/api/cards/me/activity', { params: { query: { page: n, size: PAGE_SIZE, cardId } } })
+    const { data, response } = await api.GET('/api/v1/cards/me/activity', { params: { query: { page: n, size: PAGE_SIZE, cardId } } })
     const p = data?.data
     // a row without amount or currency would render as zero or crash Intl: treat the page as failed
     if (!response.ok || !p || !Array.isArray(p.items) || !p.items.every((a) => a.amount && a.currency)) throw new Error('activity')

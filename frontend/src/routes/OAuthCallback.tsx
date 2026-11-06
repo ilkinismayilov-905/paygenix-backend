@@ -17,7 +17,7 @@ const exchanges = new Map<string, Promise<string | null>>()
 function exchange(code: string): Promise<string | null> {
   let p = exchanges.get(code)
   if (!p) {
-    p = api.POST('/api/auth/oauth/exchange', { body: { code } })
+    p = api.POST('/api/v1/auth/oauth/exchange', { body: { code } })
       .then(({ data }) => data?.data?.token ?? null)
       .catch(() => null)
     exchanges.set(code, p)

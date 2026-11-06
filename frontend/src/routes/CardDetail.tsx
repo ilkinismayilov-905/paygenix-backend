@@ -13,7 +13,7 @@ function useCard(id: number) {
   const [round, setRound] = useState(0)
   useEffect(() => {
     let live = true
-    void api.GET('/api/cards/{id}', { params: { path: { id } } })
+    void api.GET('/api/v1/cards/{id}', { params: { path: { id } } })
       .then(({ data, response }) => {
         if (!live) return
         const c = data?.data
@@ -61,7 +61,7 @@ function CardDetail({ id }: { id: number }) {
   const close = async () => {
     setClosing(true); setCloseError(null)
     try {
-      const { error: problem, response } = await api.DELETE('/api/cards/{id}', { params: { path: { id } } })
+      const { error: problem, response } = await api.DELETE('/api/v1/cards/{id}', { params: { path: { id } } })
       // 404: closed already (another tab) — the outcome the user asked for
       if (response.ok || response.status === 404) { navigate('/cards', { replace: true, state: { closed: true } }); return }
       const hasBalance = problemCode(problem) === 'CARD_HAS_BALANCE'
