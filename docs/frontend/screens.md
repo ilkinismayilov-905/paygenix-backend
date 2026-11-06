@@ -25,10 +25,10 @@ All `/api/**` calls except the public ones need `Authorization: Bearer <access t
 | Transfer | `/transfer` | `POST /api/transfer` {fromCardId, toCardNumber, amount, pin} with `Idempotency-Key`, response has `currency`; 403 INVALID_PIN, 429 PIN_LOCKED + Retry-After, 409 INSUFFICIENT_BALANCE / RESOURCE_BUSY (retry with the same key), 422 IDEMPOTENCY_KEY_REUSED |
 | Payment | `/pay` | `POST /api/payment/initiate` {phoneNumber, fromCardId, amount} → `POST /api/payment/confirm` (both with `Idempotency-Key`); confirm: same PIN errors, 409 PAYMENT_ALREADY_PROCESSED / INSUFFICIENT_BALANCE, 422 IDEMPOTENCY_KEY_REUSED |
 | Stories viewer | overlay on dashboard | `GET /api/stories/feed`, `POST /api/stories/{id}/view`, `GET /api/stories/media-download` |
-| Profile (blocked: T-113) | `/settings/profile` | `POST /api/profile`, `POST /api/profile/photo`, photo via `GET /api/user/media-download?objectName=`; nothing to prefill the form from yet |
-| Change email | `/settings/email` | `POST /api/profile/email` {email, pin} → `POST /api/profile/email/confirm` {otp, currentEmailOtp} |
+| Profile | `/settings/profile` | `GET /api/profile/me` prefills, `POST /api/profile`; links to change email, change PIN and devices. Photo upload (`POST /api/profile/photo`) not built yet |
+| Change email | `/settings/email` (link on Profile) | `POST /api/profile/email` {email, pin} (403 INVALID_PIN / PIN_NOT_SET → PIN setup, 409 EMAIL_TAKEN, 429 OTP_SEND_TOO_FREQUENT / EMAIL_CHANGE_LIMIT / PIN_LOCKED + Retry-After) → `POST /api/profile/email/confirm` {otp, currentEmailOtp} (400 INVALID_OTP for either code; OTP_EXPIRED, 429 TOO_MANY_ATTEMPTS, 409 EMAIL_TAKEN → start again). Success signs out every device, this tab too |
 | Change PIN | `/settings/pin` (link on Profile) | `POST /api/change-pin` (429 OTP_SEND_TOO_FREQUENT, 60 s) → `/{flowId}/otp` {otp} (400 INVALID_OTP / OTP_EXPIRED, 429 TOO_MANY_ATTEMPTS) → `/{flowId}/pin` {newPin, reEnterNewPin} (400 PIN_UNCHANGED); 410 FLOW_EXPIRED / 404 / 409 INVALID_STEP → start again. No current PIN asked: the email code is the proof |
-| Devices (sessions) | `/settings/sessions` | `GET /api/auth/sessions`, `DELETE /api/auth/sessions/{id}`, `DELETE /api/auth/sessions` (sign out everywhere) |
+| Devices (sessions) | `/settings/sessions` (link on Profile) | `GET /api/auth/sessions` (device named from the User-Agent), `DELETE /api/auth/sessions/{id}` (404: already gone, counts as done), `DELETE /api/auth/sessions` (sign out everywhere, asks first) |
 | Verify identity | `/settings/verify` | `POST /api/verify`, `POST /api/verify/photo` (no review flow yet, see gaps) |
 | Report a problem | `/help/report` | `POST /api/reports` |
 | Terms / Privacy | `/legal/terms`, `/legal/privacy` | `GET /api/legal/terms`, `GET /api/legal/privacy` |
@@ -38,7 +38,8 @@ All `/api/**` calls except the public ones need `Authorization: Bearer <access t
 
 | State | Behaviour |
 |---|---|
-| Session expired | 401 → one refresh (`POST /api/auth/refresh-token`) → retry; if that fails → sign-in with a notice |
+| Session expired | 401 → one refresh (`POST /api/auth/refresh-token`) → retry; if that fails → sign-in with a notice, and back to the same page after signing in |
+| Signed out by the user | sign-out, sign out everywhere, email change: the next sign-in opens home |
 | Service unavailable | 503 SERVICE_UNAVAILABLE / MEDIA_UNAVAILABLE → retry banner, honours Retry-After |
 | Not found | `/404` page for unknown routes and 404 detail calls |
 | Error | `/500`-style error boundary with a retry button |

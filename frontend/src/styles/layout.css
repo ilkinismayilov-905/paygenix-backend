@@ -38,6 +38,10 @@ a.btn { text-decoration: none; }
 .shell-nav { display: flex; gap: var(--space-1); }
 .radio-row { display: flex; gap: var(--space-5); accent-color: var(--primary); }
 .radio-row label { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 2.75rem; cursor: pointer; }
+/* links like Change email / Change PIN / Devices: one row each, finger-sized */
+.settings-links { list-style: none; margin: 0; padding: 0; display: grid; }
+.settings-links a { display: flex; align-items: center; min-height: 2.75rem; }
+.settings-links li + li { border-top: 1px solid var(--border); }
 fieldset.field { border: 0; margin: 0; padding: 0; min-width: 0; }
 
 /* money screens */
