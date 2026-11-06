@@ -29,21 +29,21 @@ class AuthenticationPrincipalTest extends IntegrationTest {
     }
 
     @Test
-    void ownerCanDeleteOwnStory() throws Exception {
-        User owner = createUser();
+    void anAdminCanTakeAPromoDown() throws Exception {
+        User owner = createUser(com.example.paygenix.enums.Role.ADMIN_ROLE);
         Story story = storyOf(owner);
 
-        mockMvc.perform(delete("/api/stories/" + story.getId()).header("Authorization", bearer(owner)))
+        mockMvc.perform(delete("/api/admin/stories/" + story.getId()).header("Authorization", bearer(owner)))
                 .andExpect(status().isOk());
 
         assertThat(storyRepository.findById(story.getId()).orElseThrow().isDeleted()).isTrue();
     }
 
     @Test
-    void otherUserCannotDeleteSomeoneElsesStory() throws Exception {
-        Story story = storyOf(createUser());
+    void aUserCannotTakeAPromoDown() throws Exception {
+        Story story = storyOf(createUser(com.example.paygenix.enums.Role.ADMIN_ROLE));
 
-        int status = mockMvc.perform(delete("/api/stories/" + story.getId()).header("Authorization", bearer(createUser())))
+        int status = mockMvc.perform(delete("/api/admin/stories/" + story.getId()).header("Authorization", bearer(createUser())))
                 .andReturn().getResponse().getStatus();
 
         assertThat(status).isGreaterThanOrEqualTo(400);

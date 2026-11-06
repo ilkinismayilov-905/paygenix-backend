@@ -5,7 +5,6 @@ import com.example.paygenix.entity.User;
 import jakarta.validation.Valid;
 import com.example.paygenix.dto.ApiResponseData;
 import com.example.paygenix.dto.response.UserResponse;
-import com.example.paygenix.service.MediaService;
 import com.example.paygenix.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -34,7 +33,6 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
-    private final MediaService mediaService;
 
     @Operation(
             summary = "Get all users",
@@ -66,41 +64,5 @@ public class UserController {
         return ResponseEntity.ok(ApiResponseData.success(null));
     }
 
-    @Operation(
-            summary = "Upload media file",
-            description = "Uploads a generic media file (e.g., document, image) to the cloud storage and returns its generated object key (uploads/{userId}/{uuid}.{ext})."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Media uploaded successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid file name"),
-            @ApiResponse(responseCode = "503", description = "Media storage unavailable (MEDIA_UPLOAD_FAILED); see Retry-After")
-    })
-    @PostMapping(value = "/media", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponseData<String>> uploadMedia(
-            @Parameter(description = "The media file to be uploaded")
-            @RequestParam("file") MultipartFile file,
-            @AuthenticationPrincipal User user
-    ) {
-        String objectKey = mediaService.upload(file, user.getId());
-        return ResponseEntity.ok(ApiResponseData.success(objectKey));
-    }
 
-    @Operation(
-            summary = "Get media download URL",
-            description = "Generates a temporary download URL for one of the caller's own uploaded media objects."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Download URL generated successfully"),
-            @ApiResponse(responseCode = "404", description = "Media object not found"),
-            @ApiResponse(responseCode = "503", description = "Media storage unavailable (MEDIA_UNAVAILABLE); see Retry-After")
-    })
-    @GetMapping("/media-download")
-    public ResponseEntity<ApiResponseData<String>> downloadMedia(
-            @Parameter(description = "The unique storage object name/key", example = "uploads/1/3f2b9c1e-7a4d-4e8a-9b1c-2d5e6f7a8b9c.jpg")
-            @RequestParam String objectName,
-            @AuthenticationPrincipal User user
-    ) {
-        String downloadUrl = mediaService.getOwnDownloadUrl(user.getId(), objectName);
-        return ResponseEntity.ok(ApiResponseData.success(downloadUrl));
-    }
 }

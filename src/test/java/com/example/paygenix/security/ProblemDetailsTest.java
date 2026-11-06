@@ -110,7 +110,7 @@ class ProblemDetailsTest extends IntegrationTest {
     }
 
     @Test
-    void deletingSomeoneElsesStoryIs403AndMissingIs404() throws Exception {
+    void takingAPromoDownAsAUserIs403AndMissingIs404() throws Exception {
         User admin = createUser(Role.ADMIN_ROLE);
         Long storyId = storyRepository.save(Story.builder()
                 .user(admin)
@@ -123,9 +123,9 @@ class ProblemDetailsTest extends IntegrationTest {
                 .build()).getId();
         User otherAdmin = createUser(Role.ADMIN_ROLE);
 
-        mockMvc.perform(delete("/api/stories/" + storyId).header("Authorization", bearer(otherAdmin)))
+        mockMvc.perform(delete("/api/admin/stories/" + storyId).header("Authorization", bearer(createUser())))
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("FORBIDDEN"));
-        mockMvc.perform(delete("/api/stories/999999999").header("Authorization", bearer(otherAdmin)))
+        mockMvc.perform(delete("/api/admin/stories/999999999").header("Authorization", bearer(otherAdmin)))
                 .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("NOT_FOUND"));
     }
 

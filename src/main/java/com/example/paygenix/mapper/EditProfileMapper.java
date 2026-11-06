@@ -12,6 +12,7 @@ import java.util.List;
 @Mapper(componentModel = "spring",imports = Instant.class)
 public interface EditProfileMapper {
 
+    @Mapping(target = "photoUrl", ignore = true)
     EditProfileResponse toEditProfileResponse(EditProfile editProfile);
 
     List<EditProfileResponse> toEditProfileResponseList(List<EditProfile> editProfiles);

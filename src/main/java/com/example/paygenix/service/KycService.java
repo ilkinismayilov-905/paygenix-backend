@@ -3,6 +3,7 @@ package com.example.paygenix.service;
 import com.example.paygenix.dto.response.KycReviewItem;
 import com.example.paygenix.dto.response.KycReviewPage;
 import com.example.paygenix.dto.response.KycStatusResponse;
+import com.example.paygenix.entity.EditProfile;
 import com.example.paygenix.entity.KycSubmission;
 import com.example.paygenix.entity.User;
 import com.example.paygenix.enums.KycDocumentType;
@@ -31,6 +32,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -80,28 +82,37 @@ public class KycService {
         if (document.getSize() > MAX_DOCUMENT_BYTES) {
             throw new ApiException(HttpStatus.PAYLOAD_TOO_LARGE, "DOCUMENT_TOO_LARGE", "The document photo must be at most 5 MB");
         }
-        // cheap checks first, so a refused submission never stores a document
+        // cheap checks first, so a refused submission never stores a document or uses up the daily limit
+        storage.check(document);
         rejectIfVerifiedOrPending(userId);
-        Long today = redis.execute(LoginAttemptService.COUNT_ATTEMPT, List.of(DAILY_PREFIX + userId),
+        String dailyKey = DAILY_PREFIX + userId;
+        Long today = redis.execute(LoginAttemptService.COUNT_ATTEMPT, List.of(dailyKey),
                 String.valueOf(Duration.ofDays(1).toSeconds()));
         if (today == null || today > MAX_SUBMISSIONS_PER_DAY) {
-            Long ttl = redis.getExpire(DAILY_PREFIX + userId);
+            Long ttl = redis.getExpire(dailyKey);
             throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "KYC_SUBMIT_LIMIT", "Too many documents sent today",
                     ttl != null && ttl > 0 ? Duration.ofSeconds(ttl) : Duration.ofDays(1));
         }
-        // stored outside the transaction: no DB connection is held during the upload
-        String key = storage.upload(document, userId);
+        String key;
+        try {
+            // stored outside the transaction: no DB connection is held during the upload
+            key = storage.upload(document, userId);
+        } catch (RuntimeException e) {
+            redis.opsForValue().decrement(dailyKey); // a storage outage must not use up the user's tries
+            throw e;
+        }
         try {
             transactionTemplate.executeWithoutResult(tx -> {
                 rejectIfVerifiedOrPending(userId);
                 submissions.saveAndFlush(new KycSubmission(userId, documentType, key));
             });
-        } catch (DataIntegrityViolationException e) {
+        } catch (RuntimeException e) {
+            // nothing references the document: remove it (it is personal data) and give the try back
+            storage.deleteQuietly(key);
+            redis.opsForValue().decrement(dailyKey);
             // a parallel submit won the one-pending slot (uq_kyc_one_pending)
-            throw alreadyPending();
+            throw e instanceof DataIntegrityViolationException ? alreadyPending() : e;
         }
-        // shortcut: a refused or failed insert leaves the uploaded object behind; a bucket lifecycle rule can expire
-        // objects that no submission references
         log.info("KYC document submitted by user {}", userId);
         return status(userId);
     }
@@ -126,16 +137,26 @@ public class KycService {
                 ? Sort.by("submittedAt").ascending().and(Sort.by("id").ascending())
                 : Sort.by("submittedAt").descending().and(Sort.by("id").descending());
         Slice<KycSubmission> slice = submissions.findByStatus(status, PageRequest.of(page, size, order));
-        Map<Long, User> users = userRepository.findAllById(slice.map(KycSubmission::getUserId).toSet()).stream()
-                .collect(Collectors.toMap(User::getId, Function.identity()));
-        return new KycReviewPage(slice.map(k -> item(k, users.get(k.getUserId()), null)).toList(), page, size, slice.hasNext());
+        Set<Long> ids = slice.map(KycSubmission::getUserId).toSet();
+        Map<Long, User> users = userRepository.findAllById(ids).stream().collect(Collectors.toMap(User::getId, Function.identity()));
+        Map<Long, String> names = profileRepository.findByUserIdIn(ids).stream()
+                .filter(p -> p.getFullName() != null && !p.getFullName().isBlank())
+                .collect(Collectors.toMap(p -> p.getUser().getId(), EditProfile::getFullName, (a, b) -> a));
+        return new KycReviewPage(slice.map(k -> item(k, users.get(k.getUserId()), names.get(k.getUserId()), null)).toList(),
+                page, size, slice.hasNext());
     }
 
-    @Transactional(readOnly = true)
+    // Not @Transactional: presigning may call the storage, and no DB connection should wait on it.
     public KycReviewItem get(Long id) {
         KycSubmission k = submissions.findById(id).orElseThrow(() -> new NotFoundException("Submission not found"));
         User owner = userRepository.findById(k.getUserId()).orElse(null);
-        return item(k, owner, storage.presign(k.getDocumentKey()));
+        String url;
+        try {
+            url = storage.presign(k.getDocumentKey());
+        } catch (ApiException e) {
+            url = null; // the reviewer sees the details and can retry the photo
+        }
+        return item(k, owner, fullNameOf(owner), url);
     }
 
     @Transactional
@@ -146,7 +167,7 @@ public class KycService {
         owner.setVerificationStatus(User.VerificationStatus.VERIFIED);
         log.info("KYC submission {} approved by user {}", id, reviewerId);
         notifyAfterCommit(owner.getEmail(), true, null);
-        return item(k, owner, null);
+        return item(k, owner, fullNameOf(owner), null);
     }
 
     @Transactional
@@ -156,7 +177,7 @@ public class KycService {
         User owner = userRepository.findById(k.getUserId()).orElseThrow(() -> new NotFoundException("User not found"));
         log.info("KYC submission {} rejected by user {}", id, reviewerId);
         notifyAfterCommit(owner.getEmail(), false, k.getRejectionReason());
-        return item(k, owner, null);
+        return item(k, owner, fullNameOf(owner), null);
     }
 
     private KycSubmission lockForReview(Long reviewerId, Long id) {
@@ -185,9 +206,14 @@ public class KycService {
         });
     }
 
-    private KycReviewItem item(KycSubmission k, User owner, String documentUrl) {
-        String fullName = owner == null ? null : profileRepository.findByUserId(owner.getId())
-                .map(p -> p.getFullName()).filter(n -> n != null && !n.isBlank()).orElse(owner.getFullname());
+    private String fullNameOf(User owner) {
+        return owner == null ? null : profileRepository.findByUserId(owner.getId())
+                .map(EditProfile::getFullName).filter(n -> n != null && !n.isBlank()).orElse(null);
+    }
+
+    // profileName: the name from the saved profile, if any; the account's own name otherwise
+    private KycReviewItem item(KycSubmission k, User owner, String profileName, String documentUrl) {
+        String fullName = profileName != null ? profileName : owner == null ? null : owner.getFullname();
         return new KycReviewItem(k.getId(), k.getUserId(), owner == null ? null : owner.getPublicUsername(), fullName,
                 owner == null ? null : owner.getEmail(), k.getDocumentType(), k.getStatus(), k.getSubmittedAt(),
                 k.getReviewedAt(), k.getRejectionReason(), documentUrl);
