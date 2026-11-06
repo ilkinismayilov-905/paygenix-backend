@@ -50,8 +50,6 @@ export const routes = [
           ],
         }],
       },
-      // shortcut: the design preview stays reachable without sign-in; remove it once the screens are done.
-      { path: '/design', lazy: page(() => import('./routes/DesignPreview')) },
       { path: '*', lazy: page(() => import('./routes/NotFound')) },
     ],
   },
