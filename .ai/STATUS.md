@@ -1,6 +1,6 @@
 # Paygenix status
 
-Last updated: 2026-11-27 (after PR #111). Roadmap and decisions: [`docs/ROADMAP.md`](../docs/ROADMAP.md).
+Last updated: 2026-11-27 (after PR #112). Roadmap and decisions: [`docs/ROADMAP.md`](../docs/ROADMAP.md).
 Screens and their APIs: [`docs/frontend/screens.md`](../docs/frontend/screens.md).
 
 > The earlier `.ai/MASTER_PROMPT.md`, `.ai/STATUS.md` and Ruflo memory were never committed and were lost with their
@@ -55,9 +55,10 @@ Done in PR #111 without a task id (number them if the old list had them):
 
 ## Next (open)
 
-1. **Deploy (M11):** a server; `docker compose up -d --build`; TLS in front of `paygenix-web`; set `FRONTEND_URL`,
+1. **Deploy (M11)** — **blocked: needs a server (SSH access), a domain for TLS, and Stripe test keys from the owner.**
+   Steps once they exist: a server; `docker compose up -d --build`; TLS in front of `paygenix-web`; set `FRONTEND_URL`,
    `APP_BASE_URL`, `CORS_ALLOWED_ORIGINS`, `GOOGLE_REDIRECT_URI` to the public https origin; create buckets `stories`,
-   `profile` and private `kyc`; Stripe test keys (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`). Needs the owner.
+   `profile` and private `kyc`; Stripe test keys (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`).
 2. **Observability (M9):** metrics (e.g. Prometheus on a management port not published) and a request id in logs.
 3. **Per-IP login limit:** the client IP is reliable now (T-076); add it next to the per-email limit in
    `LoginAttemptService`.

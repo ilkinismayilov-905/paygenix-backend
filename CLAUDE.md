@@ -7,10 +7,17 @@ and the decisions already taken. Update it in the same PR as the work it describ
 ## Working with the owner
 
 - Reply in **Azerbaijani**. Code, comments, commits, PRs and docs stay in English.
-- The owner wants steady progress: where a choice is theirs, pick the best-practice option, say which in one line, and
-  keep going. Ask only for things only they have (keys, accounts, product decisions not covered by the roadmap).
-- Every change: tests → commit → push. A PR is opened and merged when the owner asks; this repo allows **rebase**
-  merges only (merge commits are refused). Wait for CI to be green before merging.
+- **Do not stop.** Work through the "Next" list in `.ai/STATUS.md` in order. For each task: tests → commit → push →
+  open a PR → wait for CI to be green → merge it (this repo allows **rebase** or **squash** merges; merge commits are
+  refused) → start a new branch from the updated `main` and go straight on to the next task.
+- Where a choice is the owner's, pick the best-practice option, say which in one line, and keep going.
+- A task that needs something only the owner has (a server, Stripe keys, a domain, accounts) is skipped: mark it
+  `blocked: <what is needed>` in `.ai/STATUS.md` and move on to the next one.
+- Update `.ai/STATUS.md` in every PR (what was done, what is next). When the list is finished, or everything left is
+  blocked, give the owner a short report.
+- **Authorship:** commits are made in the owner's name (`git config user.name ismayilovilkin`, `user.email` = the
+  owner's GitHub email, as in `git log`). Commit messages, PR descriptions and merge commits carry **no** Claude
+  attribution: no `Co-Authored-By`, no `Claude-Session`, no "Generated with Claude Code".
 - Independent review is part of the routine: after a feature, a separate review pass, then a "review fixes" commit.
 - This repo lives only on GitHub; sessions run in fresh cloud containers. Anything not committed (memory tools, local
   notes, databases) is gone in the next session, so durable context goes into this file or `.ai/STATUS.md`.
