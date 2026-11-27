@@ -43,14 +43,14 @@ class HttpHardeningTest extends IntegrationTest {
                 .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"));
     }
 
-    // browsers hide response headers from scripts unless they are exposed; the client needs Retry-After on 429s
+    // browsers hide response headers from scripts unless they are exposed: Retry-After on 429s, X-Request-Id for reports
     @Test
     void retryAfterIsExposedToAllowedOrigins() throws Exception {
         mockMvc.perform(get("/api/v1/auth/me")
                         .header("Origin", "http://localhost:3000")
                         .header("Authorization", bearer(createUser())))
                 .andExpect(status().isOk())
-                .andExpect(header().string("Access-Control-Expose-Headers", "Retry-After"));
+                .andExpect(header().string("Access-Control-Expose-Headers", "Retry-After, X-Request-Id"));
     }
 
     @Test

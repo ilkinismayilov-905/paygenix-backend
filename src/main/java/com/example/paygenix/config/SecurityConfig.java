@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
+import org.springframework.core.annotation.Order;
 
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AccountExpiredException;
@@ -54,7 +56,24 @@ public class SecurityConfig {
     private final OAuth2FailureHandler oAuth2FailureHandler;
     private final JwtAuthenticationEntryPoint unauthorizedHandler;
 
+    // Actuator endpoints live on the management port only (ManagementPortGuard), which compose does not publish, so
+    // Prometheus and the Docker health check need no token. The API port does not serve them (401/404).
     @Bean
+    @Order(1)
+    SecurityFilterChain managementFilterChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher(EndpointRequest.toAnyEndpoint())
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .formLogin(form -> form.disable())
+                .httpBasic(basic -> basic.disable())
+                .logout(logout -> logout.disable());
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .cors(Customizer.withDefaults())
@@ -74,7 +93,6 @@ public class SecurityConfig {
                                 "/api/v1/auth/refresh-token",
                                 "/api/v1/auth/logout",
                                 "/api/v1/auth/oauth/exchange",
-                                "/actuator/health",
                                 // Stripe has no token; the handler checks the Stripe-Signature (T-064)
                                 "/api/v1/stripe/webhook",
                                 // only served when SWAGGER_ENABLED=true
@@ -115,7 +133,7 @@ public class SecurityConfig {
         cors.setAllowedOrigins(allowedOrigins);
         cors.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         cors.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key"));
-        cors.setExposedHeaders(List.of("Retry-After"));
+        cors.setExposedHeaders(List.of("Retry-After", "X-Request-Id"));
         cors.setAllowCredentials(false);
         cors.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -1,0 +1,11 @@
+# Prometheus for the compose stack (docker-compose.yaml, profile "monitoring").
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: paygenix-api
+    metrics_path: /actuator/prometheus
+    static_configs:
+      # the API's management port on the compose network (MANAGEMENT_PORT, not published on the host)
+      - targets: ["paygenix-app:8081"]
