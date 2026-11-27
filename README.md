@@ -83,4 +83,15 @@ address.
 - Create the storage buckets (`stories`, `profile`, private `kyc`); set `MEDIA_ORIGIN` if storage is not on https.
 - Run new Flyway migrations with the old version stopped (single instance).
 
+### Monitoring
+
+- Health and metrics are on the API's management port (`MANAGEMENT_PORT`, default 8081), reachable on the compose
+  network only: `/actuator/health/readiness` (database and Redis; Docker's health check), `/actuator/health/liveness`
+  and `/actuator/prometheus`. The app refuses to start if that port equals the API port.
+- `docker compose --profile monitoring up -d prometheus` scrapes it ([`ops/prometheus/`](ops/prometheus)); open
+  `127.0.0.1:9090` on the server through an SSH tunnel. Besides the HTTP, JVM, Hikari and Redis metrics there are
+  `paygenix_auth_logins_total{outcome}` and `paygenix_ledger_postings_total{kind,currency}`.
+- Every request has an id: nginx sets `X-Request-Id`, the API prints it in each log line as `[id]` and returns it in
+  the response, and the nginx access log ends with `rid=<id>`.
+
 The GitHub deploy workflow is manual only.

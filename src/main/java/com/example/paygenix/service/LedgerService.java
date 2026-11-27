@@ -8,8 +8,11 @@ import com.example.paygenix.enums.LedgerKind;
 import com.example.paygenix.enums.SystemAccount;
 import com.example.paygenix.repository.LedgerAccountRepository;
 import com.example.paygenix.repository.LedgerEntryRepository;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +31,7 @@ public class LedgerService {
 
     private final LedgerAccountRepository accountRepository;
     private final LedgerEntryRepository entryRepository;
+    private final MeterRegistry meterRegistry;
 
     /** One side of a posting: either a card or a system account. Positive raises its balance. */
     public record Leg(Cards card, SystemAccount system, BigDecimal amount) {
@@ -84,12 +88,23 @@ public class LedgerService {
                     .reference(reference)
                     .build());
         }
+        countAfterCommit(kind, currency);
         return txId;
     }
 
     @Transactional(readOnly = true)
     public BigDecimal balanceOf(Cards card) {
         return entryRepository.balanceOf(account(Leg.card(card, BigDecimal.ONE), card.getCurrency()).getId());
+    }
+
+    // paygenix.ledger.postings{kind,currency}: money movements that were committed (a rolled-back one is not counted)
+    private void countAfterCommit(LedgerKind kind, Currency currency) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                meterRegistry.counter("paygenix.ledger.postings", "kind", kind.name(), "currency", currency.name()).increment();
+            }
+        });
     }
 
     private LedgerAccount account(Leg leg, Currency currency) {

@@ -60,6 +60,14 @@ services:
       - APP_BASE_URL=${APP_BASE_URL}
       # only the web container (fixed address below) may set X-Forwarded-* (T-076)
       - TRUSTED_PROXIES=172[.]28[.]0[.]10
+      # actuator (health, Prometheus metrics): reachable on the compose network only, never published
+      - MANAGEMENT_PORT=8081
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8081/actuator/health/readiness"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
 
   # 4. Web: the frontend build plus the same-origin /api proxy (frontend/Dockerfile). Put TLS in front of it.
   paygenix-web:
@@ -67,7 +75,8 @@ services:
     container_name: paygenix-web
     restart: always
     depends_on:
-      - paygenix-app
+      paygenix-app:
+        condition: service_healthy
     environment:
       BACKEND_URL: http://paygenix-app:8000
       # origin of presigned storage links when it is not https (e.g. http://localhost:9000), for the CSP
@@ -78,6 +87,22 @@ services:
       default:
         ipv4_address: 172.28.0.10
 
+  # Metrics (M9): `docker compose --profile monitoring up -d prometheus`, then http://127.0.0.1:9090 on the server
+  # (an SSH tunnel from elsewhere). Scrapes the API's management port over the compose network.
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: paygenix-prometheus
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./ops/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - promdata:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+
 networks:
   default:
     ipam:
@@ -87,3 +112,4 @@ networks:
 volumes:
   pgdata:
   miniodata:
+  promdata:
