@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { signedIn, signedOut } from '../auth/session'
@@ -66,6 +66,24 @@ test('a retry after a lost answer reuses the key and gets the same card without 
   fireEvent.click(screen.getByRole('button', { name: 'Issue a card' }))
   await screen.findByRole('dialog', { name: 'Your new card' })
   expect(issueKeys[2]).not.toBe(issueKeys[0]) // after a success the next click is a new card
+})
+
+test('a lost AZN answer keeps its key while USD is tried in between', async () => {
+  const first = issue
+  issue = (body) => { first(body); throw new TypeError('network') }
+  open('/cards')
+  await screen.findByRole('list', { name: 'Your cards' })
+  fireEvent.click(screen.getByRole('button', { name: 'Issue a card' })) // AZN, answer lost
+  expect(await screen.findByRole('alert')).toHaveTextContent('The card was not issued')
+  fireEvent.change(screen.getByLabelText('Currency'), { target: { value: 'USD' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Issue a card' })) // USD, answer lost too
+  await waitFor(() => expect(issueKeys).toHaveLength(2))
+  fireEvent.change(screen.getByLabelText('Currency'), { target: { value: 'AZN' } })
+  issue = () => json(201, { data: { card: mine[1] } })
+  fireEvent.click(screen.getByRole('button', { name: 'Issue a card' })) // the AZN retry
+  expect(await screen.findByText(/issued on the earlier try/)).toBeInTheDocument()
+  expect(issueKeys[1]).not.toBe(issueKeys[0])
+  expect(issueKeys[2]).toBe(issueKeys[0])
 })
 
 test('issuing a card shows its full number once and adds it to the list', async () => {
