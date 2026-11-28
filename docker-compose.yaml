@@ -55,8 +55,8 @@ services:
     entrypoint: ["sh", "-c"]
     command:
       - >-
-        until echo 'cluster.check' | weed shell -master=storage:9333 >/dev/null 2>&1; do sleep 1; done;
-        for b in stories profile kyc; do echo "s3.bucket.create -name $$b" | weed shell -master=storage:9333; done
+        until echo 'cluster.check' | timeout 10 weed shell -master=storage:9333 >/dev/null 2>&1; do sleep 1; done;
+        for b in stories profile kyc; do echo "s3.bucket.create -name $$b" | timeout 30 weed shell -master=storage:9333; done
 
   # SMTP catcher for local runs and the E2E suite: MAIL_HOST=localhost MAIL_PORT=1025 MAIL_SMTP_AUTH=false
   # MAIL_STARTTLS_ENABLE=false; read the mail at http://127.0.0.1:8025 (the E2E suite reads codes from its API)

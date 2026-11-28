@@ -131,15 +131,16 @@ jobs:
       - run: ./mvnw -B -ntp -DskipTests package
       # S3 storage as in compose (service "storage"); a service container cannot take this start command
       - name: Start S3 storage
+        timeout-minutes: 3
         run: |
           docker run -d --name storage -p 9000:8333 -e S3_ACCESS_KEY="$MINIO_ACCESS_KEY" -e S3_SECRET_KEY="$MINIO_SECRET_KEY" \
             --entrypoint sh chrislusf/seaweedfs:3.97 -c 'printf "{\"identities\":[{\"name\":\"paygenix\",\"credentials\":[{\"accessKey\":\"%s\",\"secretKey\":\"%s\"}],\"actions\":[\"Admin\",\"Read\",\"Write\",\"List\",\"Tagging\"]}]}" "$S3_ACCESS_KEY" "$S3_SECRET_KEY" > /tmp/s3.json && exec weed server -dir=/data -ip.bind=0.0.0.0 -s3 -s3.port=8333 -s3.config=/tmp/s3.json -master.volumeSizeLimitMB=256 -volume.max=8'
           for i in $(seq 1 60); do
-            docker exec storage sh -c 'echo cluster.check | weed shell -master=localhost:9333' >/dev/null 2>&1 && break
+            docker exec storage sh -c 'echo cluster.check | timeout 10 weed shell -master=localhost:9333' >/dev/null 2>&1 && break
             sleep 2
           done
           for b in stories profile kyc; do
-            docker exec storage sh -c "echo 's3.bucket.create -name $b' | weed shell -master=localhost:9333"
+            docker exec storage sh -c "echo 's3.bucket.create -name $b' | timeout 30 weed shell -master=localhost:9333"
           done
       - name: Start the API
         run: |
@@ -162,6 +163,7 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
       - name: Run the E2E suite
+        timeout-minutes: 8
         working-directory: e2e
         run: |
           npm run typecheck

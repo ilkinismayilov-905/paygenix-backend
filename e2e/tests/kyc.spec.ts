@@ -28,7 +28,8 @@ test('a user sends an identity document to the private bucket and an admin appro
   const link = adminPage.getByRole('link', { name: user.fullName })
   const more = adminPage.getByRole('button', { name: 'Show more' })
   await expect(link.or(more).first()).toBeVisible()
-  while (!(await link.isVisible())) {
+  for (let round = 0; !(await link.isVisible()); round++) {
+    expect(round, 'pages of pending reviews searched').toBeLessThan(20)
     await more.click()
     await expect(link.or(more).first()).toBeVisible()
   }
