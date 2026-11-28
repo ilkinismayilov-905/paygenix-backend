@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.HttpStatus;
@@ -41,7 +42,10 @@ public class OnboardingService {
     // T-092: usernames are public, these caps only slow down bulk probing
     static final Duration USERNAME_CHECK_WINDOW = Duration.ofMinutes(15);
     static final int MAX_USERNAME_CHECKS_PER_FLOW = 10;
-    static final int MAX_USERNAME_CHECKS_PER_IP = 30;
+
+    // per client address, 30 by default; configurable so a test stack signing many users up from one address works
+    @Value("${paygenix.onboarding.username-checks-per-ip:30}")
+    private int maxUsernameChecksPerIp;
 
     private final OnboardingFlowRepository flowRepo;
     private final UserRepository userRepo;
@@ -117,7 +121,7 @@ public class OnboardingService {
         // flow first, so only a sign-up at this step can ask whether a username is taken
         OnboardingFlow flow = getFlow(flowId, OnboardingFlow.Step.FULLNAME_SET);
         // clientIp is the real client behind a trusted proxy (server.forward-headers-strategy, T-076)
-        limitUsernameChecks("onb:username:ip:" + clientIp, MAX_USERNAME_CHECKS_PER_IP);
+        limitUsernameChecks("onb:username:ip:" + clientIp, maxUsernameChecksPerIp);
         limitUsernameChecks("onb:username:flow:" + flowId, MAX_USERNAME_CHECKS_PER_FLOW);
         if (userRepo.existsByUsername(username)) {
             throw new ApiException(HttpStatus.CONFLICT, "USERNAME_TAKEN", "Username is already taken");

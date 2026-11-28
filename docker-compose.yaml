@@ -37,6 +37,17 @@ services:
     volumes:
       - miniodata:/data
 
+  # SMTP catcher for local runs and the E2E suite: MAIL_HOST=localhost MAIL_PORT=1025 MAIL_SMTP_AUTH=false
+  # MAIL_STARTTLS_ENABLE=false; read the mail at http://127.0.0.1:8025 (the E2E suite reads codes from its API)
+  mailpit:
+    image: axllent/mailpit:v1.27.0
+    container_name: paygenix-mailpit
+    profiles: ["local", "e2e"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+
   # 3. Java Spring Boot App
   paygenix-app:
     build: .

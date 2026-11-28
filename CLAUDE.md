@@ -35,6 +35,10 @@ cd frontend && npm run api:generate           # after the snapshot changed (CI c
 cd frontend && npm run typecheck && npm run lint && npm test
 ```
 
+```bash
+cd e2e && npx playwright test                 # E2E against the running stack (e2e/README.md: compose --profile e2e)
+```
+
 CI (`.github/workflows/ci.yaml`) runs the backend on Java 21 and the frontend on **Node 24**; run frontend tests on 24
 too when touching uploads or `fetch` stubs (`npx -y node@24 node_modules/vitest/vitest.mjs run`).
 

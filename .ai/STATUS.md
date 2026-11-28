@@ -1,6 +1,6 @@
 # Paygenix status
 
-Last updated: 2026-11-28 (per-IP login limit PR). Roadmap and decisions: [`docs/ROADMAP.md`](../docs/ROADMAP.md).
+Last updated: 2026-11-28 (E2E suite PR). Roadmap and decisions: [`docs/ROADMAP.md`](../docs/ROADMAP.md).
 Screens and their APIs: [`docs/frontend/screens.md`](../docs/frontend/screens.md).
 
 > The earlier `.ai/MASTER_PROMPT.md`, `.ai/STATUS.md` and Ruflo memory were never committed and were lost with their
@@ -35,6 +35,7 @@ T-136, T-138, T-140. The latest ones:
 | T-138, T-140 | Email-code lockout kept after 5 wrong tries; PIN mismatch checked before PIN_UNCHANGED |
 | T-141 | Observability (M9): actuator on an unpublished management port (`MANAGEMENT_PORT`, guarded), Prometheus metrics with HTTP histograms, `paygenix_auth_logins_total`, `paygenix_ledger_postings_total`; request id from nginx in every log line and `X-Request-Id`; compose health check and a `monitoring` profile with Prometheus |
 | T-142 | Per-address login limit: 30 attempts / 15 min per client IP (IPv6 per /64) across all emails, counted before the password check; a success gives its attempt back; `LOGIN_RATE_LIMITED` (429 + Retry-After); `LOGIN_IP_MAX_ATTEMPTS` |
+| T-143 | Playwright E2E suite in `e2e/` against the real stack (sign-up with emailed code, sign in, transfer + fee, wrong PIN, phone pay + cashback + operator refusal, change PIN, admin resolves a report, admin lock/unlock); `e2e` CI job (API jar + `vite preview` + Postgres, Redis, Mailpit); Mailpit in compose (profiles `local`, `e2e`); `USERNAME_CHECK_IP_MAX_ATTEMPTS` configurable |
 
 New tasks are numbered from T-141 on (the highest id found was T-140).
 
@@ -63,10 +64,9 @@ Done in PR #111 without a task id (number them if the old list had them):
    Steps once they exist: a server; `docker compose up -d --build`; TLS in front of `paygenix-web`; set `FRONTEND_URL`,
    `APP_BASE_URL`, `CORS_ALLOWED_ORIGINS`, `GOOGLE_REDIRECT_URI` to the public https origin; create buckets `stories`,
    `profile` and private `kyc`; Stripe test keys (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`).
-2. **Playwright E2E suite in the repo** (ADR 0001): sign in, transfer, pay, change PIN, admin review against compose.
-3. **Real phone operator:** reserve → call outside the transaction → settle or release, with reconciliation (see the
+2. **Real phone operator:** reserve → call outside the transaction → settle or release, with reconciliation (see the
    shortcut note in `PaymentService.confirmPayment`).
-4. Smaller shortcuts noted in code (`grep -rn "shortcut:" src frontend/src`): JWT filter session lookup cache, card
+3. Smaller shortcuts noted in code (`grep -rn "shortcut:" src frontend/src`): JWT filter session lookup cache, card
    issue key per currency, sign-up flow lost on reload.
 
 ## Decisions taken (beyond the roadmap)
@@ -79,3 +79,6 @@ Done in PR #111 without a task id (number them if the old list had them):
 - Language follows the saved choice, else the browser; switching reloads the page.
 - Metrics and health only on the management port (never published, never on the API port); readiness = database +
   Redis (an SMTP outage does not mark the API down). Request ids come from nginx (`$request_id`), else a UUID.
+- E2E fixtures that have no API go to the database (`e2e/support/db.ts`): granting ADMIN_ROLE, and funding a card
+  with a balanced OPENING_BALANCE posting. Everything else goes through the UI or the API. KYC upload and stories are
+  not covered while there is no S3 store in compose (the MinIO image is not pullable).

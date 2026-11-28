@@ -61,6 +61,13 @@ An admin is a user with the `ADMIN_ROLE` row in `user_roles`; the frontend then 
 cd frontend && npm run typecheck && npm run lint && npm test
 ```
 
+End-to-end with Playwright against the running stack (sign-up, transfer, pay, change PIN, admin tools); setup in
+[`e2e/README.md`](e2e/README.md):
+
+```bash
+cd e2e && npx playwright test
+```
+
 `OpenApiSnapshotTest` fails when the API changed but `frontend/openapi.json` did not; refresh it with
 `UPDATE_OPENAPI=true ./mvnw test -Dtest=OpenApiSnapshotTest`, then `npm run api:generate` in `frontend/`.
 

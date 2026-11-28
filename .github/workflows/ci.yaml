@@ -58,6 +58,113 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  # Playwright against the real stack (e2e/): the API jar, the production frontend build behind `vite preview`
+  # (same-origin /api proxy), Postgres, Redis and Mailpit for the emailed codes. Dummy values only.
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: paygenix
+          POSTGRES_USER: paygenix
+          POSTGRES_PASSWORD: e2e-only-db-password
+        ports: ["5455:5432"]
+        options: >-
+          --health-cmd "pg_isready -U paygenix" --health-interval 5s --health-timeout 5s --health-retries 12
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+      mailpit:
+        image: axllent/mailpit:v1.27.0
+        ports: ["1025:1025", "8025:8025"]
+    env:
+      APP_NAME: Paygenix
+      APP_BASE_URL: http://localhost:3000
+      APP_WEB_URL: http://localhost:3000
+      FRONTEND_URL: http://localhost:3000
+      REFRESH_COOKIE_SECURE: "false"
+      DB_URL: jdbc:postgresql://localhost:5455/paygenix
+      DB_USERNAME: paygenix
+      DB_PASSWORD: e2e-only-db-password
+      JWT_SECRET: e2e-only-jwt-secret-not-used-anywhere-else-0123456789
+      JWT_EXPIRATION: "900"
+      JWT_REFRESH_EXPIRATION: "1209600"
+      CARD_PAN_HMAC_KEY: e2e-only-card-hmac-key-not-used-anywhere-else
+      MAIL_HOST: localhost
+      MAIL_PORT: "1025"
+      MAIL_PROTOCOL: smtp
+      MAIL_USERNAME: paygenix@example.test
+      MAIL_PASSWORD: unused
+      MAIL_SMTP_AUTH: "false"
+      MAIL_STARTTLS_ENABLE: "false"
+      GOOGLE_CLIENT_ID: unused
+      GOOGLE_CLIENT_SECRET: unused
+      GOOGLE_REDIRECT_URI: http://localhost:8000/login/oauth2/code/google
+      MINIO_URL: http://localhost:9000
+      MINIO_ACCESS_KEY: unused
+      MINIO_SECRET_KEY: unused-secret
+      STORY_EXPIRY_SECONDS: "86400"
+      STORY_PRESIGN_SECONDS: "600"
+      # every request comes from 127.0.0.1, so the per-address limits would stop the suite's many sign-ups
+      LOGIN_IP_MAX_ATTEMPTS: "100000"
+      USERNAME_CHECK_IP_MAX_ATTEMPTS: "100000"
+      E2E_DATABASE_URL: postgres://paygenix:e2e-only-db-password@127.0.0.1:5455/paygenix
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            e2e/package-lock.json
+      - run: ./mvnw -B -ntp -DskipTests package
+      - name: Start the API
+        run: |
+          nohup java -jar target/Paygenix-0.0.1-SNAPSHOT.jar > api.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS http://localhost:8081/actuator/health/readiness && exit 0
+            sleep 2
+          done
+          cat api.log
+          exit 1
+      - name: Build and serve the frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+          nohup npx vite preview --port 3000 --strictPort > ../web.log 2>&1 &
+      - name: Install Playwright
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Run the E2E suite
+        working-directory: e2e
+        run: |
+          npm run typecheck
+          npx playwright test
+      - if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e2e-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+            api.log
+            web.log
+          retention-days: 7
+
   dependency-scan:
     name: dependency-scan
     runs-on: ubuntu-latest
