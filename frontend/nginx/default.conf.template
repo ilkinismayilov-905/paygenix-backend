@@ -1,12 +1,27 @@
-# Paygenix web: the SPA plus a same-origin proxy to the API (ADR 0001). Terminate TLS in front of this (or add an ssl
-# server here): the refresh cookie is Secure, so production must be https.
+# Paygenix web: the SPA plus a same-origin proxy to the API (ADR 0001). TLS is terminated in front of this, by the
+# Caddy edge (compose profile "tls", docs/DEPLOY.md): the refresh cookie is Secure, so production must be https.
+
+# Behind the edge, the client's address and scheme come from it (X-Forwarded-For / -Proto), believed only from
+# EDGE_PROXY, the edge's fixed address. Without an edge both stay what nginx sees, so a client cannot fake them.
+set_real_ip_from ${EDGE_PROXY};
+real_ip_header X-Forwarded-For;
+geo $realip_remote_addr $from_edge {
+    default 0;
+    ${EDGE_PROXY} 1;
+}
+map "$from_edge:$http_x_forwarded_proto" $client_scheme {
+    "1:https" https;
+    "1:http" http;
+    default $scheme;
+}
+
 # The public port, from the Host the browser used (else the scheme's default): Tomcat rebuilds the request URL from
 # X-Forwarded-Proto/-Port, and the API compares it with the Origin header to recognise same-origin calls.
 map $http_host $forwarded_port {
     ~:(?<port>[0-9]+)$ $port;
     default $default_port;
 }
-map $scheme $default_port {
+map $client_scheme $default_port {
     https 443;
     default 80;
 }
@@ -32,7 +47,7 @@ server {
         # with the port: the API compares the Origin header with this host to tell same-origin requests
         proxy_set_header Host $http_host;
         proxy_set_header X-Forwarded-For $remote_addr;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $client_scheme;
         proxy_set_header X-Forwarded-Port $forwarded_port;
         proxy_set_header X-Forwarded-Host $http_host;
         # nginx's own id replaces whatever the client sent, so log lines on both sides match

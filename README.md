@@ -45,7 +45,7 @@ cd frontend && npm ci && npm run dev    # http://localhost:3000
 Optional pieces, each switched off cleanly when not configured:
 
 - **Mail** (`MAIL_*`): codes are sent by SMTP. Any local SMTP catcher works for development.
-- **Storage** (`MINIO_*`): buckets `stories`, `profile` and `kyc` (keep `kyc` private). `docker compose --profile local up -d minio`, or any S3-compatible store.
+- **Storage** (`MINIO_*`): `docker compose --profile local up -d storage storage-init` (SeaweedFS; creates the buckets `stories`, `profile` and private `kyc`), or any S3-compatible store.
 - **Google sign-in** (`GOOGLE_*`).
 - **Stripe top-ups** (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`): without them top-ups answer `503 TOP_UP_UNAVAILABLE`. Locally: `stripe listen --forward-to localhost:8000/api/v1/stripe/webhook` prints the webhook secret. Pay with the test card `4242 4242 4242 4242`.
 
@@ -80,14 +80,20 @@ cd e2e && npx playwright test
 
 ## Deploying
 
-`docker compose up -d --build` starts Postgres, Redis, the API (published on 127.0.0.1 only) and **paygenix-web**:
-nginx with the frontend build, the same-origin `/api` and Google sign-in proxy, a strict CSP and long-lived caching for
-hashed assets ([`frontend/nginx/`](frontend/nginx)). The API trusts `X-Forwarded-*` only from the web container's fixed
-address.
+One server runs the whole stack from `docker-compose.yaml`; the step-by-step runbook (server hardening, DNS, `.env`,
+Stripe webhook, backups, updates) is [`docs/DEPLOY.md`](docs/DEPLOY.md):
 
-- Terminate TLS in front of the web container (or add an `ssl` server to its config): the refresh cookie is `Secure`.
-- Set `FRONTEND_URL`, `APP_BASE_URL`, `CORS_ALLOWED_ORIGINS` and `GOOGLE_REDIRECT_URI` to the public https origin.
-- Create the storage buckets (`stories`, `profile`, private `kyc`); set `MEDIA_ORIGIN` if storage is not on https.
+```bash
+docker compose --profile storage --profile tls up -d --build
+```
+
+- **caddy** (profile `tls`): TLS with automatic Let's Encrypt certificates for `APP_DOMAIN` and `MEDIA_DOMAIN`, the
+  only service published to the internet ([`ops/caddy/Caddyfile`](ops/caddy/Caddyfile)).
+- **paygenix-web**: nginx with the frontend build, the same-origin `/api` and Google sign-in proxy, a strict CSP and
+  long-lived caching for hashed assets ([`frontend/nginx/`](frontend/nginx)). It believes `X-Forwarded-*` only from
+  Caddy, and the API only from nginx, so rate limits see the real client.
+- **paygenix-app** (published on 127.0.0.1 only), **postgres-db**, **redis**, and **storage** (profile `storage`:
+  SeaweedFS as the S3 store; `storage-init` creates the buckets `stories`, `profile` and private `kyc`).
 - Run new Flyway migrations with the old version stopped (single instance).
 
 ### Monitoring
@@ -101,4 +107,4 @@ address.
 - Every request has an id: nginx sets `X-Request-Id`, the API prints it in each log line as `[id]` and returns it in
   the response, and the nginx access log ends with `rid=<id>`.
 
-The GitHub deploy workflow is manual only.
+The GitHub deploy workflow is manual only and predates the runbook (see the end of `docs/DEPLOY.md`).

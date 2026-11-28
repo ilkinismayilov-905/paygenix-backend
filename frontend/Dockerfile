@@ -13,6 +13,7 @@ COPY nginx/security-headers.conf.template /etc/nginx/templates/security-headers.
 COPY --from=build /app/dist /usr/share/nginx/html
 ENV BACKEND_URL=http://paygenix-app:8000 \
     MEDIA_ORIGIN="" \
-    NGINX_ENVSUBST_FILTER="^(BACKEND_URL|MEDIA_ORIGIN)$" \
+    EDGE_PROXY=127.0.0.1 \
+    NGINX_ENVSUBST_FILTER="^(BACKEND_URL|MEDIA_ORIGIN|EDGE_PROXY)$" \
     NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx/conf.d
 EXPOSE 80

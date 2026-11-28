@@ -9,6 +9,7 @@ repeated against the same database.
 | `sign-up.spec.ts` | the 7-step sign-up with the emailed code, sign out, a wrong password, sign in |
 | `money.spec.ts` | a transfer with its fee and both balances, a wrong PIN, a phone payment with cashback, a number the mock operator refuses, a lost operator answer (amount held, Pay again completes it once) |
 | `change-pin.spec.ts` | change the PIN by emailed code; the old PIN is refused and the new one confirms a payment |
+| `kyc.spec.ts` | an identity document uploaded to the private bucket, shown to an admin through a presigned link, approved |
 | `admin.spec.ts` | a user's problem report resolved by an admin; an admin locks a user (who cannot sign in) and unlocks them |
 
 Only two fixtures go to the database directly, because the product has no API for them: granting `ADMIN_ROLE`, and
@@ -16,7 +17,7 @@ funding a card with a balanced `OPENING_BALANCE` posting (a top-up needs Stripe)
 
 ## Running locally
 
-1. Services: `docker compose --profile e2e up -d postgres-db redis mailpit`.
+1. Services: `docker compose --profile e2e up -d postgres-db redis mailpit storage storage-init`.
 2. The API on the host with a `.env` from `.env.example`, plus mail through Mailpit and the per-address limits
    raised (every request comes from 127.0.0.1):
 
@@ -25,6 +26,7 @@ funding a card with a balanced `OPENING_BALANCE` posting (a top-up needs Stripe)
    MAIL_PORT=1025
    MAIL_SMTP_AUTH=false
    MAIL_STARTTLS_ENABLE=false
+   MINIO_URL=http://localhost:9000
    REFRESH_COOKIE_SECURE=false
    LOGIN_IP_MAX_ATTEMPTS=100000
    USERNAME_CHECK_IP_MAX_ATTEMPTS=100000

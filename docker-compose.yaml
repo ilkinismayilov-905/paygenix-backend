@@ -20,22 +20,50 @@ services:
     ports:
       - "${REDIS_PORT:-6379}:6379"
 
-  minio:
-    # shortcut: minio/minio is no longer pullable from Docker Hub; this digest (RELEASE.2025-09-07T16-13-09Z) only works where it is cached. Pick a maintained image or S3-compatible store before CI/deploy.
-    image: minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
-    container_name: paygenix-minio
-    # local dev only (app runs on the host): `docker compose --profile local up -d` / `--profile local down`
-    profiles: ["local"]
+  # S3-compatible storage for promo stories, profile photos and identity documents (MINIO_* settings; the app uses
+  # the MinIO client, which speaks plain S3). SeaweedFS replaces the MinIO image, which is no longer published.
+  # Local and E2E: `docker compose --profile local up -d storage storage-init`; on a single server: profile
+  # `storage` (docs/DEPLOY.md). MINIO_URL must be reachable by the app and by browsers (presigned links).
+  storage:
+    image: chrislusf/seaweedfs:3.97
+    container_name: paygenix-storage
+    profiles: ["local", "e2e", "storage"]
     restart: unless-stopped
-    command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+      S3_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      S3_SECRET_KEY: ${MINIO_SECRET_KEY}
+    # one identity with the app's keys, written at start so the keys stay out of the repository
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        printf '{"identities":[{"name":"paygenix","credentials":[{"accessKey":"%s","secretKey":"%s"}],
+        "actions":["Admin","Read","Write","List","Tagging"]}]}' "$$S3_ACCESS_KEY" "$$S3_SECRET_KEY" > /tmp/s3.json
+        && exec weed server -dir=/data -ip.bind=0.0.0.0 -s3 -s3.port=8333 -s3.config=/tmp/s3.json
+        -master.volumeSizeLimitMB=256 -volume.max=16
     ports:
-      - "127.0.0.1:9000:9000"
-      - "127.0.0.1:9001:9001"
+      - "127.0.0.1:9000:8333"
     volumes:
-      - miniodata:/data
+      - s3data:/data
+
+  # creates the buckets the app expects through the S3 API itself (works against any S3 store); 409 = exists already
+  storage-init:
+    image: curlimages/curl:8.15.0
+    profiles: ["local", "e2e", "storage"]
+    depends_on:
+      - storage
+    restart: "no"
+    environment:
+      S3_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      S3_SECRET_KEY: ${MINIO_SECRET_KEY}
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        for i in $$(seq 1 90); do curl -s -o /dev/null --max-time 2 http://storage:8333/ && break; sleep 1; done;
+        keys="$$S3_ACCESS_KEY:$$S3_SECRET_KEY";
+        for b in stories profile kyc; do
+        code=$$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 --aws-sigv4 'aws:amz:us-east-1:s3'
+        --user "$$keys" -X PUT "http://storage:8333/$$b");
+        echo "bucket $$b: $$code"; case "$$code" in 200|409) ;; *) exit 1 ;; esac; done
 
   # SMTP catcher for local runs and the E2E suite: MAIL_HOST=localhost MAIL_PORT=1025 MAIL_SMTP_AUTH=false
   # MAIL_STARTTLS_ENABLE=false; read the mail at http://127.0.0.1:8025 (the E2E suite reads codes from its API)
@@ -92,11 +120,39 @@ services:
       BACKEND_URL: http://paygenix-app:8000
       # origin of presigned storage links when it is not https (e.g. http://localhost:9000), for the CSP
       MEDIA_ORIGIN: ${MEDIA_ORIGIN:-}
+      # the TLS edge below: the only address whose X-Forwarded-For / -Proto nginx believes
+      EDGE_PROXY: 172.28.0.11
     ports:
+      # with the TLS edge, publish this on loopback only: WEB_PORT=127.0.0.1:8080
       - "${WEB_PORT:-80}:80"
     networks:
       default:
         ipv4_address: 172.28.0.10
+
+  # TLS edge (T-146): `docker compose --profile tls up -d` with APP_DOMAIN, MEDIA_DOMAIN and ACME_EMAIL set; Caddy
+  # gets the certificates itself (it does not start without them). Runbook: docs/DEPLOY.md.
+  caddy:
+    image: caddy:2.10.2-alpine
+    container_name: paygenix-caddy
+    profiles: ["tls"]
+    restart: unless-stopped
+    depends_on:
+      - paygenix-web
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:-}
+      MEDIA_DOMAIN: ${MEDIA_DOMAIN:-}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./ops/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+    networks:
+      default:
+        ipv4_address: 172.28.0.11
 
   # Metrics (M9): `docker compose --profile monitoring up -d prometheus`, then http://127.0.0.1:9090 on the server
   # (an SSH tunnel from elsewhere). Scrapes the API's management port over the compose network.
@@ -122,5 +178,7 @@ networks:
 
 volumes:
   pgdata:
-  miniodata:
+  s3data:
+  caddydata:
+  caddyconfig:
   promdata:
