@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,14 +58,16 @@ public class AuthController {
             @ApiResponse(responseCode = "200", description = "Giriş uğurludur"),
             @ApiResponse(responseCode = "401", description = "Yanlış məlumatlar", content = @Content),
             @ApiResponse(responseCode = "403", description = "Account is locked (ACCOUNT_LOCKED)", content = @Content),
-            @ApiResponse(responseCode = "429", description = "More than 5 attempts for this email in 15 minutes (LOGIN_LOCKED)", content = @Content)
+            @ApiResponse(responseCode = "429", description = "More than 5 attempts for this email in 15 minutes (LOGIN_LOCKED), "
+                    + "or more than 30 from this client address (LOGIN_RATE_LIMITED); see Retry-After", content = @Content)
     })
     @PostMapping("/login")
     public ResponseEntity<ApiResponseData<JwtTokenResponse>> login(
             @Valid @RequestBody LoginRequest request,
-            @RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent) {
+            @RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent,
+            HttpServletRequest httpRequest) {
         log.info("Login request received");
-        JwtTokenResponse response = authService.login(request, userAgent);
+        JwtTokenResponse response = authService.login(request, userAgent, httpRequest.getRemoteAddr());
         return withCookie(response, "Login successful");
     }
 

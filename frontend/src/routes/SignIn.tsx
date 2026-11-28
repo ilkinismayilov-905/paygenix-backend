@@ -22,7 +22,8 @@ function errorMessage(code: string | undefined, res: Response): string {
   switch (code) {
     case 'UNAUTHORIZED': return t('signIn.wrong')
     case 'ACCOUNT_LOCKED': return t('signIn.accountLocked')
-    case 'LOGIN_LOCKED': return t('signIn.tooMany', { minutes: retryAfterMinutes(res) ?? 15 })
+    case 'LOGIN_LOCKED':
+    case 'LOGIN_RATE_LIMITED': return t('signIn.tooMany', { minutes: retryAfterMinutes(res) ?? 15 })
     default: return t('signIn.failed')
   }
 }
