@@ -35,4 +35,8 @@ public class PaymentOnboarding {
 
     @CreationTimestamp
     private Instant creationDate;
+
+    // T-144: set when the amount is held; the operator sees this reference and must deliver at most once per reference
+    private String operatorReference;
+    private Instant reservedAt;
 }

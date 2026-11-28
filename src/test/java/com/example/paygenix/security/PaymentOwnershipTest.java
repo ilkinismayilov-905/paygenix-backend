@@ -211,26 +211,22 @@ class PaymentOwnershipTest extends IntegrationTest {
         confirm(payer, flow, PIN).andExpect(status().isGone());
     }
 
-    // the mock operator: ...000 is refused, ...999 times out; either way nothing is charged and the flow can be retried
+    // the mock operator refuses ...000: the held amount goes back and the flow can be retried (timeouts: PhonePaymentReservationTest)
     @Test
-    void anOperatorRefusalOrTimeoutChargesNothing() throws Exception {
+    void anOperatorRefusalChargesNothing() throws Exception {
         User payer = createUser();
         String card = issueCard(payer, "AZN");
         setBalance(card, "100.00");
-        for (String phone : new String[]{"+994501234000", "+994501234999"}) {
-            String body = mockMvc.perform(post("/api/v1/payment/initiate").header("Authorization", bearer(payer))
-                            .header("Idempotency-Key", UUID.randomUUID().toString()).contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"phoneNumber\":\"" + phone + "\",\"fromCardId\":" + cardOf(card).getId() + ",\"amount\":\"10.00\"}"))
-                    .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-            String flow = JsonPath.read(body, "$.data");
-            String key = UUID.randomUUID().toString();
-            var result = mockMvc.perform(post("/api/v1/payment/confirm").header("Authorization", bearer(payer)).header("Idempotency-Key", key)
-                    .contentType(MediaType.APPLICATION_JSON).content("{\"flowId\":\"" + flow + "\",\"pin\":\"" + PIN + "\"}"));
-            if (phone.endsWith("000")) result.andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("PHONE_TOPUP_REJECTED"));
-            else result.andExpect(status().isGatewayTimeout()).andExpect(jsonPath("$.code").value("PROVIDER_TIMEOUT"));
-            assertThat(balanceOf(card)).isEqualByComparingTo("100.00");
-            assertThat(jdbc.queryForObject("SELECT payment_status FROM payment_onboarding WHERE id = ?", String.class, flow)).isEqualTo("PENDING");
-        }
+        String body = mockMvc.perform(post("/api/v1/payment/initiate").header("Authorization", bearer(payer))
+                        .header("Idempotency-Key", UUID.randomUUID().toString()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"phoneNumber\":\"+994501234000\",\"fromCardId\":" + cardOf(card).getId() + ",\"amount\":\"10.00\"}"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        String flow = JsonPath.read(body, "$.data");
+        mockMvc.perform(post("/api/v1/payment/confirm").header("Authorization", bearer(payer)).header("Idempotency-Key", UUID.randomUUID().toString())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"flowId\":\"" + flow + "\",\"pin\":\"" + PIN + "\"}"))
+                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("PHONE_TOPUP_REJECTED"));
+        assertThat(balanceOf(card)).isEqualByComparingTo("100.00");
+        assertThat(jdbc.queryForObject("SELECT payment_status FROM payment_onboarding WHERE id = ?", String.class, flow)).isEqualTo("PENDING");
         assertBooksBalanced();
     }
 

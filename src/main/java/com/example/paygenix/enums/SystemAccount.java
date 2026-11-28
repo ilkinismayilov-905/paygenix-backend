@@ -6,5 +6,6 @@ public enum SystemAccount {
     CASHBACK_EXPENSE,
     STRIPE_CLEARING,
     PAYMENT_PAYOUT,
-    OPENING_BALANCE
+    OPENING_BALANCE,
+    PAYMENT_HOLD // phone payments between the reservation and the operator's answer (T-144, V20)
 }

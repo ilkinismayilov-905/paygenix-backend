@@ -10,11 +10,13 @@ import com.example.paygenix.entity.User;
 import com.example.paygenix.enums.CardNetwork;
 import com.example.paygenix.enums.Currency;
 import com.example.paygenix.enums.LedgerKind;
+import com.example.paygenix.enums.PaymentStatus;
 import com.example.paygenix.exceptions.CardHasBalanceException;
 import com.example.paygenix.exceptions.NotFoundException;
 import com.example.paygenix.mapper.CardConverter;
 import com.example.paygenix.repository.CardRepository;
 import com.example.paygenix.repository.LedgerEntryRepository;
+import com.example.paygenix.repository.PaymentOnboardingRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.LockModeType;
@@ -49,6 +51,7 @@ public class CardService {
     private final EntityManager entityManager;
     private final LedgerService ledgerService;
     private final LedgerEntryRepository ledgerEntryRepository;
+    private final PaymentOnboardingRepository paymentFlows;
 
     @Transactional
     public IssuedCardResponse issueCard(User owner, CardRequest request) {
@@ -109,7 +112,9 @@ public class CardService {
     public void closeCard(User owner, Long id) {
         Cards card = findOwned(owner, id);
         lockForUpdate(card); // a concurrent credit must not land on a card being closed
-        if (card.getAmount().signum() != 0) {
+        // a held phone payment (T-144) may still come back to this card
+        if (card.getAmount().signum() != 0
+                || paymentFlows.existsByFromCardIdAndPaymentStatus(card.getId(), PaymentStatus.PROCESSING)) {
             throw new CardHasBalanceException();
         }
         card.setClosedAt(Instant.now());

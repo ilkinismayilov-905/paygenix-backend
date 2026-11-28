@@ -1147,7 +1147,7 @@
             }
           },
           "409" : {
-            "description" : "Payment already processed, insufficient balance, or busy (retry with the same Idempotency-Key)",
+            "description" : "Payment already processed (PAYMENT_ALREADY_PROCESSED), insufficient balance, busy or a confirm with this Idempotency-Key still running (RESOURCE_BUSY; retry with the same key), or the operator delivered after the amount was returned (PAYMENT_NEEDS_REVIEW)",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -1177,7 +1177,7 @@
             }
           },
           "504" : {
-            "description" : "The operator did not answer (PROVIDER_TIMEOUT); nothing charged, confirm again",
+            "description" : "The operator did not answer (PROVIDER_TIMEOUT): the amount is held, not paid. Confirm again (same Idempotency-Key) to retry with the same operator reference; otherwise it is settled or returned automatically once the operator's record is known",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -4639,7 +4639,7 @@
           },
           "status" : {
             "type" : "string",
-            "enum" : [ "PENDING", "COMPLETED", "EXPIRED" ]
+            "enum" : [ "PENDING", "PROCESSING", "COMPLETED", "EXPIRED" ]
           },
           "createdAt" : {
             "type" : "string",
@@ -4771,7 +4771,7 @@
           },
           "kind" : {
             "type" : "string",
-            "enum" : [ "TRANSFER", "PAYMENT", "CASHBACK", "TOP_UP", "OPENING_BALANCE" ]
+            "enum" : [ "TRANSFER", "PAYMENT", "CASHBACK", "TOP_UP", "OPENING_BALANCE", "PAYMENT_RELEASE" ]
           },
           "amount" : {
             "type" : "string",

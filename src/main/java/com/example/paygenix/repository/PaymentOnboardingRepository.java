@@ -18,6 +18,19 @@ public interface PaymentOnboardingRepository extends JpaRepository<PaymentOnboar
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<PaymentOnboarding> findByIdAndUserId(String id, Long userId);
 
+    // T-144: settle and release lock the flow, so the request and reconciliation never both finish one reservation
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<PaymentOnboarding> findByOperatorReference(String operatorReference);
+
+    boolean existsByFromCardIdAndPaymentStatus(Long fromCardId, com.example.paygenix.enums.PaymentStatus status);
+
+    // T-144: reservations still waiting for the operator's answer, oldest first
+    @Query("SELECT p FROM PaymentOnboarding p "
+            + "WHERE p.paymentStatus = com.example.paygenix.enums.PaymentStatus.PROCESSING AND p.reservedAt < :before "
+            + "ORDER BY p.reservedAt")
+    java.util.List<PaymentOnboarding> processingReservedBefore(@Param("before") java.time.Instant before,
+                                                    org.springframework.data.domain.Pageable page);
+
     @Modifying
     @Query("UPDATE PaymentOnboarding p SET p.paymentStatus = com.example.paygenix.enums.PaymentStatus.EXPIRED "
             + "WHERE p.paymentStatus = com.example.paygenix.enums.PaymentStatus.PENDING AND p.creationDate < :before")

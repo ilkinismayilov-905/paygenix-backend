@@ -1,38 +1,24 @@
 package com.example.paygenix.service;
 
-import com.example.paygenix.config.FeeProperties;
 import com.example.paygenix.dto.request.PaymentRequest;
 import com.example.paygenix.dto.response.PaymentResponse;
 import com.example.paygenix.entity.Cards;
-import com.example.paygenix.entity.Payment;
 import com.example.paygenix.entity.PaymentOnboarding;
-import com.example.paygenix.entity.PaymentTransaction;
 import com.example.paygenix.entity.User;
-import com.example.paygenix.enums.LedgerKind;
 import com.example.paygenix.enums.PaymentStatus;
-import com.example.paygenix.enums.SystemAccount;
-import com.example.paygenix.exceptions.ApiException;
 import com.example.paygenix.exceptions.InsufficientBalanceException;
-import com.example.paygenix.exceptions.NotFoundException;
-import com.example.paygenix.exceptions.PaymentAlreadyProcessedException;
-import com.example.paygenix.mapper.PaymentMapper;
+import com.example.paygenix.phone.OperatorResult;
+import com.example.paygenix.phone.PhoneTopUpException;
 import com.example.paygenix.phone.PhoneTopUpProvider;
-import com.example.paygenix.mapper.PaymentTransactionMapper;
-import com.example.paygenix.repository.CardRepository;
 import com.example.paygenix.repository.PaymentOnboardingRepository;
-import com.example.paygenix.repository.PaymentRepository;
-import com.example.paygenix.repository.PaymentTransactionRepository;
-import com.example.paygenix.service.LedgerService.Leg;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -47,19 +33,12 @@ public class PaymentService {
         return flow.getCreationDate() != null && flow.getCreationDate().plus(FLOW_TTL).isBefore(now);
     }
 
-    private final PaymentRepository paymentRepository;
-    private final PaymentTransactionRepository ptRepository;
-    private final PaymentTransactionMapper ptMapper;
-    private final PaymentMapper paymentMapper;
-    private final CardRepository cardRepository;
     private final CardService cardService;
-    private final PaymentTransactionService ptService;
     private final PaymentOnboardingRepository poRepository;
-    private final PinValidationService pinValidationService;
-    private final LedgerService ledgerService;
-    private final FeeProperties fees;
     private final PhoneTopUpProvider phoneTopUpProvider;
     private final LegalAcceptanceService legalAcceptanceService;
+    private final PaymentSettlement settlement;
+    private final MeterRegistry meterRegistry;
 
     @Transactional
     public String transfer(PaymentRequest req, User payer) {
@@ -87,71 +66,33 @@ public class PaymentService {
         return onboarding.getId();
     }
 
-    @Transactional
+    /**
+     * T-144: reserve (hold the amount, commit) → call the operator with no transaction open → settle or release.
+     * Not transactional itself: each step commits on its own, so no row stays locked while the operator answers.
+     * An unknown answer leaves the amount held; confirming again repeats the call with the same reference (the
+     * operator delivers at most once per reference), and PaymentReconciliation finishes it if nobody does.
+     */
     public PaymentResponse confirmPayment(String flowId, String pin, User payer) {
-        legalAcceptanceService.requireAccepted(payer.getId());
-        // someone else's flow gets the same 404 as an unknown id
-        PaymentOnboarding onboarding = poRepository.findByIdAndUserId(flowId, payer.getId())
-                .orElseThrow(() -> new NotFoundException("Payment not found"));
-        // a completed payment stays "already processed" however late the retry: "start again" would make the user pay twice
-        if (onboarding.getPaymentStatus() == PaymentStatus.COMPLETED) {
-            throw new PaymentAlreadyProcessedException();
+        PaymentSettlement.Reservation reservation = settlement.reserve(flowId, pin, payer);
+        OperatorResult result = callOperator(reservation);
+        meterRegistry.counter("paygenix.payments.operator", "result", result.name()).increment();
+        return switch (result) {
+            case DELIVERED -> settlement.settle(reservation.reference());
+            case NOT_DELIVERED -> {
+                settlement.release(reservation.reference());
+                throw PhoneTopUpException.rejected();
+            }
+            case UNKNOWN -> throw PhoneTopUpException.timeout();
+        };
+    }
+
+    private OperatorResult callOperator(PaymentSettlement.Reservation r) {
+        try {
+            return phoneTopUpProvider.topUp(r.reference(), r.phoneNumber(), r.amount(), r.currency());
+        } catch (RuntimeException e) {
+            // an adapter should answer UNKNOWN itself; an exception means the same: maybe delivered, keep the hold
+            log.warn("Operator call for top-up {} failed: {}", r.reference(), e.toString());
+            return OperatorResult.UNKNOWN;
         }
-        if (onboarding.getPaymentStatus() == PaymentStatus.EXPIRED || isExpired(onboarding, Instant.now())) {
-            throw new ApiException(HttpStatus.GONE, "PAYMENT_EXPIRED", "This payment was not confirmed in time; start again");
-        }
-
-        pinValidationService.validatePin(payer.getId(), pin);
-
-        Cards from = cardRepository.findByIdAndOwnerId(onboarding.getFromCardId(), payer.getId())
-                .orElseThrow(() -> new NotFoundException("Card not found"));
-        // the balance is read only after the row is locked, so concurrent debits cannot overspend
-        cardService.lockForUpdate(from);
-
-        if (from.getAmount().compareTo(onboarding.getAmount()) < 0) {
-            throw new InsufficientBalanceException("Insufficient balance");
-        }
-
-        PaymentTransaction transaction = new PaymentTransaction();
-
-        BigDecimal cashbackAmount = fees.cashbackOf(onboarding.getAmount());
-
-        transaction.setTransactionId(ptService.generatePaymentTransactionId());
-        // The operator is asked last, after every check: a refusal or timeout throws and this whole transaction (and the
-        // idempotency claim) rolls back, so nothing is charged and the same flow can be confirmed again.
-        // shortcut: the card row stays locked during the call, and a real operator that times out may still deliver;
-        // a real adapter needs reserve -> call outside the transaction -> settle or release, with reconciliation.
-        phoneTopUpProvider.topUp(transaction.getTransactionId(), onboarding.getPhoneNumber(), onboarding.getAmount(),
-                from.getCurrency());
-        ledgerService.post(LedgerKind.PAYMENT, transaction.getTransactionId(), from.getCurrency(), List.of(
-                Leg.card(from, onboarding.getAmount().negate()),
-                Leg.system(SystemAccount.PAYMENT_PAYOUT, onboarding.getAmount())));
-        ledgerService.post(LedgerKind.CASHBACK, transaction.getTransactionId(), from.getCurrency(), List.of(
-                Leg.system(SystemAccount.CASHBACK_EXPENSE, cashbackAmount.negate()),
-                Leg.card(from, cashbackAmount)));
-        cardRepository.save(from);
-
-        transaction.setFrom_card_id(from.getLast4());
-        transaction.setAmount(onboarding.getAmount());
-        transaction.setCashbackPercent(fees.cashbackPercent());
-        transaction.setCashbackValue(cashbackAmount);
-        transaction.setCurrency(from.getCurrency());
-        transaction.setStatus(PaymentStatus.COMPLETED);
-        transaction.setPhone_number(onboarding.getPhoneNumber());
-        ptRepository.save(transaction);
-
-        Payment payment = Payment.builder()
-                .amount(onboarding.getAmount())
-                .currency(onboarding.getCurrency())
-                .creationDate(Instant.now())
-                .fromCardNumber(from.getLast4())
-                .phoneNumber(onboarding.getPhoneNumber())
-                .build();
-        paymentRepository.save(payment);
-
-        onboarding.setPaymentStatus(PaymentStatus.COMPLETED);
-        poRepository.save(onboarding);
-
-        return paymentMapper.toPaymentResponse(payment);
     }
 }

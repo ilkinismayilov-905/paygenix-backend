@@ -16,7 +16,9 @@ public final class PhoneTopUpException {
     }
 
     public static ApiException timeout() {
+        // T-144: the amount stays held (not paid) until the operator's answer is known
         return new ApiException(HttpStatus.GATEWAY_TIMEOUT, "PROVIDER_TIMEOUT",
-                "The operator did not answer; nothing was charged, try again", Duration.ofSeconds(30));
+                "The operator did not answer yet; the amount is held, not paid. Confirm again to retry; "
+                        + "if the top-up did not go through, the amount is returned", Duration.ofSeconds(30));
     }
 }

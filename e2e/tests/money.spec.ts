@@ -67,3 +67,25 @@ test('phone payment through the mock operator, and a number the operator refuses
   await expect(page.getByText('The mobile operator did not accept this number. Nothing was charged.')).toBeVisible()
   expect((await cardsOf(user))[0].amount).toBe('37.76')
 })
+
+test('an operator answer that is lost: the amount is held, and Pay again completes the payment once', async ({ page }) => {
+  const user = await signUpViaApi('held')
+  await fundCard(await issueCard(user), user.email, '30.00')
+
+  await signIn(page, user)
+  await page.goto('/pay')
+  // the mock operator delivers to ...998 but its answer is lost
+  await page.getByLabel('Phone number').fill('050 123 49 98')
+  await page.getByLabel('Amount').fill('10')
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await expect(page.getByRole('heading', { name: 'Confirm payment' })).toBeVisible()
+  await enterPin(page, user.pin)
+  await page.getByRole('button', { name: 'Pay' }).click()
+  await expect(page.getByText('The mobile operator did not answer yet. The amount is on hold, not paid.')).toBeVisible()
+  expect((await cardsOf(user))[0].amount).toBe('20.00')
+
+  // the PIN stays entered: "Press Pay again" is all it takes
+  await page.getByRole('button', { name: 'Pay' }).click()
+  await expect(page.getByRole('heading', { name: 'Payment made' })).toBeVisible()
+  expect((await cardsOf(user))[0].amount).toBe('20.05') // charged once, plus 0.5% cashback
+})

@@ -4,7 +4,7 @@ import type { useActivity } from './activity'
 
 const kindLabel: Record<string, MessageKey> = {
   TRANSFER: 'home.kind.TRANSFER', PAYMENT: 'home.kind.PAYMENT', CASHBACK: 'home.kind.CASHBACK',
-  TOP_UP: 'home.kind.TOP_UP', OPENING_BALANCE: 'home.kind.OPENING_BALANCE',
+  TOP_UP: 'home.kind.TOP_UP', OPENING_BALANCE: 'home.kind.OPENING_BALANCE', PAYMENT_RELEASE: 'home.kind.PAYMENT_RELEASE',
 }
 const when = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' })
 

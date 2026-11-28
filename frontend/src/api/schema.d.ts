@@ -1706,7 +1706,7 @@ export interface components {
             cashbackPercent?: string;
             cashbackValue?: string;
             /** @enum {string} */
-            status?: "PENDING" | "COMPLETED" | "EXPIRED";
+            status?: "PENDING" | "PROCESSING" | "COMPLETED" | "EXPIRED";
             /** Format: date-time */
             createdAt?: string;
         };
@@ -1760,7 +1760,7 @@ export interface components {
             cardId?: number;
             last4?: string;
             /** @enum {string} */
-            kind?: "TRANSFER" | "PAYMENT" | "CASHBACK" | "TOP_UP" | "OPENING_BALANCE";
+            kind?: "TRANSFER" | "PAYMENT" | "CASHBACK" | "TOP_UP" | "OPENING_BALANCE" | "PAYMENT_RELEASE";
             /**
              * @description Signed decimal string, two decimals: negative leaves the card, positive arrives
              * @example -10.20
@@ -2745,7 +2745,7 @@ export interface operations {
                     "*/*": components["schemas"]["ApiResponseDataPaymentResponse"];
                 };
             };
-            /** @description Payment already processed, insufficient balance, or busy (retry with the same Idempotency-Key) */
+            /** @description Payment already processed (PAYMENT_ALREADY_PROCESSED), insufficient balance, busy or a confirm with this Idempotency-Key still running (RESOURCE_BUSY; retry with the same key), or the operator delivered after the amount was returned (PAYMENT_NEEDS_REVIEW) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2781,7 +2781,7 @@ export interface operations {
                     "*/*": components["schemas"]["ApiResponseDataPaymentResponse"];
                 };
             };
-            /** @description The operator did not answer (PROVIDER_TIMEOUT); nothing charged, confirm again */
+            /** @description The operator did not answer (PROVIDER_TIMEOUT): the amount is held, not paid. Confirm again (same Idempotency-Key) to retry with the same operator reference; otherwise it is settled or returned automatically once the operator's record is known */
             504: {
                 headers: {
                     [name: string]: unknown;
