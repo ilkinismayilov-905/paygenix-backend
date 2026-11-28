@@ -2,8 +2,4 @@
 #
 # bcd961b, on the abandoned branch claude/deploy-prep (PR #119, closed): curl --user "$VAR:$VAR" passes environment
 # variables, not credentials, but matches the curl-auth-user rule. The merged code passes "$keys" instead (T-146).
-# The match can start on the curl line or the --user line, so both are listed.
-bcd961b56103a1eb1e3071f3d76739fde5db02e7:docker-compose.yaml:curl-auth-user:63
-bcd961b56103a1eb1e3071f3d76739fde5db02e7:docker-compose.yaml:curl-auth-user:64
-bcd961b56103a1eb1e3071f3d76739fde5db02e7:.github/workflows/ci.yaml:curl-auth-user:144
-bcd961b56103a1eb1e3071f3d76739fde5db02e7:.github/workflows/ci.yaml:curl-auth-user:145
+bcd961b56103a1eb1e3071f3d76739fde5db02e7:docker-compose.yaml:curl-auth-user:61
