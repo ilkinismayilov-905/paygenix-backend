@@ -59,7 +59,7 @@ jobs:
       - run: npm run build
 
   # Playwright against the real stack (e2e/): the API jar, the production frontend build behind `vite preview`
-  # (same-origin /api proxy), Postgres, Redis and Mailpit for the emailed codes. Dummy values only.
+  # (same-origin /api proxy), Postgres, Redis, Mailpit for the emailed codes and SeaweedFS for uploads. Dummy values only.
   e2e:
     name: e2e
     runs-on: ubuntu-latest
@@ -129,6 +129,18 @@ jobs:
             frontend/package-lock.json
             e2e/package-lock.json
       - run: ./mvnw -B -ntp -DskipTests package
+      # S3 storage as in compose (service "storage"); a service container cannot take this start command
+      - name: Start S3 storage
+        run: |
+          docker run -d --name storage -p 9000:8333 -e S3_ACCESS_KEY="$MINIO_ACCESS_KEY" -e S3_SECRET_KEY="$MINIO_SECRET_KEY" \
+            --entrypoint sh chrislusf/seaweedfs:3.97 -c 'printf "{\"identities\":[{\"name\":\"paygenix\",\"credentials\":[{\"accessKey\":\"%s\",\"secretKey\":\"%s\"}],\"actions\":[\"Admin\",\"Read\",\"Write\",\"List\",\"Tagging\"]}]}" "$S3_ACCESS_KEY" "$S3_SECRET_KEY" > /tmp/s3.json && exec weed server -dir=/data -ip.bind=0.0.0.0 -s3 -s3.port=8333 -s3.config=/tmp/s3.json -master.volumeSizeLimitMB=256 -volume.max=8'
+          for i in $(seq 1 60); do
+            docker exec storage sh -c 'echo cluster.check | weed shell -master=localhost:9333' >/dev/null 2>&1 && break
+            sleep 2
+          done
+          for b in stories profile kyc; do
+            docker exec storage sh -c "echo 's3.bucket.create -name $b' | weed shell -master=localhost:9333"
+          done
       - name: Start the API
         run: |
           nohup java -jar target/Paygenix-0.0.1-SNAPSHOT.jar > api.log 2>&1 &
@@ -155,6 +167,8 @@ jobs:
           npm run typecheck
           npx playwright test
       - if: failure()
+        run: docker logs storage > storage.log 2>&1 || true
+      - if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: e2e-report
@@ -163,6 +177,7 @@ jobs:
             e2e/test-results
             api.log
             web.log
+            storage.log
           retention-days: 7
 
   dependency-scan:

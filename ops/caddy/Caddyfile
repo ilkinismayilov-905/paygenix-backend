@@ -1,0 +1,20 @@
+# TLS edge for a single-server deploy (docker-compose.yaml, profile "tls"; docs/DEPLOY.md). Caddy gets and renews
+# Let's Encrypt certificates for both names by itself; both must point at this server and ports 80/443 must be open.
+{
+	email {$ACME_EMAIL}
+}
+
+# the app: frontend, same-origin /api and the Google sign-in round trip (nginx in paygenix-web)
+{$APP_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy paygenix-web:80
+}
+
+# presigned storage links (MINIO_URL=https://MEDIA_DOMAIN). The Host header is passed through unchanged, so the
+# signatures the app made for this name still match.
+{$MEDIA_DOMAIN} {
+	request_body {
+		max_size 11MB
+	}
+	reverse_proxy storage:8333
+}

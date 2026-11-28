@@ -1,6 +1,6 @@
 # Paygenix status
 
-Last updated: 2026-11-28 (card issue keys PR). Roadmap and decisions: [`docs/ROADMAP.md`](../docs/ROADMAP.md).
+Last updated: 2026-11-28 (deploy preparation PR). Roadmap and decisions: [`docs/ROADMAP.md`](../docs/ROADMAP.md).
 Screens and their APIs: [`docs/frontend/screens.md`](../docs/frontend/screens.md).
 
 > The earlier `.ai/MASTER_PROMPT.md`, `.ai/STATUS.md` and Ruflo memory were never committed and were lost with their
@@ -17,7 +17,7 @@ Screens and their APIs: [`docs/frontend/screens.md`](../docs/frontend/screens.md
 | 8 | Flows: KYC + admin review, admin API, promo stories, paginated history, `/api/v1` | done |
 | 9 | Quality and docs: README, complete OpenAPI, observability | done: README, OpenAPI, metrics + request ids |
 | 10 | Frontend, including a simple admin UI | done: every screen in `screens.md`, English + Azerbaijani |
-| 11 | Release: deploy preparation, fresh hardened server | partly: nginx web container and compose ready; server, TLS and keys open |
+| 11 | Release: deploy preparation, fresh hardened server | prepared (TLS edge, storage, runbook); the server, domains and keys are the owner's |
 
 ## Done (by task id)
 
@@ -38,6 +38,7 @@ T-136, T-138, T-140. The latest ones:
 | T-143 | Playwright E2E suite in `e2e/` against the real stack (sign-up with emailed code, sign in, transfer + fee, wrong PIN, phone pay + cashback + operator refusal, change PIN, admin resolves a report, admin lock/unlock); `e2e` CI job (API jar + `vite preview` + Postgres, Redis, Mailpit); Mailpit in compose (profiles `local`, `e2e`); `USERNAME_CHECK_IP_MAX_ATTEMPTS` configurable |
 | T-144 | Phone payments: reserve (card → `PAYMENT_HOLD`, committed) → operator call with no transaction or row lock → settle (hold → payout + cashback) or release (`PAYMENT_RELEASE`); unknown answers stay `PROCESSING`, a retry re-asks with the same reference, `PaymentReconciliation` asks `status()` every minute after 2 min; confirm's idempotency key is claimed outside the long transaction (`executeInSteps`, 409 RESOURCE_BUSY while running); cards with a held payment cannot be closed; V20 |
 | T-145 | Card issue: one open Idempotency-Key per currency, so a USD try between a lost AZN answer and its retry cannot issue a second AZN card |
+| T-146 | Deploy preparation: Caddy TLS edge (profile `tls`, `ops/caddy/Caddyfile`), nginx takes client IP/scheme only from it (real_ip), SeaweedFS S3 storage + bucket init in compose (profiles `local`/`e2e`/`storage`) replacing the unpullable MinIO image, KYC upload E2E test with storage in CI, runbook `docs/DEPLOY.md` |
 
 New tasks are numbered from T-141 on (the highest id found was T-140).
 
@@ -62,10 +63,9 @@ Done in PR #111 without a task id (number them if the old list had them):
 
 ## Next (open)
 
-1. **Deploy (M11)** — **blocked: needs a server (SSH access), a domain for TLS, and Stripe test keys from the owner.**
-   Steps once they exist: a server; `docker compose up -d --build`; TLS in front of `paygenix-web`; set `FRONTEND_URL`,
-   `APP_BASE_URL`, `CORS_ALLOWED_ORIGINS`, `GOOGLE_REDIRECT_URI` to the public https origin; create buckets `stories`,
-   `profile` and private `kyc`; Stripe test keys (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`).
+1. **Deploy (M11)** — **blocked: needs a server (SSH access), two DNS names (`APP_DOMAIN`, `MEDIA_DOMAIN`), Stripe
+   test keys and the Google OAuth client from the owner.** Everything else is ready (T-146): follow `docs/DEPLOY.md`,
+   then rebuild `.github/workflows/deploy.yaml` (non-root user, the compose profiles, CI as a gate).
 2. **Real phone operator adapter** — **blocked: needs an operator (or aggregator) contract, API docs and test
    credentials.** The flow is ready for it (T-144): implement `PhoneTopUpProvider.topUp` / `status` with the reference as
    the operator's idempotency key and an HTTP timeout well under 2 minutes.
@@ -81,8 +81,10 @@ Done in PR #111 without a task id (number them if the old list had them):
 - Metrics and health only on the management port (never published, never on the API port); readiness = database +
   Redis (an SMTP outage does not mark the API down). Request ids come from nginx (`$request_id`), else a UUID.
 - E2E fixtures that have no API go to the database (`e2e/support/db.ts`): granting ADMIN_ROLE, and funding a card
-  with a balanced OPENING_BALANCE posting. Everything else goes through the UI or the API. KYC upload and stories are
-  not covered while there is no S3 store in compose (the MinIO image is not pullable).
+  with a balanced OPENING_BALANCE posting. Everything else goes through the UI or the API.
+- Storage is SeaweedFS (S3 API) in compose, since the MinIO image is no longer published; the app keeps the MinIO
+  client and the `MINIO_*` settings. TLS is a Caddy edge (automatic Let's Encrypt) in front of nginx; nginx believes
+  forwarded headers only from Caddy's fixed address (172.28.0.11), the API only from nginx's (172.28.0.10).
 - Phone payments hold the amount before the operator is called; an unknown answer keeps it held (never refunded on a
   guess). A delivery reported after the hold was released is flagged `PAYMENT_NEEDS_REVIEW` (metric
   `paygenix_payments_review_total`), not fixed automatically.
