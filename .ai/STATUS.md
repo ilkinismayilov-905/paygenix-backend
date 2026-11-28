@@ -1,6 +1,6 @@
 # Paygenix status
 
-Last updated: 2026-11-28 (phone payment reserve/settle PR). Roadmap and decisions: [`docs/ROADMAP.md`](../docs/ROADMAP.md).
+Last updated: 2026-11-28 (card issue keys PR). Roadmap and decisions: [`docs/ROADMAP.md`](../docs/ROADMAP.md).
 Screens and their APIs: [`docs/frontend/screens.md`](../docs/frontend/screens.md).
 
 > The earlier `.ai/MASTER_PROMPT.md`, `.ai/STATUS.md` and Ruflo memory were never committed and were lost with their
@@ -37,6 +37,7 @@ T-136, T-138, T-140. The latest ones:
 | T-142 | Per-address login limit: 30 attempts / 15 min per client IP (IPv6 per /64) across all emails, counted before the password check; a success gives its attempt back; `LOGIN_RATE_LIMITED` (429 + Retry-After); `LOGIN_IP_MAX_ATTEMPTS` |
 | T-143 | Playwright E2E suite in `e2e/` against the real stack (sign-up with emailed code, sign in, transfer + fee, wrong PIN, phone pay + cashback + operator refusal, change PIN, admin resolves a report, admin lock/unlock); `e2e` CI job (API jar + `vite preview` + Postgres, Redis, Mailpit); Mailpit in compose (profiles `local`, `e2e`); `USERNAME_CHECK_IP_MAX_ATTEMPTS` configurable |
 | T-144 | Phone payments: reserve (card → `PAYMENT_HOLD`, committed) → operator call with no transaction or row lock → settle (hold → payout + cashback) or release (`PAYMENT_RELEASE`); unknown answers stay `PROCESSING`, a retry re-asks with the same reference, `PaymentReconciliation` asks `status()` every minute after 2 min; confirm's idempotency key is claimed outside the long transaction (`executeInSteps`, 409 RESOURCE_BUSY while running); cards with a held payment cannot be closed; V20 |
+| T-145 | Card issue: one open Idempotency-Key per currency, so a USD try between a lost AZN answer and its retry cannot issue a second AZN card |
 
 New tasks are numbered from T-141 on (the highest id found was T-140).
 
@@ -68,8 +69,6 @@ Done in PR #111 without a task id (number them if the old list had them):
 2. **Real phone operator adapter** — **blocked: needs an operator (or aggregator) contract, API docs and test
    credentials.** The flow is ready for it (T-144): implement `PhoneTopUpProvider.topUp` / `status` with the reference as
    the operator's idempotency key and an HTTP timeout well under 2 minutes.
-3. Smaller shortcuts noted in code (`grep -rn "shortcut:" src frontend/src`): JWT filter session lookup cache, card
-   issue key per currency, sign-up flow lost on reload.
 
 ## Decisions taken (beyond the roadmap)
 
@@ -87,3 +86,6 @@ Done in PR #111 without a task id (number them if the old list had them):
 - Phone payments hold the amount before the operator is called; an unknown answer keeps it held (never refunded on a
   guess). A delivery reported after the hold was released is flagged `PAYMENT_NEEDS_REVIEW` (metric
   `paygenix_payments_review_total`), not fixed automatically.
+- Kept as they are (reviewed after T-145): the JWT filter's one indexed session lookup per request (cache only if a
+  profile shows it), and sign-up starting over on reload (resuming would mean keeping the onboarding token in browser
+  storage, which ADR 0001 rules out for tokens).

@@ -21,17 +21,17 @@ export default function Cards() {
   const [issued, setIssued] = useState<string | null>(null) // the full number, shown once
   const [replayed, setReplayed] = useState(false)
   // A retry after a lost answer reuses the key, so the server returns that card instead of issuing a second one.
-  // shortcut: only the last currency's key is kept; switching away and back mints a new key (the list reload shows the first card)
-  const attempt = useRef<{ currency: Currency; key: string } | null>(null)
+  // One open key per currency (T-145): trying USD in between does not make a retry of AZN issue a second AZN card.
+  const attempts = useRef<Partial<Record<Currency, string>>>({})
 
   const issue = async () => {
     setBusy(true); setFailed(false); setReplayed(false)
-    const key = attempt.current?.currency === currency ? attempt.current.key : crypto.randomUUID()
-    attempt.current = { currency, key }
+    const key = attempts.current[currency] ?? crypto.randomUUID()
+    attempts.current[currency] = key
     try {
       const { data, response } = await api.POST('/api/v1/cards',
         { body: { currency }, params: { header: { 'Idempotency-Key': key } } })
-      if (response.ok) attempt.current = null // the next click is a new card
+      if (response.ok) delete attempts.current[currency] // the next click is a new card
       const pan = data?.data?.cardNumber
       if (response.ok && pan) setIssued(pan)
       else if (response.ok) setReplayed(true) // the earlier try had issued it; its number is not kept
