@@ -64,5 +64,6 @@ too when touching uploads or `fetch` stubs (`npx -y node@24 node_modules/vitest/
 
 No services survive between sessions. Start Docker (`dockerd &`), then `docker compose up -d postgres-db redis`, fill
 `.env` from `.env.example` (dev values: `REFRESH_COOKIE_SECURE=false`, any 32+ byte `JWT_SECRET` / `CARD_PAN_HMAC_KEY`),
-run `./mvnw spring-boot:run` and `cd frontend && npm run dev`. Without SMTP, email codes need a local SMTP catcher;
-without MinIO, uploads answer 503 but everything else works. Tell the app which port to preview (3000).
+run `./mvnw spring-boot:run` and `cd frontend && npm run dev`. Email codes: `docker compose --profile local up -d
+mailpit` (UI on 127.0.0.1:8025). Uploads: `docker compose --profile local up -d storage storage-init` (SeaweedFS S3;
+without it uploads answer 503 but everything else works). Tell the app which port to preview (3000).
