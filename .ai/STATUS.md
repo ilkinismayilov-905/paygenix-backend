@@ -1,6 +1,6 @@
 # Paygenix status
 
-Last updated: 2026-11-28 (observability PR). Roadmap and decisions: [`docs/ROADMAP.md`](../docs/ROADMAP.md).
+Last updated: 2026-11-28 (per-IP login limit PR). Roadmap and decisions: [`docs/ROADMAP.md`](../docs/ROADMAP.md).
 Screens and their APIs: [`docs/frontend/screens.md`](../docs/frontend/screens.md).
 
 > The earlier `.ai/MASTER_PROMPT.md`, `.ai/STATUS.md` and Ruflo memory were never committed and were lost with their
@@ -34,6 +34,7 @@ T-136, T-138, T-140. The latest ones:
 | T-132 | A payment not confirmed within 15 minutes expires (`PAYMENT_EXPIRED`, housekeeping job) |
 | T-138, T-140 | Email-code lockout kept after 5 wrong tries; PIN mismatch checked before PIN_UNCHANGED |
 | T-141 | Observability (M9): actuator on an unpublished management port (`MANAGEMENT_PORT`, guarded), Prometheus metrics with HTTP histograms, `paygenix_auth_logins_total`, `paygenix_ledger_postings_total`; request id from nginx in every log line and `X-Request-Id`; compose health check and a `monitoring` profile with Prometheus |
+| T-142 | Per-address login limit: 30 attempts / 15 min per client IP (IPv6 per /64) across all emails, counted before the password check; a success gives its attempt back; `LOGIN_RATE_LIMITED` (429 + Retry-After); `LOGIN_IP_MAX_ATTEMPTS` |
 
 New tasks are numbered from T-141 on (the highest id found was T-140).
 
@@ -62,12 +63,10 @@ Done in PR #111 without a task id (number them if the old list had them):
    Steps once they exist: a server; `docker compose up -d --build`; TLS in front of `paygenix-web`; set `FRONTEND_URL`,
    `APP_BASE_URL`, `CORS_ALLOWED_ORIGINS`, `GOOGLE_REDIRECT_URI` to the public https origin; create buckets `stories`,
    `profile` and private `kyc`; Stripe test keys (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`).
-2. **Per-IP login limit:** the client IP is reliable now (T-076); add it next to the per-email limit in
-   `LoginAttemptService`.
-3. **Playwright E2E suite in the repo** (ADR 0001): sign in, transfer, pay, change PIN, admin review against compose.
-4. **Real phone operator:** reserve → call outside the transaction → settle or release, with reconciliation (see the
+2. **Playwright E2E suite in the repo** (ADR 0001): sign in, transfer, pay, change PIN, admin review against compose.
+3. **Real phone operator:** reserve → call outside the transaction → settle or release, with reconciliation (see the
    shortcut note in `PaymentService.confirmPayment`).
-5. Smaller shortcuts noted in code (`grep -rn "shortcut:" src frontend/src`): JWT filter session lookup cache, card
+4. Smaller shortcuts noted in code (`grep -rn "shortcut:" src frontend/src`): JWT filter session lookup cache, card
    issue key per currency, sign-up flow lost on reload.
 
 ## Decisions taken (beyond the roadmap)

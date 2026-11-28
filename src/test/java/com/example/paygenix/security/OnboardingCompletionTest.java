@@ -34,7 +34,7 @@ class OnboardingCompletionTest extends IntegrationTest {
         // a finished flow cannot create a second user
         setPin(flow).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("INVALID_STEP"));
 
-        assertThat(authService.login(new LoginRequest(flow.getEmail(), PASSWORD), "test").token()).isNotBlank();
+        assertThat(authService.login(new LoginRequest(flow.getEmail(), PASSWORD), "test", "127.0.0.1").token()).isNotBlank();
     }
 
     // T-121: sign-up records the accepted versions; an outdated one rolls the whole step back

@@ -3391,7 +3391,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description More than 5 attempts for this email in 15 minutes (LOGIN_LOCKED) */
+            /** @description More than 5 attempts for this email in 15 minutes (LOGIN_LOCKED), or more than 30 from this client address (LOGIN_RATE_LIMITED); see Retry-After */
             429: {
                 headers: {
                     [name: string]: unknown;

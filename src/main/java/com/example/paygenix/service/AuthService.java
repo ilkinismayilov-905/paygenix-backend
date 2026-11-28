@@ -5,6 +5,7 @@ import com.example.paygenix.dto.response.JwtTokenResponse;
 import com.example.paygenix.entity.User;
 import com.example.paygenix.exceptions.InvalidOAuthCodeException;
 import com.example.paygenix.exceptions.LoginLockedException;
+import com.example.paygenix.exceptions.LoginRateLimitedException;
 import com.example.paygenix.repository.UserRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -30,13 +31,17 @@ public class AuthService {
     private final UserRepository userRepository;
     private final MeterRegistry meterRegistry;
 
-    public JwtTokenResponse login(LoginRequest loginRequest, String deviceName) {
+    /** clientIp is the real client behind a trusted proxy (T-076), used for the per-address limit (T-142). */
+    public JwtTokenResponse login(LoginRequest loginRequest, String deviceName, String clientIp) {
         Authentication authentication;
         try {
-            loginAttemptService.countAttempt(loginRequest.email());
+            loginAttemptService.countAttempt(loginRequest.email(), clientIp);
             authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password())
             );
+        } catch (LoginRateLimitedException e) {
+            countLogin("rate_limited");
+            throw e;
         } catch (LoginLockedException e) {
             countLogin("locked");
             throw e;
@@ -45,7 +50,7 @@ public class AuthService {
             countLogin(e instanceof BadCredentialsException ? "bad_credentials" : "refused");
             throw e;
         }
-        loginAttemptService.clear(loginRequest.email());
+        loginAttemptService.succeeded(loginRequest.email(), clientIp);
         countLogin("success");
 
         User user = (User) authentication.getPrincipal();
@@ -60,7 +65,7 @@ public class AuthService {
         return sessionService.start(user, deviceName);
     }
 
-    // paygenix.auth.logins{outcome}: a rising bad_credentials or locked rate is the signal of a guessing attack
+    // paygenix.auth.logins{outcome}: a rising bad_credentials, locked or rate_limited rate signals a guessing attack
     private void countLogin(String outcome) {
         meterRegistry.counter("paygenix.auth.logins", "outcome", outcome).increment();
     }

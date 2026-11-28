@@ -1934,7 +1934,7 @@
             "description" : "Account is locked (ACCOUNT_LOCKED)"
           },
           "429" : {
-            "description" : "More than 5 attempts for this email in 15 minutes (LOGIN_LOCKED)"
+            "description" : "More than 5 attempts for this email in 15 minutes (LOGIN_LOCKED), or more than 30 from this client address (LOGIN_RATE_LIMITED); see Retry-After"
           }
         }
       }

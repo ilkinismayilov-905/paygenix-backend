@@ -59,6 +59,7 @@ test.each([
   [401, 'UNAUTHORIZED', {}, 'Email or password is incorrect.'],
   [403, 'ACCOUNT_LOCKED', {}, 'This account is locked. Contact support to unlock it.'],
   [429, 'LOGIN_LOCKED', { 'Retry-After': '540' }, 'Too many attempts. Try again in 9 min.'],
+  [429, 'LOGIN_RATE_LIMITED', { 'Retry-After': '61' }, 'Too many attempts. Try again in 2 min.'],
 ])('sign-in maps %s %s to a message', async (status, code, headers, message) => {
   signedOut()
   fetchMock.mockResolvedValue(json(status, { code }, headers))
