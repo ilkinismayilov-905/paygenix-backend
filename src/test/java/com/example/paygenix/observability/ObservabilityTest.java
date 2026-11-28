@@ -87,8 +87,8 @@ class ObservabilityTest extends IntegrationTest {
                 .content("{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}"));
     }
 
+    // summed over every series with this tag (e.g. TOP_UP has one counter per currency, which other tests also touch)
     private double count(String name, String tag, String value) {
-        Counter counter = meterRegistry.find(name).tag(tag, value).counter();
-        return counter == null ? 0 : counter.count();
+        return meterRegistry.find(name).tag(tag, value).counters().stream().mapToDouble(Counter::count).sum();
     }
 }
