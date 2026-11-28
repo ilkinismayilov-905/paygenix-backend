@@ -45,18 +45,24 @@ services:
     volumes:
       - s3data:/data
 
-  # creates the buckets the app expects (idempotent; kyc has no public access either way)
+  # creates the buckets the app expects through the S3 API itself (works against any S3 store); 409 = exists already
   storage-init:
-    image: chrislusf/seaweedfs:3.97
+    image: curlimages/curl:8.15.0
     profiles: ["local", "e2e", "storage"]
     depends_on:
       - storage
     restart: "no"
+    environment:
+      S3_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      S3_SECRET_KEY: ${MINIO_SECRET_KEY}
     entrypoint: ["sh", "-c"]
     command:
       - >-
-        until echo 'cluster.check' | timeout 10 weed shell -master=storage:9333 >/dev/null 2>&1; do sleep 1; done;
-        for b in stories profile kyc; do echo "s3.bucket.create -name $$b" | timeout 30 weed shell -master=storage:9333; done
+        for i in $$(seq 1 90); do curl -s -o /dev/null --max-time 2 http://storage:8333/ && break; sleep 1; done;
+        for b in stories profile kyc; do
+        code=$$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 --aws-sigv4 'aws:amz:us-east-1:s3'
+        --user "$$S3_ACCESS_KEY:$$S3_SECRET_KEY" -X PUT "http://storage:8333/$$b");
+        echo "bucket $$b: $$code"; case "$$code" in 200|409) ;; *) exit 1 ;; esac; done
 
   # SMTP catcher for local runs and the E2E suite: MAIL_HOST=localhost MAIL_PORT=1025 MAIL_SMTP_AUTH=false
   # MAIL_STARTTLS_ENABLE=false; read the mail at http://127.0.0.1:8025 (the E2E suite reads codes from its API)
