@@ -155,17 +155,27 @@ test('Change details starts a new flow with a new key and an empty PIN', async (
   expect(confirms()[0]!.body.flowId).toBe('flow-2')
 })
 
-test('an operator timeout keeps the confirm step and key; a refusal goes back to the form', async () => {
+test('an operator timeout keeps the confirm step and key and reloads the held balance; a refusal goes back to the form', async () => {
   confirm = () => json(504, { code: 'PROVIDER_TIMEOUT' })
   await details()
   await screen.findByRole('heading', { name: 'Confirm payment' })
   enterPin()
   pay()
-  expect(await screen.findByText(/did not answer. Nothing was charged/)).toBeInTheDocument()
+  expect(await screen.findByText(/did not answer yet. The amount is on hold, not paid/)).toBeInTheDocument()
   confirm = () => json(422, { code: 'PHONE_TOPUP_REJECTED' })
   enterPin()
   pay()
   expect(await screen.findByText(/did not accept this number/)).toBeInTheDocument()
   expect(screen.getByLabelText('Phone number')).toBeInTheDocument()
   expect(confirms()[1]!.key).toBe(confirms()[0]!.key)
+})
+
+test('a payment that needs a manual check goes back to the form with that message', async () => {
+  confirm = () => json(409, { code: 'PAYMENT_NEEDS_REVIEW' })
+  await details()
+  await screen.findByRole('heading', { name: 'Confirm payment' })
+  enterPin()
+  pay()
+  expect(await screen.findByText(/needs a manual check. Nothing more will be charged/)).toBeInTheDocument()
+  expect(screen.getByLabelText('Phone number')).toBeInTheDocument()
 })

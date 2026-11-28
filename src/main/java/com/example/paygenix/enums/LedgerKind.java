@@ -6,5 +6,6 @@ public enum LedgerKind {
     PAYMENT,
     CASHBACK,
     TOP_UP, // card funding through Stripe Checkout (T-064, TopUpService)
-    OPENING_BALANCE
+    OPENING_BALANCE,
+    PAYMENT_RELEASE // a held phone payment returned to the card: the operator did not deliver it (T-144)
 }

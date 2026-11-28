@@ -27,6 +27,18 @@ public interface IdempotencyKeyRepository extends JpaRepository<IdempotencyKey, 
 
     Optional<IdempotencyKey> findByUserIdAndIdemKey(Long userId, String idemKey);
 
+    // executeInSteps: an action that failed gives its claim back (only a claim still without a response)
+    @Modifying
+    @Query(value = "DELETE FROM idempotency_keys WHERE user_id = :userId AND idem_key = :key AND response_body = ''",
+            nativeQuery = true)
+    int release(Long userId, String key);
+
+    // executeInSteps: takes over an abandoned claim; the created_at match makes only one taker win
+    @Modifying
+    @Query(value = "UPDATE idempotency_keys SET created_at = now() "
+            + "WHERE user_id = :userId AND idem_key = :key AND response_body = '' AND created_at = :seen", nativeQuery = true)
+    int takeOver(Long userId, String key, java.time.Instant seen);
+
     @Modifying
     @Query("DELETE FROM IdempotencyKey k WHERE k.createdAt < :before")
     int deleteCreatedBefore(@Param("before") java.time.Instant before);

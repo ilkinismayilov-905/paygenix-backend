@@ -7,7 +7,7 @@ repeated against the same database.
 | Spec | Covers |
 |---|---|
 | `sign-up.spec.ts` | the 7-step sign-up with the emailed code, sign out, a wrong password, sign in |
-| `money.spec.ts` | a transfer with its fee and both balances, a wrong PIN, a phone payment with cashback, a number the mock operator refuses |
+| `money.spec.ts` | a transfer with its fee and both balances, a wrong PIN, a phone payment with cashback, a number the mock operator refuses, a lost operator answer (amount held, Pay again completes it once) |
 | `change-pin.spec.ts` | change the PIN by emailed code; the old PIN is refused and the new one confirms a payment |
 | `admin.spec.ts` | a user's problem report resolved by an admin; an admin locks a user (who cannot sign in) and unlocks them |
 

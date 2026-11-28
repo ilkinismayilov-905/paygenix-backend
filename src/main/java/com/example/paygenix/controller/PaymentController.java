@@ -76,10 +76,14 @@ public class PaymentController {
             @ApiResponse(responseCode = "403", description = "Wrong PIN (INVALID_PIN), or current Terms/Privacy not accepted (LEGAL_ACCEPTANCE_REQUIRED)"),
             @ApiResponse(responseCode = "404", description = "Payment flow not found or not owned by the caller"),
             @ApiResponse(responseCode = "429", description = "Too many wrong PINs; PIN checks locked for 15 minutes (PIN_LOCKED); see Retry-After"),
-            @ApiResponse(responseCode = "409", description = "Payment already processed, insufficient balance, or busy (retry with the same Idempotency-Key)"),
+            @ApiResponse(responseCode = "409", description = "Payment already processed (PAYMENT_ALREADY_PROCESSED), insufficient balance, "
+                    + "busy or a confirm with this Idempotency-Key still running (RESOURCE_BUSY; retry with the same key), "
+                    + "or the operator delivered after the amount was returned (PAYMENT_NEEDS_REVIEW)"),
             @ApiResponse(responseCode = "410", description = "Not confirmed within 15 minutes of starting (PAYMENT_EXPIRED); start again"),
             @ApiResponse(responseCode = "422", description = "Idempotency-Key already used for a different request, or the operator refused the number (PHONE_TOPUP_REJECTED; nothing charged)"),
-            @ApiResponse(responseCode = "504", description = "The operator did not answer (PROVIDER_TIMEOUT); nothing charged, confirm again")
+            @ApiResponse(responseCode = "504", description = "The operator did not answer (PROVIDER_TIMEOUT): the amount is held, not paid. "
+                    + "Confirm again (same Idempotency-Key) to retry with the same operator reference; otherwise it is settled "
+                    + "or returned automatically once the operator's record is known")
     })
     @PostMapping("/confirm")
     public ResponseEntity<ApiResponseData<PaymentResponse>> confirmPayment(
@@ -90,7 +94,8 @@ public class PaymentController {
     ) {
         log.info("Confirming payment flow: {} for user: {}", request.flowId(), user.getId());
 
-        PaymentResponse response = idempotencyService.execute(user, idempotencyKey,
+        // in steps (T-144): the amount is held and committed before the operator is called, outside any transaction
+        PaymentResponse response = idempotencyService.executeInSteps(user, idempotencyKey,
                 "payment-confirm|" + request.flowId(),
                 PaymentResponse.class, () -> paymentService.confirmPayment(request.flowId(), request.pin(), user));
 
